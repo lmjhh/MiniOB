@@ -5,9 +5,11 @@ miniob设计的目标是让不熟悉数据库设计和实现的同学能够快�
 
 # How to build
 git clone 以后
-mkdir build && cd build
-cmake ..
+``` shell
+mkdir build && cd build 
+cmake .. 
 make
+```
 
 ## 进度
 10.16 配置依赖库，能直接build运行
