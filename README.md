@@ -12,5 +12,5 @@ make
 ```
 
 ## 进度
-10.16 配置依赖库，能直接build运行
-
+10.16 配置依赖库，能直接build运行  
+> 备注：228服务器上可以了，要用其他服务器得 使用 git submodule init && git submodule update 命令再去 deps 安装3个库

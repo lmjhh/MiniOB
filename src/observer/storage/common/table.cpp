@@ -155,6 +155,22 @@ RC Table::open(const char *meta_file, const char *base_dir) {
   return rc;
 }
 
+RC Table::drop(const char *path, const char *name){
+  std::string table_file_path = table_meta_file(path, name); 
+  std::string table_data_file = std::string(path) + "/" + std::string(name) + TABLE_DATA_SUFFIX;
+  if(remove(table_file_path.c_str()) == 0){
+    std::cout << "drop table path :" << table_file_path << std::endl;
+  }else{
+    return RC::GENERIC_ERROR;
+  }
+  if(remove(table_data_file.c_str()) == 0){
+    std::cout << "drop table data path :" << table_data_file << std::endl;
+  }else{
+    return RC::GENERIC_ERROR;
+  } 
+  return RC::SUCCESS;
+}
+
 RC Table::commit_insert(Trx *trx, const RID &rid) {
   Record record;
   RC rc = record_handler_->get_record(&rid, &record);

@@ -34,7 +34,7 @@ void ProcessParam::init_default(std::string &process_name) {
     std_err_ = "../log/" + process_name + ".err";
   }
   if (conf.empty()) {
-    conf = "../etc/" + process_name + ".ini";
+    conf = "../../etc/" + process_name + ".ini";
   }
 
   demon = false;
