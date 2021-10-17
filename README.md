@@ -15,3 +15,5 @@ make
 10.16 配置依赖库，能直接build运行  by hrh
 > 备注：228服务器上可以了，要用其他服务器得 使用 git submodule init && git submodule update 命令再去 deps 安装3个库
 10.16 完成 drop table 功能 by hrh
+10.17 实现 update, by hrh
+> 基本思路 scan 表的所有 record, 然后修改每一条 record, 目前问题是 没用事务，没更新索引，如果跑不过测试再改。

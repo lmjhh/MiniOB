@@ -535,7 +535,65 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   return rc;
 }
 
-RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count) {
+class RecordUpdater {
+  public:
+  RecordUpdater(Table &table, Trx *trx, const char *attribute_name, const Value *value) : table_(table), trx_(trx), attribute_name_(attribute_name), value_(value){
+  }
+  RC update_record(Record *record) {
+    RC rc = RC::SUCCESS;
+    rc = table_.update_record(trx_, record, attribute_name_, value_);
+    if (rc == RC::SUCCESS) {
+      updated_count_++;
+    }
+    return rc;
+  }
+
+  int updated_count() const {
+    return updated_count_;
+  }
+  private:
+  Table & table_;
+  Trx *trx_;
+  const char *attribute_name_;
+  const Value *value_;
+  int updated_count_ = 0;
+};
+
+static RC record_reader_update_adapter(Record *record, void *context) {
+  RecordUpdater &record_updater = *(RecordUpdater *)context;
+  return record_updater.update_record(record);
+}
+
+RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count) {
+  RecordUpdater updater(*this, trx, attribute_name, value);
+  RC rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
+  if (updated_count != nullptr) {
+    *updated_count = updater.updated_count();
+  }
+  return rc;
+}
+
+RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, const Value *value) {
+  RC rc = RC::SUCCESS;
+  const int normal_field_start_index = table_meta_.sys_field_num();
+  const int all_field_num = table_meta_.field_num();
+  for (int i = 0; i < all_field_num; i++) {
+    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+    if (std::string(field->name()) == std::string(attribute_name)) {
+
+      if(field->type() != value->type){
+        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+        field->name(), field->type(), value->type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+      char *record_data = record->data;
+      memcpy(record_data + field->offset(), value->data, field->len());
+      Record new_record;
+      new_record.rid = record->rid;
+      new_record.data = record_data;
+      return record_handler_->update_record(&new_record);
+    }
+  }
   return RC::GENERIC_ERROR;
 }
 
