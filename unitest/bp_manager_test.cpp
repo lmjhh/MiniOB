@@ -16,43 +16,57 @@ See the Mulan PSL v2 for more details. */
 #include "gtest/gtest.h"
 
 TEST(test_bp_manager, test_bp_manager_simple_lru) {
+  // std::cout << "here1" << std::endl;
   BPManager bp_manager(2);
-
+  // std::cout << "here2" << std::endl;
   Frame * frame1 = bp_manager.alloc();
   ASSERT_NE(frame1, nullptr);
-
+  // std::cout << "here3" << std::endl;
   frame1->file_desc = 0;
   frame1->page.page_num = 1;
+  // std::cout << "here4" << std::endl;
+  // std::cout << frame1->file_desc << std::endl;
+  // std::cout << frame1->page.page_num << std::endl;
 
   ASSERT_EQ(frame1, bp_manager.get(0, 1));
+  // std::cout << "here5" << std::endl;
 
   Frame *frame2 = bp_manager.alloc();
   ASSERT_NE(frame2, nullptr);
   frame2->file_desc = 0;
   frame2->page.page_num = 2;
+  // std::cout << "here6" << std::endl;
 
   ASSERT_EQ(frame1, bp_manager.get(0, 1));
+  // std::cout << "here7" << std::endl;
 
   Frame *frame3 = bp_manager.alloc();
   ASSERT_NE(frame3, nullptr);
   frame3->file_desc = 0;
   frame3->page.page_num = 3;
+  // std::cout << "here8" << std::endl;
 
   frame2 = bp_manager.get(0, 2);
   ASSERT_EQ(frame2, nullptr);
+  // std::cout << "here9" << std::endl;
 
   Frame *frame4 = bp_manager.alloc();
   frame4->file_desc = 0;
   frame4->page.page_num = 4;
+  // std::cout << "here10" << std::endl;
 
   frame1 = bp_manager.get(0, 1);
   ASSERT_EQ(frame1, nullptr);
+  // std::cout << "here11" << std::endl;
 
   frame3 = bp_manager.get(0, 3);
   ASSERT_NE(frame3, nullptr);
 
   frame4 = bp_manager.get(0, 4);
   ASSERT_NE(frame4, nullptr);
+  // std::cout << "here-last" << std::endl;
+  // std::cout << frame4->file_desc << std::endl;
+
 }
 
 int main(int argc, char **argv) {

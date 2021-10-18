@@ -82,9 +82,11 @@ public:
     this->size = size;
     frame = new Frame[size];
     allocated = new bool[size];
+    hashlist = new int[size];
     for (int i = 0; i < size; i++) {
       allocated[i] = false;
       frame[i].pin_count = 0;
+      hashlist[i] = -1; // 有-1，说明frame还有空
     }
   }
 
@@ -94,15 +96,18 @@ public:
     size = 0;
     frame = nullptr;
     allocated = nullptr;
+    hashlist = nullptr;
   }
 
-  Frame *alloc() {
-    return nullptr; // TODO for test
-  }
+  // Frame *alloc() {
+  //   return nullptr; // TODO for test
+  // }
+  Frame *alloc();
 
-  Frame *get(int file_desc, PageNum page_num) {
-    return nullptr; // TODO for test
-  }
+  // Frame *get(int file_desc, PageNum page_num) {
+  //   return nullptr; // TODO for test
+  // }
+  Frame *get(int file_desc, PageNum page_num);
 
   Frame *getFrame() { return frame; }
 
@@ -112,6 +117,7 @@ public:
   int size;
   Frame * frame = nullptr;
   bool *allocated = nullptr;
+  int *hashlist = nullptr;
 };
 
 class DiskBufferPool {
@@ -125,8 +131,8 @@ public:
    * 根据文件名打开一个分页文件，返回文件ID
    * @return
    */
+  // RC open_file(const char *file_name, int *file_id);
   RC open_file(const char *file_name, int *file_id);
-
   /**
    * 关闭fileID对应的分页文件
    */

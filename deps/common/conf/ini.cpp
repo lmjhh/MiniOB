@@ -130,6 +130,7 @@ int Ini::load(const std::string &file_name) {
     std::string line_entry;
 
     ifs.open(file_name.c_str());
+ 
     while (ifs.good()) {
 
       memset(line, 0, sizeof(line));
