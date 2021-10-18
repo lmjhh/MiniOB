@@ -77,6 +77,8 @@ RC Db::drop_table(const char *table_name){
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
   Table *table = Db::find_table(table_name);
+  opened_tables_.erase(table_name);
+  
   if(table == nullptr){
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }else{
