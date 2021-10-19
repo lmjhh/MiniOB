@@ -17,3 +17,4 @@ make
 10.16 完成 drop table 功能 by hrh
 10.17 实现 update, by hrh
 > 基本思路 scan 表的所有 record, 然后修改每一条 record, 目前问题是 没用事务，没更新索引，如果跑不过测试再改。
+10.20 实现校验元数据，update 时同步更新索引 by hrh
