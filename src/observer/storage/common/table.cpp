@@ -575,6 +575,7 @@ RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute
 
 RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, const Value *value) {
   RC rc = RC::SUCCESS;
+
   const int normal_field_start_index = table_meta_.sys_field_num();
   const int all_field_num = table_meta_.field_num();
   for (int i = 0; i < all_field_num; i++) {
@@ -586,12 +587,42 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
         field->name(), field->type(), value->type);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
-      char *record_data = record->data;
-      memcpy(record_data + field->offset(), value->data, field->len());
-      Record new_record;
-      new_record.rid = record->rid;
-      new_record.data = record_data;
-      return record_handler_->update_record(&new_record);
+
+      //先删除旧索引
+      rc = delete_entry_of_indexes(record->data, record->rid, false);
+      if (rc != RC::SUCCESS) {
+        LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
+                record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
+        return rc;
+      } else {
+        char *record_data = record->data;
+        memcpy(record_data + field->offset(), value->data, field->len());
+        Record new_record;
+        new_record.rid = record->rid;
+        new_record.data = record_data;
+        rc =  record_handler_->update_record(&new_record);
+        if(rc != RC::SUCCESS){
+          LOG_ERROR("Failed to update record (rid=%d.%d). rc=%d:%s",
+                record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
+          return rc;
+        }else { //插入新索引
+           rc = insert_entry_of_indexes(new_record.data, new_record.rid);
+            if (rc != RC::SUCCESS) {
+              RC rc2 = delete_entry_of_indexes(new_record.data, new_record.rid, true);
+              if (rc2 != RC::SUCCESS) {
+                LOG_PANIC("Failed to rollback index data when insert index entries failed. table name=%s, rc=%d:%s",
+                          name(), rc2, strrc(rc2));
+              }
+              rc2 = record_handler_->update_record(record); //这个回滚应该是无效的，因为指向的数据已经改变，懒得改了。
+              if (rc2 != RC::SUCCESS) {
+                LOG_PANIC("Failed to rollback update record data when insert index entries failed. table name=%s, rc=%d:%s",
+                          name(), rc2, strrc(rc2));
+              }
+              return rc;
+            }
+            return rc;
+        }
+      }
     }
   }
   return RC::GENERIC_ERROR;

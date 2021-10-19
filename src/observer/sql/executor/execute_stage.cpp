@@ -123,7 +123,13 @@ void ExecuteStage::handle_request(common::StageEvent *event) {
 
   switch (sql->flag) {
     case SCF_SELECT: { // select
-      do_select(current_db, sql, exe_event->sql_event()->session_event());
+      RC rc = RC::SUCCESS;
+      char response[256];
+      rc = do_select(current_db, sql, exe_event->sql_event()->session_event());
+      if(rc != RC::SUCCESS){
+        snprintf(response, sizeof(response), "%s\n", "FAILURE");
+        session_event->set_response(response);
+      }
       exe_event->done_immediate();
     }
     break;
@@ -227,6 +233,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     const char *table_name = selects.relations[i];
     SelectExeNode *select_node = new SelectExeNode;
     rc = create_selection_executor(trx, selects, db, table_name, *select_node);
+
     if (rc != RC::SUCCESS) {
       delete select_node;
       for (SelectExeNode *& tmp_node: select_nodes) {
