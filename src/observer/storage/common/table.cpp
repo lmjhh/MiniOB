@@ -281,7 +281,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    if (field->type() != value.type) {
+    if (field->type() != value.type && !(field->type() == AttrType::FLOATS && value.type == AttrType::INTS)) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -295,7 +295,13 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    memcpy(record + field->offset(), value.data, field->len());
+    if(field->type() == AttrType::FLOATS && value.type == AttrType::INTS){
+      int *vdata = (int *)value.data;
+      float i2fdata = (float)(*vdata * 1.0);
+      memcpy(record + field->offset(), &i2fdata, field->len());
+    }else{
+      memcpy(record + field->offset(), value.data, field->len());
+    }
   }
 
   record_out = record;
@@ -581,8 +587,7 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
   for (int i = 0; i < all_field_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     if (std::string(field->name()) == std::string(attribute_name)) {
-
-      if(field->type() != value->type){
+      if(field->type() != value->type && !(field->type() == AttrType::FLOATS && value->type == AttrType::INTS)){
         LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value->type);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -596,7 +601,13 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
         return rc;
       } else {
         char *record_data = record->data;
-        memcpy(record_data + field->offset(), value->data, field->len());
+        if(field->type() == AttrType::FLOATS && value->type == AttrType::INTS){
+          int *vdata = (int *)value->data;
+          float i2fdata = (float)(*vdata * 1.0);
+          memcpy(record_data + field->offset(), &i2fdata, field->len());
+        }else {
+          memcpy(record_data + field->offset(), value->data, field->len());
+        }
         Record new_record;
         new_record.rid = record->rid;
         new_record.data = record_data;
