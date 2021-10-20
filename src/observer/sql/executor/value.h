@@ -56,6 +56,22 @@ public:
   void to_string(std::ostream &os) const override {
     char fomatValueStr[256];
     snprintf(fomatValueStr, sizeof(fomatValueStr), "%.2f", value_);
+    
+    if (NULL != strchr(fomatValueStr, '.')){
+      int length = strlen(fomatValueStr);
+      for (int i = length - 1; i > 0; i--) {
+        if ('\0' == fomatValueStr[i]) {
+          continue;
+        }else if ('0' == fomatValueStr[i]) {
+          fomatValueStr[i] = '\0';
+        }else if ('.' == fomatValueStr[i]) {
+          fomatValueStr[i] = '\0';
+          break;
+        }else{
+          break;
+        }
+      }
+    }
     os << fomatValueStr;
   }
 
@@ -70,8 +86,10 @@ public:
     }
     return 0;
   }
+
 private:
   float value_;
+
 };
 
 class StringValue : public TupleValue {
