@@ -16,7 +16,7 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_SQL_EXECUTOR_VALUE_H_
 
 #include <string.h>
-
+#include <stdlib.h>
 #include <string>
 #include <ostream>
 
@@ -54,13 +54,15 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
-    os << value_;
+    char fomatValueStr[256];
+    snprintf(fomatValueStr, sizeof(fomatValueStr), "%.2f", value_);
+    os << fomatValueStr;
   }
 
   int compare(const TupleValue &other) const override {
     const FloatValue & float_other = (const FloatValue &)other;
     float result = value_ - float_other.value_;
-    if (result > 0) { // 浮点数没有考虑精度问题
+    if (result > 0.00001) { // 浮点数没有考虑精度问题
       return 1;
     }
     if (result < 0) {
@@ -80,7 +82,7 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
-    os << value_;
+      os << value_;
   }
 
   int compare(const TupleValue &other) const override {
