@@ -281,7 +281,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    if (field->type() != value.type && !(field->type() == AttrType::FLOATS && value.type == AttrType::INTS)) {
+    if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -572,6 +572,20 @@ static RC record_reader_update_adapter(Record *record, void *context) {
 
 RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute_name, const Value *value, int condition_num, const Condition conditions[], int *updated_count) {
   RecordUpdater updater(*this, trx, attribute_name, value);
+
+  const int normal_field_start_index = table_meta_.sys_field_num();
+  const int all_field_num = table_meta_.field_num();
+  for (int i = 0; i < all_field_num; i++) {
+    const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
+    if (std::string(field->name()) == std::string(attribute_name)) {
+      if(field->type() != value->type) {
+        LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
+        field->name(), field->type(), value->type);
+        return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+      }
+    }
+  }
+  
   RC rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
   if (updated_count != nullptr) {
     *updated_count = updater.updated_count();
@@ -587,7 +601,7 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
   for (int i = 0; i < all_field_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     if (std::string(field->name()) == std::string(attribute_name)) {
-      if(field->type() != value->type && !(field->type() == AttrType::FLOATS && value->type == AttrType::INTS)){
+      if(field->type() != value->type) {
         LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value->type);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
