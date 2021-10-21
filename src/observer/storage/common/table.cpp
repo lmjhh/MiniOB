@@ -607,21 +607,21 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
 
-      //先删除旧索引
-      rc = delete_entry_of_indexes(record->data, record->rid, false);
-      if (rc != RC::SUCCESS) {
-        LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
-                record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
-        return rc;
-      } else {
+      // //先删除旧索引
+      // rc = delete_entry_of_indexes(record->data, record->rid, false);
+      // if (rc != RC::SUCCESS) {
+      //   LOG_ERROR("Failed to delete indexes of record (rid=%d.%d). rc=%d:%s",
+      //           record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
+      //   return rc;
+      // } else {
         char *record_data = record->data;
-        if(field->type() == AttrType::FLOATS && value->type == AttrType::INTS){
-          int *vdata = (int *)value->data;
-          float i2fdata = (float)(*vdata * 1.0);
-          memcpy(record_data + field->offset(), &i2fdata, field->len());
-        }else {
+        // if(field->type() == AttrType::FLOATS && value->type == AttrType::INTS){
+        //   int *vdata = (int *)value->data;
+        //   float i2fdata = (float)(*vdata * 1.0);
+        //   memcpy(record_data + field->offset(), &i2fdata, field->len());
+        // }else {
           memcpy(record_data + field->offset(), value->data, field->len());
-        }
+        // }
         Record new_record;
         new_record.rid = record->rid;
         new_record.data = record_data;
@@ -629,25 +629,26 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
         if(rc != RC::SUCCESS){
           LOG_ERROR("Failed to update record (rid=%d.%d). rc=%d:%s",
                 record->rid.page_num, record->rid.slot_num, rc, strrc(rc));
-          return rc;
-        }else { //插入新索引
-           rc = insert_entry_of_indexes(new_record.data, new_record.rid);
-            if (rc != RC::SUCCESS) {
-              RC rc2 = delete_entry_of_indexes(new_record.data, new_record.rid, true);
-              if (rc2 != RC::SUCCESS) {
-                LOG_PANIC("Failed to rollback index data when insert index entries failed. table name=%s, rc=%d:%s",
-                          name(), rc2, strrc(rc2));
-              }
-              rc2 = record_handler_->update_record(record); //这个回滚应该是无效的，因为指向的数据已经改变，懒得改了。
-              if (rc2 != RC::SUCCESS) {
-                LOG_PANIC("Failed to rollback update record data when insert index entries failed. table name=%s, rc=%d:%s",
-                          name(), rc2, strrc(rc2));
-              }
-              return rc;
-            }
-            return rc;
         }
-      }
+        return rc;
+        // }else { //插入新索引
+        //    rc = insert_entry_of_indexes(new_record.data, new_record.rid);
+        //     if (rc != RC::SUCCESS) {
+        //       RC rc2 = delete_entry_of_indexes(new_record.data, new_record.rid, true);
+        //       if (rc2 != RC::SUCCESS) {
+        //         LOG_PANIC("Failed to rollback index data when insert index entries failed. table name=%s, rc=%d:%s",
+        //                   name(), rc2, strrc(rc2));
+        //       }
+        //       rc2 = record_handler_->update_record(record); //这个回滚应该是无效的，因为指向的数据已经改变，懒得改了。
+        //       if (rc2 != RC::SUCCESS) {
+        //         LOG_PANIC("Failed to rollback update record data when insert index entries failed. table name=%s, rc=%d:%s",
+        //                   name(), rc2, strrc(rc2));
+        //       }
+        //       return rc;
+        //     }
+        //     return rc;
+        // }
+      // }
     }
   }
   return RC::GENERIC_ERROR;
