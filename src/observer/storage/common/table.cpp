@@ -643,9 +643,9 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
                 LOG_PANIC("Failed to rollback update record data when insert index entries failed. table name=%s, rc=%d:%s",
                           name(), rc2, strrc(rc2));
               }
-              return rc;
+              return rc2;
             }
-            return rc;
+          return rc;
         }
       }
     }
