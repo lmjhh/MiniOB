@@ -265,21 +265,52 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       tuple_sets.push_back(std::move(tuple_set));
     }
   }
-
-  std::stringstream ss;
-  if (tuple_sets.size() > 1) {
-    // 本次查询了多张表，需要做join操作
-  } else {
-    // 当前只查询一张表，直接返回结果即可
-    tuple_sets.front().print(ss);
-  }
-
-  for (SelectExeNode *& tmp_node: select_nodes) {
+  // selects.poly_type 指示是哪个聚合函数 max=1，min=2，count=3，avg=4.
+  // 此处对tuple_sets进行处理，更新返回的内容
+  if (selects.poly_type){
+    std::cout <<  "poly_type:  " << selects.poly_type << std::endl;
+    std::stringstream ss;
+    if (tuple_sets.size() > 1) {
+      // 本次查询了多张表，需要做join操作
+    } else {
+      // 当前只查询一张表，直接返回结果即可
+      if (selects.poly_type == 1){
+        tuple_sets.front().print_poly(ss,"max");
+      }
+      else if(selects.poly_type == 2){
+        tuple_sets.front().print_poly(ss,"min");
+      }
+      else if(selects.poly_type == 3){
+        tuple_sets.front().print_poly(ss,"count");
+      }
+      else{
+        tuple_sets.front().print_poly(ss,"avg");
+      }
+      // tuple_sets.front().schema().print(ss);
+    }
+    for (SelectExeNode *& tmp_node: select_nodes) {
     delete tmp_node;
+    }
+    // std::cout << ss.str() << std::endl;
+    session_event->set_response(ss.str());
+    end_trx_if_need(session, trx, true);
+    return rc;
   }
-  session_event->set_response(ss.str());
-  end_trx_if_need(session, trx, true);
-  return rc;
+  else{
+    std::stringstream ss;
+    if (tuple_sets.size() > 1) {
+      // 本次查询了多张表，需要做join操作
+    } else {
+      // 当前只查询一张表，直接返回结果即可
+      tuple_sets.front().print(ss);
+    }
+    for (SelectExeNode *& tmp_node: select_nodes) {
+      delete tmp_node;
+    }
+    session_event->set_response(ss.str());
+    end_trx_if_need(session, trx, true);
+    return rc;
+  }
 }
 
 bool match_table(const Selects &selects, const char *table_name_in_condition, const char *table_name_to_match) {

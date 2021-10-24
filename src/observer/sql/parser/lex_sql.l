@@ -53,6 +53,10 @@ QUOTE            [\'\"]
 [Ss][Hh][Oo][Ww]                         RETURN_TOKEN(SHOW);
 [Ss][Yy][Nn][Cc]                         RETURN_TOKEN(SYNC);
 [Ss][Ee][Ll][Ee][Cc][Tt]                 RETURN_TOKEN(SELECT);
+[Cc][Oo][Uu][Nn][Tt]                 RETURN_TOKEN(COUNT);
+[Mm][Aa][Xx]                			RETURN_TOKEN(MAX);
+[Mm][Ii][Nn]                			RETURN_TOKEN(MIN);
+[Aa][Vv][Gg]							RETURN_TOKEN(AVG);
 [Ff][Rr][Oo][Mm]                      	 RETURN_TOKEN(FROM);
 [Ww][Hh][Ee][Rr][Ee]                  	 RETURN_TOKEN(WHERE);
 [Aa][Nn][Dd]                             RETURN_TOKEN(AND);

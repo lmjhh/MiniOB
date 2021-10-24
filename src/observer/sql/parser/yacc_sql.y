@@ -102,6 +102,11 @@ ParserContext *get_context(yyscan_t scanner)
         LE
         GE
         NE
+		MAX
+		MIN
+		COUNT
+		AVG
+
 
 %union {
   struct _Attr *attr;
@@ -368,6 +373,26 @@ select_attr:
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| MAX LBRACE select_attr RBRACE{
+		// CONTEXT->ssql->sstr.selection.poly_type = 1;
+		// need to add a flag to mark max()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,1);
+		}
+	| MIN LBRACE select_attr RBRACE{
+		// CONTEXT->ssql->sstr.selection.poly_type = 2;
+		// need to add a flag to mark min()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,2);
+		}
+	| COUNT LBRACE select_attr RBRACE{
+		// CONTEXT->ssql->sstr.selection.poly_type = 3;
+		// need to add a flag to mark count()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,3);
+		}
+	| AVG LBRACE select_attr RBRACE{
+		// CONTEXT->ssql->sstr.selection.poly_type = 4;
+		// need to add a flag to mark avg()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,4);
 		}
     ;
 attr_list:

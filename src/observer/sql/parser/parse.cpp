@@ -114,6 +114,9 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
   }
   selects->condition_num = condition_num;
 }
+void selects_set_poly(Selects *selects, size_t poly_type){
+  selects->poly_type = poly_type;
+}
 
 void selects_destroy(Selects *selects) {
   for (size_t i = 0; i < selects->attr_num; i++) {
