@@ -114,9 +114,9 @@ void value_init_date(Value *value, const char *v) {
 	}
   if(year %4 ==0)
     leap_year=1;
-  if(month > 12)
+  if(month > 12 || month < 1)
     valid=0;
-  if(day > 31)
+  if(day > 31 || day < 1)
     valid = 0;
   if(month == 2 )
   {
