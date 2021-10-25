@@ -281,6 +281,8 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
+    std::cerr<<"---field->type():"<<field->type()<<std::endl;
+    std::cerr<<"---value.type:"<<value.type<<std::endl;
     if (field->type() != value.type) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
