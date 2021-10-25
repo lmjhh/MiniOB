@@ -187,17 +187,34 @@ void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
     LOG_WARN("Got empty schema");
     return;
   }
-  os << poly_type;
-  os << "(";
-  std::stringstream ss_tmp;
-  schema_.print(ss_tmp);
-  std::string tmp = ss_tmp.str();
-  tmp.pop_back();
-  if (tmp.find("|") != -1){
-    tmp = "*";
+  if (poly_type.find("1") != -1){
+    poly_type.pop_back();
+    os << poly_type;
+    os << "(";
+    std::stringstream ss_tmp;
+    schema_.print(ss_tmp);
+    std::string tmp = ss_tmp.str();
+    tmp.pop_back();
+    if (tmp.find("|") != -1){
+      tmp = "1";
+    }
+    os << tmp;
+    os << ")\n";
   }
-  os << tmp;
-  os << ")\n";
+  else{
+    os << poly_type;
+    os << "(";
+    std::stringstream ss_tmp;
+    schema_.print(ss_tmp);
+    std::string tmp = ss_tmp.str();
+    tmp.pop_back();
+    if (tmp.find("|") != -1){
+      tmp = "*";
+    }
+    os << tmp;
+    os << ")\n";
+  }
+  
 
   std::set<std::string> lines;
   std::vector<float> lines1;

@@ -107,6 +107,7 @@ ParserContext *get_context(yyscan_t scanner)
 		MIN
 		COUNT
 		AVG
+		BUDING
 
 
 %union {
@@ -384,24 +385,48 @@ select_attr:
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
 	| MAX LBRACE select_attr RBRACE{
-		// CONTEXT->ssql->sstr.selection.poly_type = 1;
 		// need to add a flag to mark max()
 		selects_set_poly(&CONTEXT->ssql->sstr.selection,1);
 		}
+	| MAX BUDING{
+		// need to add a flag to mark max()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,11);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
 	| MIN LBRACE select_attr RBRACE{
-		// CONTEXT->ssql->sstr.selection.poly_type = 2;
 		// need to add a flag to mark min()
 		selects_set_poly(&CONTEXT->ssql->sstr.selection,2);
 		}
+	| MIN BUDING{
+		// need to add a flag to mark min()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,21);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
 	| COUNT LBRACE select_attr RBRACE{
-		// CONTEXT->ssql->sstr.selection.poly_type = 3;
 		// need to add a flag to mark count()
 		selects_set_poly(&CONTEXT->ssql->sstr.selection,3);
 		}
+	| COUNT BUDING{
+		// need to add a flag to mark count()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,31);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
 	| AVG LBRACE select_attr RBRACE{
-		// CONTEXT->ssql->sstr.selection.poly_type = 4;
 		// need to add a flag to mark avg()
 		selects_set_poly(&CONTEXT->ssql->sstr.selection,4);
+		}
+	| AVG BUDING{
+		// need to add a flag to mark avg()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,41);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
     ;
 attr_list:

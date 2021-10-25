@@ -277,14 +277,29 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       if (selects.poly_type == 1){
         tuple_sets.front().print_poly(ss,"max");
       }
+      else if(selects.poly_type == 11){
+        tuple_sets.front().print_poly(ss,"max1");
+      }
       else if(selects.poly_type == 2){
         tuple_sets.front().print_poly(ss,"min");
+      }
+      else if(selects.poly_type == 21){
+        tuple_sets.front().print_poly(ss,"min1");
       }
       else if(selects.poly_type == 3){
         tuple_sets.front().print_poly(ss,"count");
       }
-      else{
+      else if(selects.poly_type == 31){
+        tuple_sets.front().print_poly(ss,"count1");
+      }
+      else if (selects.poly_type == 4){
         tuple_sets.front().print_poly(ss,"avg");
+      }
+      else if(selects.poly_type == 41){
+        tuple_sets.front().print_poly(ss,"avg1");
+      }
+      else{
+        
       }
       // tuple_sets.front().schema().print(ss);
     }
