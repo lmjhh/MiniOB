@@ -248,7 +248,7 @@ void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
       avg = avg/lines1.size();
     }
     // os << std::to_string(avg);
-    os << avg << std::setprecision(2);
+    os << avg;
     os << std::endl;
   }
 }
