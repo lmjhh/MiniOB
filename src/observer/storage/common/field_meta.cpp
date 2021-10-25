@@ -27,6 +27,7 @@ const char *ATTR_TYPE_NAME[] = {
   "undefined",
   "chars",
   "ints",
+  "dates",
   "floats"
 };
 
