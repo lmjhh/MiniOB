@@ -87,6 +87,11 @@ void TupleSchema::from_select(const char *table_name, const char *field_name, Tu
         schema.add(field.type(), field.table_name(), field.field_name());
       }
     }
+    if(table_name != nullptr && field_name == nullptr){
+      if (0 == strcmp(field.table_name(), table_name)) {
+        schema.add(field.type(), field.table_name(), field.field_name());
+      }
+    }
     if(table_name != nullptr && field_name != nullptr){
       if (0 == strcmp(field.table_name(), table_name) && 0 == strcmp(field.field_name(), field_name)){
         schema.add(field.type(), field.table_name(), field.field_name());
@@ -202,6 +207,94 @@ void TupleSet::print(std::ostream &os) const {
   }
 }
 
+void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
+  if (schema_.fields().empty()) {
+    LOG_WARN("Got empty schema");
+    return;
+  }
+  if (poly_type.find("1") != -1){
+    poly_type.pop_back();
+    os << poly_type;
+    os << "(";
+    std::stringstream ss_tmp;
+    schema_.print(ss_tmp);
+    std::string tmp = ss_tmp.str();
+    tmp.pop_back();
+    if (tmp.find("|") != -1){
+      tmp = "1";
+    }
+    os << tmp;
+    os << ")\n";
+  }
+  else{
+    os << poly_type;
+    os << "(";
+    std::stringstream ss_tmp;
+    schema_.print(ss_tmp);
+    std::string tmp = ss_tmp.str();
+    tmp.pop_back();
+    if (tmp.find("|") != -1){
+      tmp = "*";
+    }
+    os << tmp;
+    os << ")\n";
+  }
+  
+
+  std::set<std::string> lines;
+  std::vector<float> lines1;
+
+  for (const Tuple &item : tuples_) {
+    std::stringstream tmp;
+    tmp.str("");
+    const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+    for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
+          iter != end; ++iter) {
+      (*iter)->to_string(tmp);
+      tmp << " | ";
+    }
+    values.back()->to_string(tmp);
+    // os << std::endl;
+    lines.insert(tmp.str());
+    if (poly_type == "avg"){
+      // if tmp.str().lengh()
+      std::string tmp1 = tmp.str();
+      // tmp1.pop_back();
+      if (tmp1.size() > 0){
+        lines1.push_back(std::stof(tmp1));
+      }
+      
+    }
+  }
+  if(poly_type == "count"){
+    int countv = 0;
+    countv = lines.size();
+    os << std::to_string(countv);
+    os << std::endl;
+  }
+  else if(poly_type == "max"){
+    os << *(lines.rbegin());
+    os << std::endl;
+  }
+  else if(poly_type == "min"){
+    os << *lines.begin();
+    os << std::endl;
+  }
+  else{//avg
+    // add all values
+    float avg = 0.0;
+    if(lines1.size()>0){
+      for(int k=0;k<lines1.size();k++){
+        avg = avg+lines1[k];
+      }
+      avg = avg/lines1.size();
+    }
+    // os << std::to_string(avg);
+    os << avg;
+    os << std::endl;
+  }
+}
+
 void TupleSet::set_schema(const TupleSchema &schema) {
   schema_ = schema;
 }
@@ -239,6 +332,42 @@ void TupleRecordConverter::add_record(const char *record) {
     const FieldMeta *field_meta = table_meta.field(field.field_name());
     assert(field_meta != nullptr);
     switch (field_meta->type()) {
+      case DATES: {
+        int value = *(int*)(record + field_meta->offset());
+        
+        std::cerr<<"---int_value:"<<value<<std::endl;
+        char date[20];
+        int a=0;
+        a = value % 10;
+        date[9] = (char)(48+a);
+        value /= 10;
+        a = value % 10;
+        date[8] = (char)(48+a);
+        date[7] = '-';
+        value /= 10;
+        a = value % 10; 
+        date[6] = (char)(48+a);
+        value /= 10;
+        a = value % 10;
+        date[5] = (char)(48+a);
+        date[4] = '-';
+        value /= 10;
+        a = value % 10;
+        date[3] = (char)(48+a);
+        value /= 10;
+        a = value % 10;
+        date[2] = (char)(48+a);
+        value /= 10;
+        a = value % 10;
+        date[1] = (char)(48+a);
+        value /= 10;
+        a = value % 10;
+        date[0] = (char)(48+a);
+        date[10] = '\0';
+        tuple.add(date, strlen(date));
+        std::cerr<<"---date:"<<date<<std::endl;
+      }
+      break;
       case INTS: {
         int value = *(int*)(record + field_meta->offset());
         tuple.add(value);

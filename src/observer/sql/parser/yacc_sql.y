@@ -81,6 +81,7 @@ ParserContext *get_context(yyscan_t scanner)
         TRX_COMMIT
         TRX_ROLLBACK
         INT_T
+		DATE_T
         STRING_T
         FLOAT_T
         HELP
@@ -102,12 +103,19 @@ ParserContext *get_context(yyscan_t scanner)
         LE
         GE
         NE
+		MAX
+		MIN
+		COUNT
+		AVG
+		BUDING
+
 
 %union {
   struct _Attr *attr;
   struct _Condition *condition1;
   struct _Value *value1;
   char *string;
+  char *date;
   int number;
   float floats;
 	char *position;
@@ -117,6 +125,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <floats> FLOAT 
 %token <string> ID
 %token <string> PATH
+%token <date> DATE
 %token <string> SSS
 %token <string> STAR
 %token <string> STRING_V
@@ -266,6 +275,7 @@ number:
 		;
 type:
 	INT_T { $$=INTS; }
+	   | DATE_T { $$=DATES; }
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
        ;
@@ -302,7 +312,11 @@ value_list:
 	  }
     ;
 value:
-    NUMBER{	
+	DATE {
+			$1 = substr($1,1,strlen($1)-2);
+  		value_init_date(&CONTEXT->values[CONTEXT->value_length++], $1);
+		}
+    |NUMBER{	
   		value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
     |FLOAT{
@@ -312,6 +326,7 @@ value:
 			$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
+	
     ;
     
 delete:		/*  delete 语句的语法解析树*/
@@ -368,6 +383,50 @@ select_attr:
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| MAX LBRACE select_attr RBRACE{
+		// need to add a flag to mark max()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,1);
+		}
+	| MAX BUDING{
+		// need to add a flag to mark max()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,11);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| MIN LBRACE select_attr RBRACE{
+		// need to add a flag to mark min()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,2);
+		}
+	| MIN BUDING{
+		// need to add a flag to mark min()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,21);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| COUNT LBRACE select_attr RBRACE{
+		// need to add a flag to mark count()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,3);
+		}
+	| COUNT BUDING{
+		// need to add a flag to mark count()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,31);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| AVG LBRACE select_attr RBRACE{
+		// need to add a flag to mark avg()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,4);
+		}
+	| AVG BUDING{
+		// need to add a flag to mark avg()
+		selects_set_poly(&CONTEXT->ssql->sstr.selection,41);
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
     ;
 attr_list:

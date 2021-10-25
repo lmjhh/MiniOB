@@ -42,15 +42,105 @@ void value_init_integer(Value *value, int v) {
   value->type = INTS;
   value->data = malloc(sizeof(v));
   memcpy(value->data, &v, sizeof(v));
+  std::cerr<<"---value_init_int"<<std::endl;
 }
 void value_init_float(Value *value, float v) {
   value->type = FLOATS;
   value->data = malloc(sizeof(v));
   memcpy(value->data, &v, sizeof(v));
+  std::cerr<<"---value_init_float"<<std::endl;
 }
 void value_init_string(Value *value, const char *v) {
   value->type = CHARS;
   value->data = strdup(v);
+  std::cerr<<"---value_init_string"<<std::endl;
+  std::cerr<<"---value->data:"<<value->data<<std::endl;
+}
+void value_init_date(Value *value, const char *v) {
+  std::cerr<<"---value_init_date"<<std::endl;
+
+  int year=0, month=0, day=0, valid=1, leap_year=0;
+  char *d = ".-";
+  char date[20];
+  strcpy(date, v);
+  char *p;
+  p = strtok(date,d);
+  int data_int = 0;
+  if(p)
+  {
+    	for(int i=0; i<strlen(p); i++)
+    	{
+    		//cout<<p[i]<<endl;
+    		data_int *=10;
+    		data_int += p[i]-48;
+		  }
+      year = data_int;
+	}
+    p=strtok(NULL,d);
+    if(p)
+    {
+    	if(strlen(p)==1)
+    	{
+    		data_int *=10;
+    		data_int *=10;
+    		data_int += p[0]-48;
+		  }
+		  else
+		  {
+			  data_int *=10;
+    	  data_int += p[0]-48;
+    	  data_int *=10;
+    	  data_int += p[1]-48;
+	  	}
+      month = data_int % 100;
+	  }
+  p=strtok(NULL,d);
+  if(p)
+  {
+    	if(strlen(p)==1)
+    	{
+    		data_int *=10;
+    		data_int *=10;
+    		data_int += p[0]-48;
+		}
+		else
+		{
+			data_int *=10;
+    	data_int += p[0]-48;
+    	data_int *=10;
+    	data_int += p[1]-48;
+		}
+    day = data_int % 100;
+	}
+  if(year %4 ==0)
+    leap_year=1;
+  if(month > 12 || month < 1)
+    valid=0;
+  if(day > 31 || day < 1)
+    valid = 0;
+  if(month == 2 )
+  {
+    if(day>29)
+      valid = 0;
+    if(leap_year == 0 && day > 28)
+      valid = 0;
+  }
+  if(month==4 || month==6 || month==9 || month==11)
+  {
+    if(day > 30)
+      valid =0;
+  }
+  if(valid == 1){
+    value->type = DATES;
+    value->data = malloc(sizeof(int));
+    memcpy(value->data, &data_int, sizeof(data_int));
+  }
+  else{
+    value->type = UNDEFINED;
+    value->data = malloc(sizeof(int));
+    memcpy(value->data, &data_int, sizeof(data_int));
+  }
+  
 }
 void value_destroy(Value *value) {
   value->type = UNDEFINED;
@@ -92,6 +182,7 @@ void condition_destroy(Condition *condition) {
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length) {
   attr_info->name = strdup(name);
   attr_info->type = type;
+  std::cerr<<"----type:"<<type<<std::endl;
   attr_info->length = length;
 }
 void attr_info_destroy(AttrInfo *attr_info) {
@@ -113,6 +204,9 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
     selects->conditions[i] = conditions[i];
   }
   selects->condition_num = condition_num;
+}
+void selects_set_poly(Selects *selects, size_t poly_type){
+  selects->poly_type = poly_type;
 }
 
 void selects_destroy(Selects *selects) {
