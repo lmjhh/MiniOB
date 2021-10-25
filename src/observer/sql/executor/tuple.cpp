@@ -182,6 +182,77 @@ void TupleSet::print(std::ostream &os) const {
   }
 }
 
+void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
+  if (schema_.fields().empty()) {
+    LOG_WARN("Got empty schema");
+    return;
+  }
+  os << poly_type;
+  os << "(";
+  std::stringstream ss_tmp;
+  schema_.print(ss_tmp);
+  std::string tmp = ss_tmp.str();
+  tmp.pop_back();
+  if (tmp.find("|") != -1){
+    tmp = "*";
+  }
+  os << tmp;
+  os << ")\n";
+
+  std::set<std::string> lines;
+  std::vector<float> lines1;
+
+  for (const Tuple &item : tuples_) {
+    std::stringstream tmp;
+    tmp.str("");
+    const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
+    for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
+          iter != end; ++iter) {
+      (*iter)->to_string(tmp);
+      tmp << " | ";
+    }
+    values.back()->to_string(tmp);
+    // os << std::endl;
+    lines.insert(tmp.str());
+    if (poly_type == "avg"){
+      // if tmp.str().lengh()
+      std::string tmp1 = tmp.str();
+      // tmp1.pop_back();
+      if (tmp1.size() > 0){
+        lines1.push_back(std::stof(tmp1));
+      }
+      
+    }
+  }
+  if(poly_type == "count"){
+    int countv = 0;
+    countv = lines.size();
+    os << std::to_string(countv);
+    os << std::endl;
+  }
+  else if(poly_type == "max"){
+    os << *(lines.rbegin());
+    os << std::endl;
+  }
+  else if(poly_type == "min"){
+    os << *lines.begin();
+    os << std::endl;
+  }
+  else{//avg
+    // add all values
+    float avg = 0.0;
+    if(lines1.size()>0){
+      for(int k=0;k<lines1.size();k++){
+        avg = avg+lines1[k];
+      }
+      avg = avg/lines1.size();
+    }
+    // os << std::to_string(avg);
+    os << avg << std::setprecision(2);
+    os << std::endl;
+  }
+}
+
 void TupleSet::set_schema(const TupleSchema &schema) {
   schema_ = schema;
 }

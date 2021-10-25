@@ -17,6 +17,8 @@ See the Mulan PSL v2 for more details. */
 
 #include <memory>
 #include <vector>
+#include <sstream>
+#include <string>
 
 #include "sql/parser/parse.h"
 #include "sql/executor/value.h"
@@ -138,6 +140,7 @@ public:
   const std::vector<Tuple> &tuples() const;
 
   void print(std::ostream &os) const;
+  void print_poly(std::ostream &os,std::string poly_type) const;
 public:
   const TupleSchema &schema() const {
     return schema_;
