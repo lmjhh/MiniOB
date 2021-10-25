@@ -37,6 +37,10 @@ using namespace common;
 
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
+TupleSet table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects);
+bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op);
+TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
+
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
 
@@ -267,8 +271,19 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   }
 
   std::stringstream ss;
-  if (tuple_sets.size() > 1) {
+  if (tuple_sets.size() > 1) { //这时候取到的数据是所有过滤掉单表限制的 tuple
+    TupleSet join_result_tupleSet, result_tupleSet;
     // 本次查询了多张表，需要做join操作
+    for(int i = tuple_sets.size() - 1; i >= 0; i--){
+       if(i == tuple_sets.size() - 1){
+          join_result_tupleSet = table_Join_execute(tuple_sets[i], tuple_sets[i - 1], selects);
+          i--;
+       }else{
+          join_result_tupleSet = table_Join_execute(join_result_tupleSet, tuple_sets[i], selects);
+       }
+    }
+    result_tupleSet = get_final_result(selects, join_result_tupleSet);
+    result_tupleSet.print(ss);
   } else {
     // 当前只查询一张表，直接返回结果即可
     tuple_sets.front().print(ss);
@@ -310,20 +325,30 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
     LOG_WARN("No such table [%s] in db [%s]", table_name, db);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
-
-  for (int i = selects.attr_num - 1; i >= 0; i--) {
-    const RelAttr &attr = selects.attributes[i];
-    if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
-      if (0 == strcmp("*", attr.attribute_name)) {
+  if(selects.relation_num == 1){
+    for (int i = selects.attr_num - 1; i >= 0; i--) {
+      const RelAttr &attr = selects.attributes[i];
+      if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
+        if (0 == strcmp("*", attr.attribute_name)) {
+          // 列出这张表所有字段
+          TupleSchema::from_table(table, schema);
+          break; // 没有校验，给出* 之后，再写字段的错误
+        } else {
+          // 列出这张表相关字段
+          RC rc = schema_add_field(table, attr.attribute_name, schema);
+          if (rc != RC::SUCCESS) {
+            return rc;
+          }
+        }
+      }
+    }
+  }else if(selects.relation_num > 1){   //多张表，先取出所有record到内存，同时过滤掉单个表的限定条件，再对所有tuple做join
+    for (int i = selects.attr_num - 1; i >= 0; i--) {
+      const RelAttr &attr = selects.attributes[i];
+      if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
         // 列出这张表所有字段
         TupleSchema::from_table(table, schema);
         break; // 没有校验，给出* 之后，再写字段的错误
-      } else {
-        // 列出这张表相关字段
-        RC rc = schema_add_field(table, attr.attribute_name, schema);
-        if (rc != RC::SUCCESS) {
-          return rc;
-        }
       }
     }
   }
@@ -352,4 +377,140 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   }
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
+}
+
+TupleSet table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects){
+  TupleSet result_tupleSet;
+  result_tupleSet.clear();
+  int flag = 1; //如果没有过滤条件，就全量
+  //合并两个内外表的 Schema
+  TupleSchema  schema = table1.get_schema();
+  schema.append(table2.get_schema());
+
+  result_tupleSet.set_schema(schema);
+  for (size_t i = 0; i < selects.condition_num; i++) {
+    const Condition &condition = selects.conditions[i];
+    if((condition.left_is_attr == 1 && condition.right_is_attr == 1)){
+      int tuple1_index = table1.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
+      int tuple2_index = table2.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
+      //例如 t1.id = t2.id 的情况 如果不存在就试 t2.id = t1.id
+      if(tuple1_index < 0 || tuple2_index < 0){
+        tuple2_index = table2.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
+        tuple1_index = table1.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
+      }
+      if(tuple1_index > -1 && tuple2_index > -1){
+        flag = 0;
+        //比较两个 tuple 
+        int table1_size = table1.size();
+        int table2_size = table2.size();
+        for(size_t table1_ite = 0; table1_ite < table1_size; table1_ite++){
+          for(size_t table2_ite = 0; table2_ite < table2_size; table2_ite++){
+            const std::vector<std::shared_ptr<TupleValue>> &values1 = table1.get(table1_ite).values();
+            const std::vector<std::shared_ptr<TupleValue>> &values2 = table2.get(table2_ite).values();
+            if(filter_tuple(values1[tuple1_index], values2[tuple2_index], condition.comp)){
+                Tuple new_tuple;
+                for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values1.begin(), end = values1.end();
+                  iter != end; ++iter){
+                    new_tuple.add(*iter);
+                }
+                for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values2.begin(), end = values2.end();
+                  iter != end; ++iter){
+                    new_tuple.add(*iter);
+                }
+                //合并插入新的 tupleset
+                result_tupleSet.add(std::move(new_tuple));
+            }
+          }
+        }
+      }
+    }
+  }
+  if (flag) {  //没有筛选条件，全量笛卡尔积
+    int table1_size = table1.size();
+    int table2_size = table2.size();
+    for(size_t table1_ite = 0; table1_ite < table1_size; table1_ite++){
+      for(size_t table2_ite = 0; table2_ite < table2_size; table2_ite++){
+        const std::vector<std::shared_ptr<TupleValue>> &values1 = table1.get(table1_ite).values();
+        const std::vector<std::shared_ptr<TupleValue>> &values2 = table2.get(table2_ite).values();
+        Tuple new_tuple;
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values1.begin(), end = values1.end();
+          iter != end; ++iter){
+            new_tuple.add(*iter);
+        }
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values2.begin(), end = values2.end();
+          iter != end; ++iter){
+            new_tuple.add(*iter);
+        }
+        //合并插入新的 tupleset
+        result_tupleSet.add(std::move(new_tuple));
+      }
+    }
+  }
+  return result_tupleSet;
+}
+
+bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op) {
+  
+  int cmp_result = (*values1).compare(*values2);
+
+  switch (op) {
+    case EQUAL_TO:
+      return 0 == cmp_result;
+    case LESS_EQUAL:
+      return cmp_result <= 0;
+    case NOT_EQUAL:
+      return cmp_result != 0;
+    case LESS_THAN:
+      return cmp_result < 0;
+    case GREAT_EQUAL:
+      return cmp_result >= 0;
+    case GREAT_THAN:
+      return cmp_result > 0;
+
+    default:
+      break;
+  }
+
+  LOG_PANIC("Never should print this.");
+  return cmp_result;  // should not go here
+}
+
+TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet){
+  TupleSet result_tupleSet;
+  result_tupleSet.clear();
+  TupleSchema schema;
+  for (int i = selects.attr_num - 1; i >= 0; i--) {
+    const RelAttr &attr = selects.attributes[i];
+    //没有表名的情况，所有表的都要加上
+    if (nullptr == attr.relation_name) {
+      if (0 == strcmp("*", attr.attribute_name)) {
+        // 列出这张表所有字段
+        TupleSchema::from_select(nullptr, nullptr, schema, full_tupleSet.get_schema());
+        break; // 没有校验，给出* 之后，再写字段的错误
+      } else {
+        // 列出这张表相关字段
+        TupleSchema::from_select(nullptr, attr.attribute_name, schema, full_tupleSet.get_schema());
+      }
+    }
+    //有表名的情况
+    if (nullptr != attr.relation_name && nullptr != attr.attribute_name){
+      TupleSchema::from_select(attr.relation_name, attr.attribute_name, schema, full_tupleSet.get_schema());
+    }
+  }
+
+  result_tupleSet.set_schema(schema);
+
+  size_t full_tupleSet_size = full_tupleSet.size();
+  size_t schema_size = schema.fields().size();
+  for(size_t full_ite = 0; full_ite < full_tupleSet_size; full_ite++){
+    Tuple new_tuple;
+    const std::vector<std::shared_ptr<TupleValue>> &values = full_tupleSet.get(full_ite).values();
+    for(int i = 0; i < schema_size; i++){
+      const TupleField field = schema.field(i);
+      size_t vaule_index = full_tupleSet.get_schema().index_of_field(field.table_name(), field.field_name());
+      new_tuple.add(values[vaule_index]);
+    }
+    result_tupleSet.add(std::move(new_tuple));
+  }
+  return result_tupleSet;
 }
