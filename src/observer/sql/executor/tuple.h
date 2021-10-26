@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include <vector>
 #include <sstream>
 #include <string>
-
+// #include <cctype>
 #include "sql/parser/parse.h"
 #include "sql/executor/value.h"
 

@@ -38,6 +38,14 @@ void relation_attr_destroy(RelAttr *relation_attr) {
   relation_attr->attribute_name = nullptr;
 }
 
+void poly_init(Poly *poly_tmp, const char *poly_name) {//在检测到attri时才将attri记录到poly的attributes里面
+  if (poly_name != nullptr) {
+    poly_tmp->poly_name = strdup(poly_name);
+  } else {
+    poly_tmp->poly_name = nullptr;
+  }
+}
+
 void value_init_integer(Value *value, int v) {
   value->type = INTS;
   value->data = malloc(sizeof(v));
@@ -207,6 +215,14 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
 }
 void selects_set_poly(Selects *selects, size_t poly_type){
   selects->poly_type = poly_type;
+}
+void selects_append_poly(Selects *selects, Poly *rel_po) {
+  selects->poly_list[selects->poly_num++] = *rel_po;
+}
+void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr) {
+  std::cout << selects->poly_num << std::endl;
+  selects->poly_list[selects->poly_num].attributes[selects->poly_list[selects->poly_num].attr_num++] = *rel_attr;
+  std::cout << "OK" << std::endl;
 }
 
 void selects_destroy(Selects *selects) {
