@@ -109,7 +109,7 @@ public:
     fields_.clear();
   }
 
-  void print(std::ostream &os) const;
+  void print(std::ostream &os, bool isMoreTable) const;
 public:
   static void from_table(const Table *table, TupleSchema &schema);
   //用于多表最后输出测试结果
@@ -141,7 +141,7 @@ public:
   const Tuple &get(int index) const;
   const std::vector<Tuple> &tuples() const;
 
-  void print(std::ostream &os) const;
+  void print(std::ostream &os, bool isMoreTable) const;
   void print_poly(std::ostream &os,std::string poly_type) const;
 public:
   const TupleSchema &schema() const {
