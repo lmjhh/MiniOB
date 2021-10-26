@@ -75,6 +75,31 @@ void TupleSchema::from_table(const Table *table, TupleSchema &schema) {
   }
 }
 
+void TupleSchema::from_select(const char *table_name, const char *field_name, TupleSchema &schema, const TupleSchema &full_schema){
+  const int size = full_schema.fields().size();
+  for (int i = 0; i < size; i++) {
+    const TupleField &field = full_schema.fields()[i];
+    if(table_name == nullptr && field_name == nullptr){
+      schema.add(field.type(), field.table_name(), field.field_name());
+    }
+    if(table_name == nullptr && field_name != nullptr){
+      if (0 == strcmp(field.field_name(), field_name)) {
+        schema.add(field.type(), field.table_name(), field.field_name());
+      }
+    }
+    if(table_name != nullptr && field_name == nullptr){
+      if (0 == strcmp(field.table_name(), table_name)) {
+        schema.add(field.type(), field.table_name(), field.field_name());
+      }
+    }
+    if(table_name != nullptr && field_name != nullptr){
+      if (0 == strcmp(field.table_name(), table_name) && 0 == strcmp(field.field_name(), field_name)){
+        schema.add(field.type(), field.table_name(), field.field_name());
+      }
+    }
+  }
+}
+
 void TupleSchema::add(AttrType type, const char *table_name, const char *field_name) {
   fields_.emplace_back(type, table_name, field_name);
 }

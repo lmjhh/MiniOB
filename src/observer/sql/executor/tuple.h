@@ -112,6 +112,8 @@ public:
   void print(std::ostream &os) const;
 public:
   static void from_table(const Table *table, TupleSchema &schema);
+  //用于多表最后输出测试结果
+  static void from_select(const char *table_name, const char *field_name, TupleSchema &schema, const TupleSchema &full_schema);
 private:
   std::vector<TupleField> fields_;
 };
