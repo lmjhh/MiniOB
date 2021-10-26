@@ -220,7 +220,9 @@ void selects_append_poly(Selects *selects, Poly *rel_po) {
   selects->poly_list[selects->poly_num++] = *rel_po;
 }
 void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr) {
-  selects->poly_list[selects->poly_num].attributes[selects->attr_num++] = *rel_attr;
+  std::cout << selects->poly_num << std::endl;
+  selects->poly_list[selects->poly_num].attributes[selects->poly_list[selects->poly_num].attr_num++] = *rel_attr;
+  std::cout << "OK" << std::endl;
 }
 
 void selects_destroy(Selects *selects) {

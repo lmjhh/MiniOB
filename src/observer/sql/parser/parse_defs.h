@@ -63,6 +63,7 @@ typedef struct _Condition {
 // 聚合函数
 typedef struct {
   RelAttr   attributes[MAX_NUM];    // attrs in Select clause
+  size_t    attr_num;
   char*       poly_name;            // 标志聚合函数的名字
 } Poly;
 
