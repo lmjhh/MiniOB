@@ -129,6 +129,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> SSS
 %token <string> STAR
 %token <string> STRING_V
+%token <string> POLYKEY
 //非终结符
 
 %type <number> type;
@@ -366,6 +367,22 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
 	}
+	| SELECT select_poly FROM ID rel_list where SEMICOLON
+		{
+			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
+
+			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
+
+			CONTEXT->ssql->flag=SCF_SELECT;//"select";
+			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
+
+			//临时变量清零
+			CONTEXT->condition_length=0;
+			CONTEXT->from_length=0;
+			CONTEXT->select_length=0;
+			CONTEXT->value_length = 0;
+	}
 	;
 
 select_attr:
@@ -384,51 +401,55 @@ select_attr:
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-	| MAX LBRACE select_attr RBRACE{
+	| ID DOT STAR attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+    ;
+
+select_poly:
+	POLYKEY LBRACE select_attr_poly RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &poly);
+
 		// need to add a flag to mark max()
 		selects_set_poly(&CONTEXT->ssql->sstr.selection,1);
 		}
-	| MAX BUDING{
-		// need to add a flag to mark max()
-		selects_set_poly(&CONTEXT->ssql->sstr.selection,11);
-		RelAttr attr;
-		relation_attr_init(&attr, NULL, "*");
-		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	;
+
+poly_list:
+	/* empty */
+	| COMMA POLYKEY LBRACE select_attr_poly RBRACE poly_list {
+
 		}
-	| MIN LBRACE select_attr RBRACE{
-		// need to add a flag to mark min()
-		selects_set_poly(&CONTEXT->ssql->sstr.selection,2);
+	;
+
+select_attr_poly:
+	NUMBER {  
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-	| MIN BUDING{
-		// need to add a flag to mark min()
-		selects_set_poly(&CONTEXT->ssql->sstr.selection,21);
-		RelAttr attr;
-		relation_attr_init(&attr, NULL, "*");
-		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	| STAR {  
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-	| COUNT LBRACE select_attr RBRACE{
-		// need to add a flag to mark count()
-		selects_set_poly(&CONTEXT->ssql->sstr.selection,3);
+    | ID attr_list_poly {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-	| COUNT BUDING{
-		// need to add a flag to mark count()
-		selects_set_poly(&CONTEXT->ssql->sstr.selection,31);
-		RelAttr attr;
-		relation_attr_init(&attr, NULL, "*");
-		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+  	| ID DOT ID attr_list_poly {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-	| AVG LBRACE select_attr RBRACE{
-		// need to add a flag to mark avg()
-		selects_set_poly(&CONTEXT->ssql->sstr.selection,4);
-		}
-	| AVG BUDING{
-		// need to add a flag to mark avg()
-		selects_set_poly(&CONTEXT->ssql->sstr.selection,41);
-		RelAttr attr;
-		relation_attr_init(&attr, NULL, "*");
-		selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-		}
-    ;
+	;
+
+
 attr_list:
     /* empty */
     | COMMA ID attr_list {
@@ -445,7 +466,33 @@ attr_list:
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }
+	| COMMA ID DOT STAR attr_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+  	  }
   	;
+
+attr_list_poly:
+    /* empty */
+    | COMMA ID attr_list_poly {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+     	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
+      }
+    | COMMA ID DOT ID attr_list_poly {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
+        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
+  	  }
+  	;
+
 
 rel_list:
     /* empty */
