@@ -392,6 +392,29 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       }
     }
   }else if(selects.relation_num > 1){   //多张表，先取出所有record到内存，同时过滤掉单个表的限定条件，再对所有tuple做join
+    TupleSchema tmpschema;
+    for (int i = selects.attr_num - 1; i >= 0; i--) {
+      const RelAttr &attr = selects.attributes[i];
+      if(attr.relation_name != nullptr){
+        int isContain = 0;
+        for (int j = selects.relation_num - 1; j >= 0; j--){
+          if(0 == strcmp(attr.relation_name, selects.relations[j])) {
+            isContain = 1;
+            break;
+          }
+        }
+        if (isContain == 0) {
+          return RC::SCHEMA_TABLE_NOT_EXIST;
+        }
+      }
+      if(0 != strcmp("*", attr.attribute_name) && 0 == strcmp(table_name, attr.relation_name)){
+        RC rc = schema_add_field(table, attr.attribute_name, tmpschema);
+        if (rc != RC::SUCCESS) {
+          return rc;
+        }         
+      }
+    }
+
     for (int i = selects.attr_num - 1; i >= 0; i--) {
       const RelAttr &attr = selects.attributes[i];
       if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
