@@ -271,42 +271,17 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   }
 
   for (SelectExeNode *& tmp_node: select_nodes) {
-    // selects.poly_type 指示是哪个聚合函数 max=1，min=2，count=3，avg=4.
     // 此处对tuple_sets进行处理，更新返回的内容
-    if (selects.poly_type){
-      std::cout <<  "poly_type:  " << selects.poly_type << std::endl;
+    if (selects.poly_num > 0){
+      std::cout <<  "poly_num:  " << selects.poly_num << std::endl;
       std::stringstream ss;
       if (tuple_sets.size() > 1) {
         // 本次查询了多张表，需要做join操作
       } else {
         // 当前只查询一张表，直接返回结果即可
-        if (selects.poly_type == 1){
-          tuple_sets.front().print_poly(ss,"max");
-        }
-        else if(selects.poly_type == 11){
-          tuple_sets.front().print_poly(ss,"max1");
-        }
-        else if(selects.poly_type == 2){
-          tuple_sets.front().print_poly(ss,"min");
-        }
-        else if(selects.poly_type == 21){
-          tuple_sets.front().print_poly(ss,"min1");
-        }
-        else if(selects.poly_type == 3){
-          tuple_sets.front().print_poly(ss,"count");
-        }
-        else if(selects.poly_type == 31){
-          tuple_sets.front().print_poly(ss,"count1");
-        }
-        else if (selects.poly_type == 4){
-          tuple_sets.front().print_poly(ss,"avg");
-        }
-        else if(selects.poly_type == 41){
-          tuple_sets.front().print_poly(ss,"avg1");
-        }
-        else{
-          
-        }
+        std::cout << "0-print" << std::endl;
+        tuple_sets.front().print_poly_new(ss,selects);
+        std::cout << "1-print" << std::endl;
         // tuple_sets.front().schema().print(ss);
       }
     for (SelectExeNode *& tmp_node: select_nodes) {

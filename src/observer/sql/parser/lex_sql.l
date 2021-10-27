@@ -57,10 +57,10 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 [Ss][Hh][Oo][Ww]                         RETURN_TOKEN(SHOW);
 [Ss][Yy][Nn][Cc]                         RETURN_TOKEN(SYNC);
 [Ss][Ee][Ll][Ee][Cc][Tt]                 RETURN_TOKEN(SELECT);
-[Cc][Oo][Uu][Nn][Tt]                 RETURN_TOKEN(POLYKEY);
-[Mm][Aa][Xx]                			RETURN_TOKEN(POLYKEY);
-[Mm][Ii][Nn]                			RETURN_TOKEN(POLYKEY);
-[Aa][Vv][Gg]							RETURN_TOKEN(POLYKEY);
+[Cc][Oo][Uu][Nn][Tt]                 yylval->string=strdup(yytext); RETURN_TOKEN(POLYKEY);
+[Mm][Aa][Xx]                		yylval->string=strdup(yytext);	RETURN_TOKEN(POLYKEY);
+[Mm][Ii][Nn]                		yylval->string=strdup(yytext);	RETURN_TOKEN(POLYKEY);
+[Aa][Vv][Gg]						yylval->string=strdup(yytext);	RETURN_TOKEN(POLYKEY);
 [Ff][Rr][Oo][Mm]                      	 RETURN_TOKEN(FROM);
 [Ww][Hh][Ee][Rr][Ee]                  	 RETURN_TOKEN(WHERE);
 [Aa][Nn][Dd]                             RETURN_TOKEN(AND);

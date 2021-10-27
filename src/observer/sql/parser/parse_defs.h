@@ -211,6 +211,7 @@ void selects_set_poly(Selects *selects, size_t poly_type);
 void selects_destroy(Selects *selects);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);
+void poly_destroy(Poly *poly_tmp);
 void selects_append_poly(Selects *selects, Poly *rel_po);
 void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr);
 

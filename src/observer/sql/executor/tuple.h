@@ -143,6 +143,11 @@ public:
 
   void print(std::ostream &os) const;
   void print_poly(std::ostream &os,std::string poly_type) const;
+  void print_poly_new(std::ostream &os, const Selects &selects) const;
+  int splitStringToVect(const std::string & srcStr, std::vector<std::string> & destVect, const std::string & strFlag) const;
+  void get_needattr(std::vector<std::string> & lines, const int needattr, std::vector<int> & needattrlist) const;
+  std::string cal_res(std::vector<std::string> & lines, const std::string polyname) const;
+  
 public:
   const TupleSchema &schema() const {
     return schema_;

@@ -16,6 +16,7 @@ typedef struct ParserContext {
   size_t condition_length;
   size_t from_length;
   size_t value_length;
+  size_t poly_length;
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
@@ -366,6 +367,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
+			CONTEXT->poly_length = 0;
 	}
 	| SELECT select_poly FROM ID rel_list where SEMICOLON
 		{
@@ -382,6 +384,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
+			CONTEXT->poly_length = 0;
 	}
 	;
 
@@ -409,22 +412,31 @@ select_attr:
     ;
 
 select_poly:
-	POLYKEY LBRACE select_attr_poly RBRACE poly_list{
-		Poly poly_tmp;
-		poly_init(&poly_tmp, $1);
-		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+	poly_key LBRACE select_attr_poly RBRACE poly_list{
+		//Poly poly_tmp;
+		//poly_init(&poly_tmp, $1);
+		//selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
 
 		// need to add a flag to mark max()
 		// selects_set_poly(&CONTEXT->ssql->sstr.selection,1);
 		}
 	;
 
+poly_key:
+	POLYKEY {
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+		//CONTEXT->poly_length++;
+	}
+	;
+
 poly_list:
 	/* empty */
-	| COMMA POLYKEY LBRACE select_attr_poly RBRACE poly_list {
-		Poly poly_tmp;
-		poly_init(&poly_tmp, $2);
-		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+	| COMMA poly_key LBRACE select_attr_poly RBRACE poly_list {
+		//Poly poly_tmp;
+		//poly_init(&poly_tmp, $2);
+		//selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
 		}
 	;
 
@@ -453,7 +465,7 @@ select_attr_poly:
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
-	| ID DOT STAR attr_list {
+	| ID DOT STAR attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
@@ -504,7 +516,7 @@ attr_list_poly:
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }
-	| COMMA ID DOT STAR attr_list {
+	| COMMA ID DOT STAR attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
