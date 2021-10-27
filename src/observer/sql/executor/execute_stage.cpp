@@ -37,7 +37,7 @@ using namespace common;
 
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
-TupleSet table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects);
+RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &result_tupleSet);
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
 
@@ -298,17 +298,21 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         // 本次查询了多张表，需要做join操作
         for(int i = tuple_sets.size() - 1; i >= 0; i--){
           if(i == tuple_sets.size() - 1){
-              join_result_tupleSet = table_Join_execute(tuple_sets[i], tuple_sets[i - 1], selects);
+              rc = table_Join_execute(tuple_sets[i], tuple_sets[i - 1], selects, join_result_tupleSet);
               i--;
           }else{
-              join_result_tupleSet = table_Join_execute(join_result_tupleSet, tuple_sets[i], selects);
+              rc = table_Join_execute(join_result_tupleSet, tuple_sets[i], selects, join_result_tupleSet);
+          }
+          if(rc != RC::SUCCESS) {
+            std::cout << "join failure" << std::endl;
+            return rc;
           }
         }
         result_tupleSet = get_final_result(selects, join_result_tupleSet);
-        result_tupleSet.print(ss);
+        result_tupleSet.print(ss, true);
       } else {
           // 当前只查询一张表，直接返回结果即可
-          tuple_sets.front().print(ss);
+          tuple_sets.front().print(ss, false);
       }
       for (SelectExeNode *& tmp_node: select_nodes) {
         delete tmp_node;
@@ -367,14 +371,75 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       }
     }
   }else if(selects.relation_num > 1){   //多张表，先取出所有record到内存，同时过滤掉单个表的限定条件，再对所有tuple做join
+    TupleSchema tmpschema;
     for (int i = selects.attr_num - 1; i >= 0; i--) {
       const RelAttr &attr = selects.attributes[i];
-      if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
-        // 列出这张表所有字段
-        TupleSchema::from_table(table, schema);
-        break; // 没有校验，给出* 之后，再写字段的错误
+      if(attr.relation_name != nullptr){
+        int isContain = 0;
+        for (int j = selects.relation_num - 1; j >= 0; j--){
+          if(0 == strcmp(attr.relation_name, selects.relations[j])) {
+            isContain = 1;
+            break;
+          }
+        }
+        if (isContain == 0) {
+          std::cout << "select no in selects.relations table" << std::endl;
+          return RC::SCHEMA_TABLE_NOT_EXIST;
+        }
       }
+      if(0 != strcmp("*", attr.attribute_name) && 0 == strcmp(table_name, attr.relation_name)){
+        RC rc = schema_add_field(table, attr.attribute_name, tmpschema);
+        if (rc != RC::SUCCESS) {
+          std::cout << "select no exit " <<  std::string(attr.relation_name) << "." << std::string(attr.attribute_name) << std::endl;
+          return rc;
+        } 
+      } 
     }
+    for (int i = selects.condition_num - 1; i >= 0; i--) {
+      const Condition &attr = selects.conditions[i];
+      if(attr.left_is_attr == 1){
+        int isContain = 0;
+        for (int j = selects.relation_num - 1; j >= 0; j--){
+          if(0 == strcmp(attr.left_attr.relation_name, selects.relations[j])) {
+            isContain = 1;
+            break;
+          }
+        }
+        if (isContain == 0) {
+          std::cout << "condition no in selects.relations table" << std::endl;
+          return RC::SCHEMA_TABLE_NOT_EXIST;
+        }
+        if(0 == strcmp(table_name, attr.left_attr.relation_name)){
+          RC rc = schema_add_field(table, attr.left_attr.attribute_name, tmpschema);
+          if (rc != RC::SUCCESS) {
+            std::cout << "condition no exit " <<  std::string(attr.left_attr.relation_name) << "." << std::string(attr.left_attr.attribute_name) << std::endl;
+            return rc;
+          } 
+        }         
+      }
+      if(attr.right_is_attr == 1){
+        int isContain = 0;
+        for (int j = selects.relation_num - 1; j >= 0; j--){
+          if(0 == strcmp(attr.right_attr.relation_name, selects.relations[j])) {
+            isContain = 1;
+            break;
+          }
+        }
+        if (isContain == 0) {
+          std::cout << "condition no in selects.relations table" << std::endl;
+          return RC::SCHEMA_TABLE_NOT_EXIST;
+        }
+        if(0 == strcmp(table_name, attr.right_attr.relation_name)){
+          RC rc = schema_add_field(table, attr.right_attr.attribute_name, tmpschema);
+          if (rc != RC::SUCCESS) {
+            std::cout << "condition no exit " <<  std::string(attr.right_attr.relation_name) << "." << std::string(attr.right_attr.attribute_name) << std::endl;
+            return rc;
+          } 
+        } 
+      }
+    }       
+
+    TupleSchema::from_table(table, schema);
   }
 
   // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
@@ -403,9 +468,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
 
-TupleSet table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects){
-  TupleSet result_tupleSet;
-  result_tupleSet.clear();
+RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &result_tupleSet){
   int flag = 1; //如果没有过滤条件，就全量
   //合并两个内外表的 Schema
   TupleSchema  schema = table1.get_schema();
@@ -415,6 +478,8 @@ TupleSet table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &s
   for (size_t i = 0; i < selects.condition_num; i++) {
     const Condition &condition = selects.conditions[i];
     if((condition.left_is_attr == 1 && condition.right_is_attr == 1)){
+      std::cout << "compare " + std::string(condition.left_attr.relation_name) + "." + std::string(condition.left_attr.attribute_name);
+      std::cout << " = " + std::string(condition.right_attr.relation_name) + "." + std::string(condition.right_attr.attribute_name) << std::endl;
       int tuple1_index = table1.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
       int tuple2_index = table2.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
       //例如 t1.id = t2.id 的情况 如果不存在就试 t2.id = t1.id
@@ -422,7 +487,12 @@ TupleSet table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &s
         tuple2_index = table2.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
         tuple1_index = table1.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
       }
+      std::cout << tuple1_index << "+" << tuple2_index << std::endl;
       if(tuple1_index > -1 && tuple2_index > -1){
+        std::cout << "compare success" << std::endl;
+        TupleField tuple1_field = table1.get_schema().field(tuple1_index);
+        TupleField tuple2_field = table2.get_schema().field(tuple2_index);
+        if(tuple1_field.type() != tuple2_field.type()) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
         flag = 0;
         //比较两个 tuple 
         int table1_size = table1.size();
@@ -470,7 +540,7 @@ TupleSet table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &s
       }
     }
   }
-  return result_tupleSet;
+  return RC::SUCCESS;
 }
 
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op) {
