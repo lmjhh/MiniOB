@@ -475,7 +475,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         attri_tmp = attri_tmp+".*)";
         //筛选tbl
         std::stringstream ss_tmp;
-        schema_.print(ss_tmp);
+        schema_.print(ss_tmp,false);
         std::string tmp = ss_tmp.str();
         tmp.pop_back();
         tmp.erase(std::remove(tmp.begin(), tmp.end(), ' '), tmp.end());
@@ -529,7 +529,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         //筛选 attr
       }
       std::stringstream ss_tmp;
-      schema_.print(ss_tmp);
+      schema_.print(ss_tmp,false);
       std::string tmp = ss_tmp.str();
       tmp.pop_back();
       tmp.erase(std::remove(tmp.begin(), tmp.end(), ' '), tmp.end());
