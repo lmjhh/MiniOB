@@ -74,14 +74,17 @@ RC Db::create_table(const char *table_name, int attribute_count, const AttrInfo 
 RC Db::drop_table(const char *table_name){
   // check table_name
   Table *table = Db::find_table(table_name);
-
+  RC rc;
   if(table == nullptr){
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }else{
-    opened_tables_.erase(table_name);
-    delete table;
+    rc = table->drop(path_.c_str(), table_name);
+    if(rc == RC::SUCCESS){
+      opened_tables_.erase(table_name);
+      delete table;
+    }
   }
-  return Table::drop(path_.c_str(), table_name);;
+  return rc;
 }
 
 Table *Db::find_table(const char *table_name) const {
