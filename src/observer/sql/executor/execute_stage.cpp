@@ -279,9 +279,9 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         // 本次查询了多张表，需要做join操作
       } else {
         // 当前只查询一张表，直接返回结果即可
-        std::cout << "0-print" << std::endl;
+        std::cout << "begin-print------------" << std::endl;
         tuple_sets.front().print_poly_new(ss,selects);
-        std::cout << "1-print" << std::endl;
+        std::cout << "end-print--------------" << std::endl;
         // tuple_sets.front().schema().print(ss);
       }
     for (SelectExeNode *& tmp_node: select_nodes) {
@@ -290,6 +290,8 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     // std::cout << ss.str() << std::endl;
     session_event->set_response(ss.str());
     end_trx_if_need(session, trx, true);
+    selects_destroy(&sql->sstr.selection);
+
     return rc;
     }else{
       std::stringstream ss;

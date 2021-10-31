@@ -391,7 +391,10 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
       }
       avg = avg/lines.size();
     }
-    return std::to_string(avg);
+    std::stringstream ss1;
+    FloatValue avg_result = FloatValue(avg);
+    avg_result.to_string(ss1);
+    return ss1.str();
   }
   std::set<std::string> lines1;
   for(int k=0;k<lines.size();k++){
@@ -500,7 +503,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       }
       else{
         //all
-        attri_tmp = attri_tmp+"*)";
+        attri_tmp = attri_tmp + "*)";
         get_needattr(lines,needattr,needattrlist);
       }
     }
@@ -544,8 +547,9 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
           }
         }
       }
+      //else 只有一列：肯定是我们需要的那列
       //根据needattr查找出需要的那1列到lines里面/或者all
-      std::cout << "0_get_needattr " << std::endl;
+      std::cout << "0_get_needattr " << needattr << std::endl;
       get_needattr(lines,needattr,needattrlist);
       std::cout << "1_get_needattr: " << needattr << std::endl;
       if (lines.size()>0){
