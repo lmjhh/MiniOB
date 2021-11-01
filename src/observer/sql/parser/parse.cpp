@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/parser/parse.h"
 #include "rc.h"
 #include "common/log/log.h"
+#include <string.h>
 
 RC parse(char *st, Query *sqln);
 
@@ -30,7 +31,17 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
   }
   relation_attr->attribute_name = strdup(attribute_name);
 }
-
+void relation_attr_init_for_number(RelAttr *relation_attr, const char *relation_name, int attribute_name){
+  std::cout << attribute_name << std::endl;
+  if (relation_name != nullptr) {
+    relation_attr->relation_name = strdup(relation_name);
+  } else {
+    relation_attr->relation_name = nullptr;
+  }  
+  std::string str = std::to_string(attribute_name);
+  const char *p = str.c_str();
+  relation_attr->attribute_name = strdup(p);
+}
 void relation_attr_destroy(RelAttr *relation_attr) {
   free(relation_attr->relation_name);
   free(relation_attr->attribute_name);
@@ -216,6 +227,7 @@ void attr_info_destroy(AttrInfo *attr_info) {
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
   selects->attributes[selects->attr_num++] = *rel_attr;
+  std::cout << "selects_append_attribute" << std::endl;
 }
 void selects_append_relation(Selects *selects, const char *relation_name) {
   selects->relations[selects->relation_num++] = strdup(relation_name);
@@ -232,8 +244,9 @@ void selects_set_poly(Selects *selects, size_t poly_type){
   selects->poly_type = poly_type;
 }
 void selects_append_poly(Selects *selects, Poly *rel_po) {
-  std::cout << "selects->poly_num" << selects->poly_num << std::endl;
+  std::cout << "selects->poly_num: " << selects->poly_num << std::endl;
   selects->poly_list[selects->poly_num] = *rel_po;
+  rel_po->attr_num = 0;
   selects->poly_num++;
   // std::cout << "selects->poly_num" << selects->poly_num << std::endl;
 }

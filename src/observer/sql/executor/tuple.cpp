@@ -453,6 +453,13 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
   }
 }
 
+bool isNumber(const std::string& str)
+{
+    for (char const &c : str) {
+        if (std::isdigit(c) == 0) return false;
+    }
+    return true;
+}
 
 void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
   if (schema_.fields().empty()) {
@@ -536,6 +543,20 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       else{
         //all
         attri_tmp = attri_tmp + "*)";
+        get_needattr(lines,needattr,needattrlist);
+      }
+    }
+    else if (isNumber(attri)){
+      if (ss0.str() != "count"){
+        results.push_back(attri);
+        attri_tmp = attri_tmp + attri + ")";
+        if (i < selects.poly_num-1){
+          attri_tmp = attri_tmp + " | ";
+        }
+        continue;
+      }
+      else{
+        attri_tmp = attri_tmp + attri + ")";
         get_needattr(lines,needattr,needattrlist);
       }
     }

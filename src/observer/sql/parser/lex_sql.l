@@ -84,7 +84,6 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);
-[\(][1][\)]								RETURN_TOKEN(BUDING);
 ","                                      RETURN_TOKEN(COMMA);
 "="                                      RETURN_TOKEN(EQ);
 "<="                                     RETURN_TOKEN(LE);

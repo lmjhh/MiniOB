@@ -107,7 +107,6 @@ ParserContext *get_context(yyscan_t scanner)
 		MIN
 		COUNT
 		AVG
-		BUDING
 
 
 %union {
@@ -445,11 +444,14 @@ poly_list:
 	;
 
 select_attr_poly:
-	NUMBER {  
+	NUMBER{  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			
+			RelAttr attr1;
+			relation_attr_init_for_number(&attr1, NULL, $1);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
 		}
 	| STAR {  
 			RelAttr attr;

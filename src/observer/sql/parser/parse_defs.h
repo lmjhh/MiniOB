@@ -190,6 +190,7 @@ extern "C" {
 
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name);
 void relation_attr_destroy(RelAttr *relation_attr);
+void relation_attr_init_for_number(RelAttr *relation_attr, const char *relation_name, int attribute_name);
 
 void value_init_integer(Value *value, int v);
 void value_init_float(Value *value, float v);
