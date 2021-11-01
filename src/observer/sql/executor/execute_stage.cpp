@@ -37,7 +37,7 @@ using namespace common;
 
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
-RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &result_tupleSet);
+RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects,TupleSet &return_tupleSet);
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
 
@@ -312,6 +312,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         }
         result_tupleSet = get_final_result(selects, join_result_tupleSet);
         result_tupleSet.print(ss, true);
+        result_tupleSet.clear();
       } else {
           // 当前只查询一张表，直接返回结果即可
           tuple_sets.front().print(ss, false);
@@ -321,6 +322,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       }
       session_event->set_response(ss.str());
       end_trx_if_need(session, trx, true);
+      
       return rc;
     }
   }
@@ -470,13 +472,16 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
 
-RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &result_tupleSet){
+RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &return_tupleSet){
+  std::cout << "ready join table 1, size = " << table1.size() << " table 2, size = " << table2.size() << std::endl;
+  TupleSet result_tupleSet;
+  result_tupleSet.clear();
   int flag = 1; //如果没有过滤条件，就全量
   //合并两个内外表的 Schema
   TupleSchema  schema = table1.get_schema();
   schema.append(table2.get_schema());
-
   result_tupleSet.set_schema(schema);
+
   for (size_t i = 0; i < selects.condition_num; i++) {
     const Condition &condition = selects.conditions[i];
     if((condition.left_is_attr == 1 && condition.right_is_attr == 1)){
@@ -542,6 +547,20 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
       }
     }
   }
+
+  return_tupleSet.clear();
+  return_tupleSet.set_schema(schema);
+  int result_size = result_tupleSet.size();
+  for(size_t result_ite = 0; result_ite < result_size; result_ite++){
+    const std::vector<std::shared_ptr<TupleValue>> &values = result_tupleSet.get(result_ite).values();
+    Tuple new_tuple;
+    for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+        iter != end; ++iter){
+          new_tuple.add(*iter);
+      }
+    return_tupleSet.add(std::move(new_tuple));
+  }
+  result_tupleSet.clear();
   return RC::SUCCESS;
 }
 
@@ -572,6 +591,8 @@ bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_
 }
 
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet){
+
+  std::cout << "ready find result full_tupleSet size = " << full_tupleSet.size() << std::endl;
   TupleSet result_tupleSet;
   result_tupleSet.clear();
   TupleSchema schema;
@@ -612,5 +633,6 @@ TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet){
     }
     result_tupleSet.add(std::move(new_tuple));
   }
+  full_tupleSet.clear();
   return result_tupleSet;
 }
