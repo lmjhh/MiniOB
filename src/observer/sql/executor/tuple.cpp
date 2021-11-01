@@ -428,7 +428,7 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
   }
   if(polyname == "count"){
     int countv = 0;
-    countv = lines1.size();
+    countv = lines.size();
     return std::to_string(countv);
     // os << std::to_string(countv);
     // os << std::endl;
