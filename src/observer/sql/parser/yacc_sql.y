@@ -226,6 +226,14 @@ create_index:		/*create index 语句的语法解析树*/
 		}
     ;
 
+create_unique_index:		/*create unique index 语句的语法解析树*/
+    CREATE UNIQUE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON 
+		{
+			CONTEXT->ssql->flag = SCF_CREATE_UNIQUE_INDEX;//"create_index";
+			create_unique_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, $8);
+		}
+    ;
+
 drop_index:			/*drop index 语句的语法解析树*/
     DROP INDEX ID  SEMICOLON 
 		{
