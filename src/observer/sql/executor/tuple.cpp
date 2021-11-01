@@ -495,7 +495,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         schema_.print(ss_tmp,false);
         std::string tmp = ss_tmp.str();
         tmp.pop_back();
-        tmp.erase(std::remove(tmp.begin(), tmp.end(), ' '), tmp.end());
+        tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
         if (tmp.find("|") != -1){
           std::vector<std::string> spl;
           int attrnum = splitStringToVect(tmp, spl, "|");
@@ -549,7 +549,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       schema_.print(ss_tmp,false);
       std::string tmp = ss_tmp.str();
       tmp.pop_back();
-      tmp.erase(std::remove(tmp.begin(), tmp.end(), ' '), tmp.end());
+      tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
       std::cout << "schema_: " << tmp << std::endl;
       if (tmp.find("|") != -1){
         std::vector<std::string> spl;
