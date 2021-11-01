@@ -315,6 +315,16 @@ int TupleSet::splitStringToVect(const std::string & srcStr, std::vector<std::str
     return destVect.size();
 }
 
+int TupleSet::in_needlist(std::vector<int> & needattrlist, int flag) const{
+  int i;
+  for(i=0; i<needattrlist.size();i++){
+    if (needattrlist[i] == flag){
+      return 1;
+    }
+  }
+  return 0;
+}
+
 void TupleSet::get_needattr(std::vector<std::string> & lines, const int needattr, std::vector<int> & needattrlist) const{
   if(needattr != -2){
     //选出第needattr列
@@ -347,13 +357,17 @@ void TupleSet::get_needattr(std::vector<std::string> & lines, const int needattr
       const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
       for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
             iter != end; ++iter) {
-        if (std::find(needattrlist.begin(), needattrlist.end(), flag) != needattrlist.end()){
+        if (in_needlist(needattrlist, flag)){
           (*iter)->to_string(tmp);
           tmp << " | ";
         }
+        // if (std::find(needattrlist.begin(), needattrlist.end(), flag) != needattrlist.end()){
+        //   (*iter)->to_string(tmp);
+        //   tmp << " | ";
+        // }
         flag++;
       }
-      if (std::find(needattrlist.begin(), needattrlist.end(), flag) != needattrlist.end()){
+      if (in_needlist(needattrlist, flag)){
         values.back()->to_string(tmp);
         lines.push_back(tmp.str());
       }

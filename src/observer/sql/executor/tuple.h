@@ -147,6 +147,7 @@ public:
   int splitStringToVect(const std::string & srcStr, std::vector<std::string> & destVect, const std::string & strFlag) const;
   void get_needattr(std::vector<std::string> & lines, const int needattr, std::vector<int> & needattrlist) const;
   std::string cal_res(std::vector<std::string> & lines, const std::string polyname) const;
+  int in_needlist(std::vector<int> & needattrlist, int flag) const;
   
 public:
   const TupleSchema &schema() const {
