@@ -306,10 +306,22 @@ int TupleSet::splitStringToVect(const std::string & srcStr, std::vector<std::str
         startPos = pos + 1;
         pos = srcStr.find(strFlag, pos + 1);
         splitN = pos - startPos;
+        // if (lineText.size()>0 and lineText[0] == ' '){
+        //   lineText.erase(0,1);
+        // }
+        // if (lineText.size()>0 and lineText[-1] == ' '){
+        //   lineText.erase(lineText.size()-1,1);
+        // }
         destVect.push_back(lineText);
     }
  
     lineText = srcStr.substr(startPos, srcStr.length() - startPos);
+    // if (lineText.size()>0 and lineText[0] == ' '){
+    //       lineText.erase(0,1);
+    //     }
+    // if (lineText.size()>0 and lineText[-1] == ' '){
+    //       lineText.erase(lineText.size()-1,1);
+    //     }
     destVect.push_back(lineText); 
  
     return destVect.size();
@@ -495,7 +507,13 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         schema_.print(ss_tmp,false);
         std::string tmp = ss_tmp.str();
         tmp.pop_back();
-        tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
+        int blank = tmp.find(' ');
+        while(blank != -1){
+          tmp.erase(blank,1);
+          blank = tmp.find(' ');
+        }
+        std::cout << tmp << std::endl;
+        // tmp.erase(remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
         if (tmp.find("|") != -1){
           std::vector<std::string> spl;
           int attrnum = splitStringToVect(tmp, spl, "|");
@@ -549,7 +567,13 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       schema_.print(ss_tmp,false);
       std::string tmp = ss_tmp.str();
       tmp.pop_back();
-      tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
+      int blank = tmp.find(' ');
+      while(blank != -1){
+        tmp.erase(blank,1);
+        blank = tmp.find(' ');
+      }
+      // std::cout << tmp << std::endl;
+      // tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
       std::cout << "schema_: " << tmp << std::endl;
       if (tmp.find("|") != -1){
         std::vector<std::string> spl;
