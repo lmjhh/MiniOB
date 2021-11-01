@@ -36,6 +36,7 @@ void relation_attr_destroy(RelAttr *relation_attr) {
   free(relation_attr->attribute_name);
   relation_attr->relation_name = nullptr;
   relation_attr->attribute_name = nullptr;
+  std::cout << "relation_attr_destroy" << std::endl;
 }
 
 void poly_init(Poly *poly_tmp, const char *poly_name) {//在检测到attri时才将attri记录到poly的attributes里面
@@ -45,14 +46,19 @@ void poly_init(Poly *poly_tmp, const char *poly_name) {//在检测到attri时才
   } else {
     poly_tmp->poly_name = nullptr;
   }
+
 }
 
 void poly_destroy(Poly *poly_tmp) {
   for (int k=0;k<poly_tmp->attr_num;k++){
-    relation_attr_destroy(&poly_tmp->attributes[k]);
+    if(!&poly_tmp->attributes[k]){
+      relation_attr_destroy(&poly_tmp->attributes[k]);
+    }
   }
   free(poly_tmp->poly_name);
   poly_tmp->poly_name = nullptr;
+  poly_tmp->attr_num = 0;
+  std::cout << "poly_destroy" << std::endl;
 }
 
 void value_init_integer(Value *value, int v) {
@@ -226,12 +232,16 @@ void selects_set_poly(Selects *selects, size_t poly_type){
   selects->poly_type = poly_type;
 }
 void selects_append_poly(Selects *selects, Poly *rel_po) {
+  std::cout << "selects->poly_num" << selects->poly_num << std::endl;
   selects->poly_list[selects->poly_num] = *rel_po;
   selects->poly_num++;
-  //std::cout << "selects->poly_num" << selects->poly_num << std::endl;
+  // std::cout << "selects->poly_num" << selects->poly_num << std::endl;
 }
 void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr) {
-  //std::cout << id << std::endl;
+  std::cout << "selects->poly_list[selects->poly_num-1].attr_num " << selects->poly_list[selects->poly_num-1].attr_num << std::endl;
+  if (selects->poly_list[selects->poly_num-1].attr_num < 0 or selects->poly_list[selects->poly_num-1].attr_num > MAX_NUM){
+    selects->poly_list[selects->poly_num-1].attr_num = 0;
+  }
   selects->poly_list[selects->poly_num-1].attributes[selects->poly_list[selects->poly_num-1].attr_num] = *rel_attr;
   selects->poly_list[selects->poly_num-1].attr_num++;
   //std::cout << "OK" << std::endl;

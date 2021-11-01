@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 
 BplusTreeIndex::~BplusTreeIndex() noexcept {
+  std::cout << "clear Dram Index" << std::endl;
   close();
 }
 

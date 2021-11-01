@@ -315,6 +315,16 @@ int TupleSet::splitStringToVect(const std::string & srcStr, std::vector<std::str
     return destVect.size();
 }
 
+int TupleSet::in_needlist(std::vector<int> & needattrlist, int flag) const{
+  int i;
+  for(i=0; i<needattrlist.size();i++){
+    if (needattrlist[i] == flag){
+      return 1;
+    }
+  }
+  return 0;
+}
+
 void TupleSet::get_needattr(std::vector<std::string> & lines, const int needattr, std::vector<int> & needattrlist) const{
   if(needattr != -2){
     //选出第needattr列
@@ -347,13 +357,17 @@ void TupleSet::get_needattr(std::vector<std::string> & lines, const int needattr
       const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
       for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
             iter != end; ++iter) {
-        if (std::find(needattrlist.begin(), needattrlist.end(), flag) != needattrlist.end()){
+        if (in_needlist(needattrlist, flag)){
           (*iter)->to_string(tmp);
           tmp << " | ";
         }
+        // if (std::find(needattrlist.begin(), needattrlist.end(), flag) != needattrlist.end()){
+        //   (*iter)->to_string(tmp);
+        //   tmp << " | ";
+        // }
         flag++;
       }
-      if (std::find(needattrlist.begin(), needattrlist.end(), flag) != needattrlist.end()){
+      if (in_needlist(needattrlist, flag)){
         values.back()->to_string(tmp);
         lines.push_back(tmp.str());
       }
@@ -391,7 +405,10 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
       }
       avg = avg/lines.size();
     }
-    return std::to_string(avg);
+    std::stringstream ss1;
+    FloatValue avg_result = FloatValue(avg);
+    avg_result.to_string(ss1);
+    return ss1.str();
   }
   std::set<std::string> lines1;
   for(int k=0;k<lines.size();k++){
@@ -500,7 +517,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       }
       else{
         //all
-        attri_tmp = attri_tmp+"*)";
+        attri_tmp = attri_tmp + "*)";
         get_needattr(lines,needattr,needattrlist);
       }
     }
@@ -544,8 +561,9 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
           }
         }
       }
+      //else 只有一列：肯定是我们需要的那列
       //根据needattr查找出需要的那1列到lines里面/或者all
-      std::cout << "0_get_needattr " << std::endl;
+      std::cout << "0_get_needattr " << needattr << std::endl;
       get_needattr(lines,needattr,needattrlist);
       std::cout << "1_get_needattr: " << needattr << std::endl;
       if (lines.size()>0){

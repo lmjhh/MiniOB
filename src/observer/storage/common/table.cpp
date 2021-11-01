@@ -42,14 +42,6 @@ Table::~Table() {
     data_buffer_pool_->close_file(file_id_);
     data_buffer_pool_ = nullptr;
   }
-  for(std::vector<Index *>::const_iterator iter = indexes_.cbegin(); iter != indexes_.cend(); iter++){
-    IndexMeta meta = (*iter)->index_meta();
-    std::string table_index_file_path = index_data_file(base_dir_.c_str(), name(), meta.name()); 
-    if(remove(table_index_file_path.c_str()) == 0){
-      std::cout << "drop table index path :" << table_index_file_path << std::endl;
-    }
-    delete *iter;
-  }
 
   LOG_INFO("Table has been closed: %s", name());
 }
@@ -164,6 +156,14 @@ RC Table::open(const char *meta_file, const char *base_dir) {
 }
 
 RC Table::drop (const char *path, const char *name){
+  for(std::vector<Index *>::const_iterator iter = indexes_.cbegin(); iter != indexes_.cend(); iter++){
+    IndexMeta meta = (*iter)->index_meta();
+    std::string table_index_file_path = index_data_file(base_dir_.c_str(), name, meta.name()); 
+    if(remove(table_index_file_path.c_str()) == 0){
+      std::cout << "drop table index path :" << table_index_file_path << std::endl;
+    }
+    delete *iter;
+  }
   std::string table_file_path = table_meta_file(path, name); 
   std::string table_data_file = std::string(path) + "/" + std::string(name) + TABLE_DATA_SUFFIX;
   if(remove(table_file_path.c_str()) == 0){

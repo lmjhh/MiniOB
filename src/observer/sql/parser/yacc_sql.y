@@ -16,7 +16,6 @@ typedef struct ParserContext {
   size_t condition_length;
   size_t from_length;
   size_t value_length;
-  size_t poly_length;
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
@@ -375,7 +374,6 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
-			CONTEXT->poly_length = 0;
 	}
 	| SELECT select_poly FROM ID rel_list where SEMICOLON
 		{
@@ -392,7 +390,6 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
-			CONTEXT->poly_length = 0;
 	}
 	;
 
@@ -435,7 +432,6 @@ poly_key:
 		Poly poly_tmp;
 		poly_init(&poly_tmp, $1);
 		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
-		//CONTEXT->poly_length++;
 	}
 	;
 
