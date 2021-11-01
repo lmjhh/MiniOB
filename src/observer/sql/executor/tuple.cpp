@@ -547,8 +547,18 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       }
     }
     else if (isNumber(attri)){
-      attri_tmp = attri_tmp + attri + ")";
-      get_needattr(lines,needattr,needattrlist);
+      if (ss0.str() != "count"){
+        results.push_back(attri);
+        attri_tmp = attri_tmp + attri + ")";
+        if (i < selects.poly_num-1){
+          attri_tmp = attri_tmp + " | ";
+        }
+        continue;
+      }
+      else{
+        attri_tmp = attri_tmp + attri + ")";
+        get_needattr(lines,needattr,needattrlist);
+      }
     }
     else{//指定了某个具体的列
       std::string needattrname;
