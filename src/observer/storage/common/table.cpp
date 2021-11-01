@@ -384,10 +384,11 @@ RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *contex
   }
 
   IndexScanner *index_scanner = find_index_for_scan(filter);
+
   if (index_scanner != nullptr) {
     return scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
   }
-
+  
   RC rc = RC::SUCCESS;
   RecordFileScanner scanner;
   rc = scanner.open_scan(*data_buffer_pool_, file_id_, filter);
@@ -585,7 +586,7 @@ RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute
 
   const int normal_field_start_index = table_meta_.sys_field_num();
   const int all_field_num = table_meta_.field_num();
-  for (int i = 0; i < all_field_num; i++) {
+  for (int i = 0; i + normal_field_start_index < all_field_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     if (std::string(field->name()) == std::string(attribute_name)) {
       if(field->type() != value->type) {
@@ -595,7 +596,6 @@ RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute
       }
     }
   }
-  
   RC rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
   if (updated_count != nullptr) {
     *updated_count = updater.updated_count();
@@ -605,7 +605,6 @@ RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute
 
 RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, const Value *value) {
   RC rc = RC::SUCCESS;
-
   const int normal_field_start_index = table_meta_.sys_field_num();
   const int all_field_num = table_meta_.field_num();
   for (int i = 0; i < all_field_num; i++) {
@@ -616,6 +615,7 @@ RC Table::update_record(Trx *trx, Record *record, const char *attribute_name, co
         field->name(), field->type(), value->type);
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
       }
+      
       //先删除旧索引
       rc = delete_entry_of_indexes(record->data, record->rid, false);
       if (rc != RC::SUCCESS) {
