@@ -453,6 +453,13 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
   }
 }
 
+bool isNumber(const std::string& str)
+{
+    for (char const &c : str) {
+        if (std::isdigit(c) == 0) return false;
+    }
+    return true;
+}
 
 void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
   if (schema_.fields().empty()) {
@@ -538,6 +545,10 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         attri_tmp = attri_tmp + "*)";
         get_needattr(lines,needattr,needattrlist);
       }
+    }
+    else if (isNumber(attri)){
+      attri_tmp = attri_tmp + attri + ")";
+      get_needattr(lines,needattr,needattrlist);
     }
     else{//指定了某个具体的列
       std::string needattrname;
