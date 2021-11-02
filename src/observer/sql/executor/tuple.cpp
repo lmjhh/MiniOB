@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 #include "common/log/log.h"
+#include <algorithm>
 
 Tuple::Tuple(const Tuple &other) {
   LOG_PANIC("Copy constructor of tuple is not supported");
@@ -490,7 +491,9 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
 
     std::stringstream ss0;
     ss0 << po.poly_name;
-    attri_tmp = attri_tmp + ss0.str();
+    std::string tt1 = ss0.str();
+    transform(tt1.begin(),tt1.end(),tt1.begin(),::tolower);
+    attri_tmp = attri_tmp + tt1;
     attri_tmp = attri_tmp + "(";
     // std::cout << "attri_tmp: " << attri_tmp << std::endl;
     const RelAttr &attr = po.attributes[0];
