@@ -409,7 +409,7 @@ void TupleSet::get_needattr(std::vector<std::string> & lines, const int needattr
 }
 
 std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::string polyname) const {
-  if (polyname == "avg"){
+  if (polyname == "avg" or polyname == "AVG"){
     float avg = 0.0;
     if(lines.size()>0){
       for(int k=0;k<lines.size();k++){
@@ -426,14 +426,14 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
   for(int k=0;k<lines.size();k++){
     lines1.insert(lines[k]);
   }
-  if(polyname == "count"){
+  if(polyname == "count" or polyname == "COUNT"){
     int countv = 0;
     countv = lines.size();
     return std::to_string(countv);
     // os << std::to_string(countv);
     // os << std::endl;
   }
-  else if(polyname == "max"){
+  else if(polyname == "max" or polyname == "MAX"){
     std::stringstream ss1;
     ss1 << *lines1.rbegin();
     std::string tmp = ss1.str();
@@ -441,7 +441,7 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
     // os << *(lines.rbegin());
     // os << std::endl;
   }
-  else if(polyname == "min"){
+  else if(polyname == "min" or polyname == "MIN"){
     std::stringstream ss1;
     ss1 << *lines1.begin();
     std::string tmp = ss1.str();
@@ -547,7 +547,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       }
     }
     else if (isNumber(attri)){
-      if (ss0.str() != "count"){
+      if (ss0.str() != "count" and ss0.str() != "COUNT"){
         results.push_back(attri);
         attri_tmp = attri_tmp + attri + ")";
         if (i < selects.poly_num-1){
