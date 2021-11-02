@@ -255,7 +255,7 @@ void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
     values.back()->to_string(tmp);
     // os << std::endl;
     lines.insert(tmp.str());
-    if (poly_type == "avg"){
+    if (poly_type == "avg" or poly_type == "AVG"){
       // if tmp.str().lengh()
       std::string tmp1 = tmp.str();
       // tmp1.pop_back();
@@ -265,17 +265,17 @@ void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
       
     }
   }
-  if(poly_type == "count"){
+  if(poly_type == "count" or poly_type == "COUNT"){
     int countv = 0;
     countv = lines.size();
     os << std::to_string(countv);
     os << std::endl;
   }
-  else if(poly_type == "max"){
+  else if(poly_type == "max" or poly_type == "MAX"){
     os << *(lines.rbegin());
     os << std::endl;
   }
-  else if(poly_type == "min"){
+  else if(poly_type == "min" or poly_type == "MIN"){
     os << *lines.begin();
     os << std::endl;
   }
