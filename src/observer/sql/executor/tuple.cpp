@@ -482,10 +482,10 @@ bool isChar(std::string s){
     return false;
 }
 
-void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
+RC TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
   if (schema_.fields().empty()) {
     LOG_WARN("Got empty schema");
-    return;
+    return RC::GENERIC_ERROR;
   }
   // 遍历poly_list
   int i;
@@ -502,7 +502,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     if (selects.poly_list[i].attr_num != 1){
       // 异常情况
       std::cout << "there are more than one attri" << std::endl;
-      return;
+      return RC::GENERIC_ERROR;
     }
     const Poly &po = selects.poly_list[i];
     std::cout << "get po " << std::endl;
@@ -525,6 +525,9 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     std::string attri = ss.str();
 
     std::cout << "attri****** " << attr.attribute_name << std::endl;
+    if (attri.find("*") != -1 and ( (0 != strcmp(po.poly_name, "COUNT")) and (0 != strcmp(po.poly_name,"count")))){
+      return RC::GENERIC_ERROR;
+    }
     if (attri.find("*") != -1){
       // 获得selects.poly_list[i].attributes[0]->relation_name对应的所有attributes
       if(attr.relation_name){
@@ -648,6 +651,9 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       }
       // 针对lines计算结果
     }
+    else{
+      break;
+    }
     std::string res;
     res = cal_res(lines, po.poly_name);
     results.push_back(res);
@@ -665,7 +671,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     }
   }
   os << std::endl;
-
+  return RC::SUCCESS;
 }
 
 void TupleSet::set_schema(const TupleSchema &schema) {

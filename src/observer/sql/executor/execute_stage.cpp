@@ -280,7 +280,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       } else {
         // 当前只查询一张表，直接返回结果即可
         std::cout << "begin-print------------" << std::endl;
-        tuple_sets.front().print_poly_new(ss,selects);
+        RC rc = tuple_sets.front().print_poly_new(ss,selects);
+        if (rc != RC::SUCCESS){
+          return rc;
+        }
         std::cout << "end-print--------------" << std::endl;
         // tuple_sets.front().schema().print(ss);
       }
