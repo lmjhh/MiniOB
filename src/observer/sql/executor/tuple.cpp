@@ -488,7 +488,6 @@ RC TupleSet::order_by_field_and_type(const RelAttr *attributes, const OrderType 
         TupleField field = schema().field(0);
         size_t vaule_index = schema().index_of_field(field.table_name(), attributes[i].attribute_name);
         buble_sort(vaule_index, order_types[i]);
-        return RC::SUCCESS;
       }else {
         size_t vaule_index = schema().index_of_field(attributes[i].relation_name, attributes[i].attribute_name);
         buble_sort(vaule_index, order_types[i]);
