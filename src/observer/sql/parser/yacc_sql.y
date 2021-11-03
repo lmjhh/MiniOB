@@ -20,6 +20,7 @@ typedef struct ParserContext {
   Condition conditions[MAX_NUM];
   CompOp comp;
 	char id[MAX_NUM];
+  int order_by_type;
 } ParserContext;
 
 //获取子串
@@ -107,6 +108,8 @@ ParserContext *get_context(yyscan_t scanner)
 		MIN
 		COUNT
 		AVG
+		ORDERBY
+		ASC
 
 
 %union {
@@ -350,7 +353,7 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where SEMICOLON
+    SELECT select_attr FROM ID rel_list where order_by SEMICOLON 
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -365,6 +368,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
+			CONTEXT->order_by_type = 0;
 	}
 	| SELECT select_poly FROM ID rel_list where SEMICOLON
 		{
@@ -381,6 +385,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
+			CONTEXT->order_by_type = 0;
 	}
 	;
 
@@ -698,6 +703,44 @@ comOp:
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
     ;
+
+order_by :
+	/* empty */
+	| ORDERBY order_by_attr order_by_list {
+
+	}
+	;
+	order_by_list:
+	/* empty */
+	| COMMA order_by_attr order_by_list {
+			
+	}
+	;
+
+	order_by_attr:
+	ID order_by_type {	
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_orderbyAttr(&CONTEXT->ssql->sstr.selection, &attr, CONTEXT->order_by_type);
+		}
+	| ID DOT ID order_by_type {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_orderbyAttr(&CONTEXT->ssql->sstr.selection, &attr, CONTEXT->order_by_type);
+		}
+	;
+	order_by_type:
+	/* empty */{
+		CONTEXT->order_by_type = 0;
+	}
+	| ASC {
+		CONTEXT->order_by_type = 0;
+	}
+	| DESC {
+		CONTEXT->order_by_type = 1;
+	}
+	;
+
 
 load_data:
 		LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON

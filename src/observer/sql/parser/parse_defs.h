@@ -42,6 +42,9 @@ typedef enum {
 //属性值类型
 typedef enum { UNDEFINED, CHARS, INTS, DATES, FLOATS } AttrType;
 
+
+typedef enum { BYASC, BYDESC } OrderType;
+
 //属性值
 typedef struct _Value {
   AttrType type;  // type of value
@@ -67,6 +70,15 @@ typedef struct {
   char*       poly_name;            // 标志聚合函数的名字
 } Poly;
 
+
+
+// Order By
+typedef struct {
+  RelAttr   attributes[MAX_NUM];    //保存所有要排序的列
+  size_t    attr_num;               //列的个数
+  OrderType order_type[MAX_NUM];    //对应升序还是降序
+} OrderBy;
+
 // struct of select
 typedef struct {
   size_t    attr_num;               // Length of attrs in Select clause
@@ -78,6 +90,7 @@ typedef struct {
   size_t       poly_type;            // 标志聚合函数的类型
   size_t    poly_num;               // Length of attrs in poly
   Poly         poly_list[MAX_NUM];   //每扫描到一个poly 就记录下来是什么poly 以及涉及到的attri
+  OrderBy   order_by;               // 需要排序的列集合
 } Selects;
 
 // struct of insert
@@ -213,8 +226,12 @@ void selects_destroy(Selects *selects);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);
 void poly_destroy(Poly *poly_tmp);
+
 void selects_append_poly(Selects *selects, Poly *rel_po);
 void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr);
+
+
+void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type);
 
 void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num);
 void inserts_destroy(Inserts *inserts);

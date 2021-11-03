@@ -461,6 +461,60 @@ bool isNumber(const std::string& str)
     return true;
 }
 
+RC TupleSet::order_by_field_and_type(RelAttr *attributes, OrderType *order_types, size_t size) {
+
+  /* 检查是否合法 */
+   for(int index = 0; index < size; index++){
+      if(attributes[index].relation_name == nullptr){
+        // size_t vaule_index = schema().index_of_field(field.table_name(), attributes.attribute_name);
+        
+      }else {
+
+      }
+      
+   }
+
+}
+
+void TupleSet::buble_sort(int index){
+  for (int i = 0; i < size(); i++) {
+    bool flag = false;
+    for(int j = i; j < size(); j++){
+        if(compareTupleWithIndex(tuples_[j - 1],tuples_[j],index)){
+            Tuple tmp_tuple = tuples_[j - 1];
+
+            flag = true;
+        }
+    }
+    if(flag) return;
+  }
+}
+
+bool TupleSet::compareTupleWithIndex(Tuple &tuple1, Tuple &tuple2, int index){
+  TupleValue value1 = tuple1.get(index);
+  TupleValue value2 = tuple2.get(index);
+
+  int cmp_result = (values1).compare(values2);
+  switch (op) {
+    case EQUAL_TO:
+      return 0 == cmp_result;
+    case LESS_EQUAL:
+      return cmp_result <= 0;
+    case NOT_EQUAL:
+      return cmp_result != 0;
+    case LESS_THAN:
+      return cmp_result < 0;
+    case GREAT_EQUAL:
+      return cmp_result >= 0;
+    case GREAT_THAN:
+      return cmp_result > 0;
+
+    default:
+      break;
+  }
+}
+
+
 void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
   if (schema_.fields().empty()) {
     LOG_WARN("Got empty schema");

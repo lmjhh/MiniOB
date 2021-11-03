@@ -130,6 +130,8 @@ public:
 
   void set_schema(const TupleSchema &schema);
 
+  RC order_by_field_and_type(RelAttr *attributes, OrderType *order_types, size_t size);
+
   const TupleSchema &get_schema() const;
 
   void add(Tuple && tuple);
@@ -156,6 +158,8 @@ public:
 private:
   std::vector<Tuple> tuples_;
   TupleSchema schema_;
+  void buble_sort(int index);
+  bool compareTupleWithIndex(Tuple &tuple1, Tuple &tuple2, int index);
 };
 
 class TupleRecordConverter {

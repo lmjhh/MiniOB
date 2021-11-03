@@ -260,6 +260,21 @@ void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr) {
   //std::cout << "OK" << std::endl;
 }
 
+void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type){
+  if(attr->relation_name != nullptr){
+    std::cout << "order by  " << std::string(attr->relation_name) << "." << std::string(attr->attribute_name) << " order type " << type << std::endl;
+  }else{
+    std::cout << "order by " << std::string(attr->attribute_name) << " order type " << type << std::endl;
+  }
+
+  if(selects->order_by.attr_num < 0 || selects->order_by.attr_num > MAX_NUM){
+      selects->order_by.attr_num = 0;
+  }
+  selects->order_by.attributes[selects->order_by.attr_num] = *attr;
+  selects->order_by.order_type[selects->order_by.attr_num] = type;
+  selects->order_by.attr_num++;
+}
+
 void selects_destroy(Selects *selects) {
   for (size_t i = 0; i < selects->attr_num; i++) {
     relation_attr_destroy(&selects->attributes[i]);
