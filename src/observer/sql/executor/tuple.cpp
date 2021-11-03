@@ -462,6 +462,26 @@ bool isNumber(const std::string& str)
     return true;
 }
 
+bool isnum(const std::string& s)
+{
+        std::stringstream sin(s);
+        double t;
+        char p;
+        if(!(sin >> t))
+          return false;
+        if(sin >> p)
+          return false;
+        else
+          return true;
+}
+
+bool isChar(std::string s){
+  if (s[0] == '\'' or  s[0] == '\"')
+    return true;
+  else
+    return false;
+}
+
 void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
   if (schema_.fields().empty()) {
     LOG_WARN("Got empty schema");
@@ -492,7 +512,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     std::stringstream ss0;
     ss0 << po.poly_name;
     std::string tt1 = ss0.str();
-    transform(tt1.begin(),tt1.end(),tt1.begin(),::tolower);
+    // transform(tt1.begin(),tt1.end(),tt1.begin(),::tolower);
     attri_tmp = attri_tmp + tt1;
     attri_tmp = attri_tmp + "(";
     // std::cout << "attri_tmp: " << attri_tmp << std::endl;
@@ -502,7 +522,8 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     std::stringstream ss;
     ss << attr.attribute_name;
     std::string attri = ss.str();
-    // std::cout << "attri " << attri << std::endl;
+
+    std::cout << "attri****** " << attr.attribute_name << std::endl;
     if (attri.find("*") != -1){
       // 获得selects.poly_list[i].attributes[0]->relation_name对应的所有attributes
       if(attr.relation_name){
@@ -549,9 +570,16 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         get_needattr(lines,needattr,needattrlist);
       }
     }
-    else if (isNumber(attri)){
+    else if (isnum(attri) or isChar(attri) ){
       if (ss0.str() != "count" and ss0.str() != "COUNT"){
-        results.push_back(attri);
+        std::string tmpres = attri;
+        if (isnum(attri)){
+          std::stringstream sat;
+          FloatValue poly_float = FloatValue(atof(attri.c_str()));
+          poly_float.to_string(sat);
+          tmpres = sat.str();
+        }
+        results.push_back(tmpres);
         attri_tmp = attri_tmp + attri + ")";
         if (i < selects.poly_num-1){
           attri_tmp = attri_tmp + " | ";
