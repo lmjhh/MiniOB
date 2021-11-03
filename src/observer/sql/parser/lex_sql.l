@@ -66,6 +66,8 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 [Aa][Nn][Dd]                             RETURN_TOKEN(AND);
 [Oo][Rr][Dd][Ee][Rr][ ][Bb][Yy]		 		RETURN_TOKEN(ORDERBY);
 [Aa][Ss][Cc]							 	RETURN_TOKEN(ASC);
+[Ii][Nn][Nn][Ee][Rr][ ][Jj][Oo][Ii][Nn]		RETURN_TOKEN(INNERJOIN);
+
 [Ii][Nn][Ss][Ee][rR][tT]                 RETURN_TOKEN(INSERT);
 [Ii][Nn][Tt][Oo]					 	             RETURN_TOKEN(INTO);
 [Vv][Aa][Ll][Uu][Ee][Ss]                 RETURN_TOKEN(VALUES);
