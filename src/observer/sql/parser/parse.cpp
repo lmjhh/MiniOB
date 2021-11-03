@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "rc.h"
 #include "common/log/log.h"
 #include <string.h>
+#include<sstream>
 
 RC parse(char *st, Query *sqln);
 
@@ -24,6 +25,7 @@ RC parse(char *st, Query *sqln);
 extern "C" {
 #endif // __cplusplus
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name) {
+  std::cout << attribute_name << std::endl;
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
   } else {
@@ -42,6 +44,21 @@ void relation_attr_init_for_number(RelAttr *relation_attr, const char *relation_
   const char *p = str.c_str();
   relation_attr->attribute_name = strdup(p);
 }
+void relation_attr_init_for_float(RelAttr *relation_attr, const char *relation_name, float attribute_name){
+  std::cout << attribute_name << std::endl;
+  if (relation_name != nullptr) {
+    relation_attr->relation_name = strdup(relation_name);
+  } else {
+    relation_attr->relation_name = nullptr;
+  }  
+  std::ostringstream oss;
+  oss << attribute_name;
+  std::string str(oss.str());
+  // std::string str = std::f(attribute_name);
+  const char *p = str.c_str();
+  relation_attr->attribute_name = strdup(p);
+}
+
 void relation_attr_destroy(RelAttr *relation_attr) {
   free(relation_attr->relation_name);
   free(relation_attr->attribute_name);

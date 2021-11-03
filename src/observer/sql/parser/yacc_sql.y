@@ -440,15 +440,37 @@ poly_list:
 		}
 	;
 
+poly_value:
+    NUMBER{	
+		RelAttr attr1;
+		relation_attr_init_for_number(&attr1, NULL, $1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+
+  		//value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
+		}
+    |FLOAT{
+		RelAttr attr1;
+		relation_attr_init_for_float(&attr1, NULL, $1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+
+  		//value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
+		}
+    |SSS {
+		//$1 = substr($1,1,strlen($1)-2);
+  		RelAttr attr1;
+		relation_attr_init(&attr1, NULL, $1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+
+		//value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
+		}
+	
+    ;
+
 select_attr_poly:
-	NUMBER{  
+	poly_value{  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			
-			RelAttr attr1;
-			relation_attr_init_for_number(&attr1, NULL, $1);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
 		}
 	| STAR {  
 			RelAttr attr;

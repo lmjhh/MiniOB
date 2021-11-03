@@ -38,7 +38,7 @@ using namespace common;
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
 RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects,TupleSet &return_tupleSet);
-bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op);
+bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
 
 //! Constructor
@@ -280,7 +280,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       } else {
         // 当前只查询一张表，直接返回结果即可
         std::cout << "begin-print------------" << std::endl;
-        tuple_sets.front().print_poly_new(ss,selects);
+        RC rc = tuple_sets.front().print_poly_new(ss,selects);
+        if (rc != RC::SUCCESS){
+          return rc;
+        }
         std::cout << "end-print--------------" << std::endl;
         // tuple_sets.front().schema().print(ss);
       }
@@ -310,12 +313,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             return rc;
           }
         }
+        rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
         result_tupleSet = get_final_result(selects, join_result_tupleSet);
         result_tupleSet.print(ss, true);
         result_tupleSet.clear();
       } else {
 
-          // rc = tuple_sets.front().order_by_field_and_type();
+          rc = tuple_sets.front().order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
           // 当前只查询一张表，直接返回结果即可
           TupleSet result_tupleSet;
           result_tupleSet = get_final_result(selects, tuple_sets.front());
@@ -619,7 +623,7 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
   return RC::SUCCESS;
 }
 
-bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op) {
+bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op) {
   
   int cmp_result = (*values1).compare(*values2);
 
