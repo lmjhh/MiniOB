@@ -502,6 +502,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     if (selects.poly_list[i].attr_num != 1){
       // 异常情况
       std::cout << "there are more than one attri" << std::endl;
+      return;
     }
     const Poly &po = selects.poly_list[i];
     std::cout << "get po " << std::endl;
