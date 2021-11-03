@@ -523,7 +523,7 @@ bool TupleSet::compareTupleWithIndex(const Tuple &tuple1, const Tuple &tuple2, i
     }
     break;
     default:{
-      if(cmp_result < 0){
+      if(cmp_result <= 0){
         return false;
       }else{
         return true;
