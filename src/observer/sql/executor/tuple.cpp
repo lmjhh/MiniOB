@@ -592,7 +592,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         get_needattr(lines,needattr,needattrlist);
       }
     }
-    else{//指定了某个具体的列
+    else if (attri != ""){//指定了某个具体的列
       std::string needattrname;
       if(attr.relation_name){
         std::stringstream ss1;
