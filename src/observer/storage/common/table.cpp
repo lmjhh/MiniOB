@@ -250,6 +250,27 @@ RC Table::insert_record(Trx *trx, Record *record) {
   }
   return rc;
 }
+
+RC Table::insert_records(Trx *trx, int tuple_num, const InsertsTuple *tuples){
+    char *tmp_record_data[MAX_NUM];
+    Record records[MAX_NUM];
+    for(int i = 0; i < tuple_num; i++){
+      RC rc = make_record(tuples[i].value_num, tuples[i].values, tmp_record_data[i]);
+      if(rc != RC::SUCCESS){
+        return rc;
+      }
+      records[i].data = tmp_record_data[i];
+    }
+    for(int i = 0; i < tuple_num; i++){
+      RC rc = insert_record(trx, &records[i]);
+      if(rc != RC::SUCCESS){
+        for(int j = 0; j < i; j++) record_handler_->delete_record(&records[i].rid);
+        return rc;
+      }
+    }
+    return RC::SUCCESS;
+}
+
 RC Table::insert_record(Trx *trx, int value_num, const Value *values) {
   if (value_num <= 0 || nullptr == values ) {
     LOG_ERROR("Invalid argument. value num=%d, values=%p", value_num, values);

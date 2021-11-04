@@ -93,11 +93,16 @@ typedef struct {
   OrderBy   order_by;               // 需要排序的列集合
 } Selects;
 
+typedef struct {
+   size_t value_num;       // Length of values
+   Value values[MAX_NUM];  // values to insert 
+} InsertsTuple;
+
 // struct of insert
 typedef struct {
   char *relation_name;    // Relation to insert into
-  size_t value_num;       // Length of values
-  Value values[MAX_NUM];  // values to insert
+  size_t tuple_num;       // Length of tuples
+  InsertsTuple tuples[MAX_NUM];  // tuples to insert
 } Inserts;
 
 // struct of delete
@@ -234,7 +239,8 @@ void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr);
 
 void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type);
 
-void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num);
+void inserts_init(Inserts *inserts, const char *relation_name);
+void inserts_append_tuple(Inserts *inserts, Value values[], size_t value_num);
 void inserts_destroy(Inserts *inserts);
 
 void deletes_init_relation(Deletes *deletes, const char *relation_name);
