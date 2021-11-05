@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include "rc.h"
+#include "sql/parser/parse_defs.h"
 
 class TableMeta;
 class FieldMeta;
@@ -29,19 +30,20 @@ class IndexMeta {
 public:
   IndexMeta() = default;
 
-  RC init(const char *name, const FieldMeta &field);
+  RC init(const char *name, const FieldMeta *fields[], int fields_count);
 
 public:
   const char *name() const;
-  const char *field() const;
-
+  const char **fields() const;
+  const int fields_count() const;
   void desc(std::ostream &os) const;
 public:
   void to_json(Json::Value &json_value) const;
   static RC from_json(const TableMeta &table, const Json::Value &json_value, IndexMeta &index);
 
 private:
+  int               fields_count_;
   std::string       name_;
-  std::string       field_;
+  const char **     fields_;
 };
 #endif // __OBSERVER_STORAGE_COMMON_INDEX_META_H__
