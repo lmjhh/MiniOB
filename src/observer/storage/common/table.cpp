@@ -495,7 +495,7 @@ static RC insert_index_record_reader_adapter(Record *record, void *context) {
   return inserter.insert_index(record);
 }
 
-RC Table::create_index(Trx *trx, const char *index_name, char * const attribute_names[], size_t attribute_count) {
+RC Table::create_index(Trx *trx, const char *index_name, char * const attribute_names[], size_t attribute_count, int is_unique) {
   if (index_name == nullptr || common::is_blank(index_name)) {
     return RC::INVALID_ARGUMENT;
   }
@@ -523,11 +523,11 @@ RC Table::create_index(Trx *trx, const char *index_name, char * const attribute_
 
   
   IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name, field_metas, attribute_count);
+  RC rc = new_index_meta.init(index_name, field_metas, attribute_count, is_unique);
   if (rc != RC::SUCCESS) {
     return rc;
   }
-  
+
   for(int i = 0; i < new_index_meta.fields_count(); i++){
     LOG_ERROR("索引对应的 filed_name = %s", new_index_meta.fields()[i]);
   }

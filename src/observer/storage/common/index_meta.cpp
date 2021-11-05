@@ -22,9 +22,10 @@ See the Mulan PSL v2 for more details. */
 
 const static Json::StaticString FIELD_NAME("name");
 const static Json::StaticString FIELD_COUNT("count");
+const static Json::StaticString FIELD_UNIQUE("unique");
 const static Json::StaticString FIELD_FIELD_NAMES("field_names");
 
-RC IndexMeta::init(const char *name, const FieldMeta *fields[], int fields_count) {
+RC IndexMeta::init(const char *name, const FieldMeta *fields[], int fields_count, int is_unique) {
   if (nullptr == name || common::is_blank(name)) {
     return RC::INVALID_ARGUMENT;
   }
@@ -35,6 +36,7 @@ RC IndexMeta::init(const char *name, const FieldMeta *fields[], int fields_count
     //倒序的要转成正序
     fields_[fields_count - i - 1] = fields[i]->name();
   }
+  is_unique_ = is_unique;
   fields_count_ = fields_count;
 
   return RC::SUCCESS;
@@ -43,12 +45,14 @@ RC IndexMeta::init(const char *name, const FieldMeta *fields[], int fields_count
 void IndexMeta::to_json(Json::Value &json_value) const {
   json_value[FIELD_NAME] = name_;
   json_value[FIELD_COUNT] = fields_count_;
+  json_value[FIELD_UNIQUE] = is_unique_;
   for(int i = 0; i < fields_count_; i++)
     json_value[FIELD_FIELD_NAMES].append(fields_[i]);
 }
 
 RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, IndexMeta &index) {
   const Json::Value &name_value = json_value[FIELD_NAME];
+  const Json::Value &is_unique = json_value[FIELD_UNIQUE];
   const Json::Value &fields_count = json_value[FIELD_COUNT];
   const Json::Value &field_values = json_value[FIELD_FIELD_NAMES];
   if (!name_value.isString()) {
@@ -58,6 +62,11 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
 
   if (!fields_count.isInt()) {
     LOG_ERROR("Index name is not a int. json value=%s", fields_count.toStyledString().c_str());
+    return RC::GENERIC_ERROR;
+  }
+
+  if (!is_unique.isInt()) {
+    LOG_ERROR("Index name is not a int. json value=%s", is_unique.toStyledString().c_str());
     return RC::GENERIC_ERROR;
   }
 
@@ -77,7 +86,7 @@ RC IndexMeta::from_json(const TableMeta &table, const Json::Value &json_value, I
     }
   }
 
-  return index.init(name_value.asCString(), fields,fields_count.isInt());
+  return index.init(name_value.asCString(), fields,fields_count.asInt(), is_unique.asInt());
 }
 
 const char *IndexMeta::name() const {
@@ -90,6 +99,10 @@ const char **IndexMeta::fields() const {
 
 const int IndexMeta::fields_count() const{
   return fields_count_;
+}
+
+const int IndexMeta::is_unique() const {
+  return is_unique_;
 }
 
 void IndexMeta::desc(std::ostream &os) const {

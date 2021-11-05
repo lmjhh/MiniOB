@@ -102,7 +102,7 @@ public:
    * @param attrName
    * @return
    */
-  RC create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, char * const attribute_name[], size_t attribute_count);
+  RC create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, char * const attribute_name[], size_t attribute_count, int is_unique);
 
   /**
    * 该函数用来删除名为indexName的索引。

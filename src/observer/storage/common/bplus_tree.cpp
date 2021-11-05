@@ -802,7 +802,7 @@ RC BplusTreeHandler::insert_into_new_root(PageNum left_page, const char *pkey, P
   return SUCCESS;
 }
 
-RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid) {
+RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid, int is_unique) {
   RC rc;
   PageNum leaf_page;
   BPPageHandle page_handle;
@@ -824,6 +824,12 @@ RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid) {
     return rc;
   }
 
+  if(is_unique){
+    LOG_ERROR("我是唯一索引");
+  }else{
+    LOG_ERROR("我不是唯一索引");
+  }
+
   rc = disk_buffer_pool_->get_this_page(file_id_, leaf_page, &page_handle);
   if(rc!=SUCCESS){
     free(key);
@@ -835,6 +841,18 @@ RC BplusTreeHandler::insert_entry(const char *pkey, const RID *rid) {
     free(key);
     return rc;
   }
+
+  if(is_unique == 1){
+    LOG_ERROR("需要判断唯一索引");
+    RID tmp_rid;
+    rc = get_entry(pkey, &tmp_rid);
+    if(rc == RC::SUCCESS){
+      LOG_ERROR("判断成功，存在重复的列");
+      return RC::RECORD_DUPLICATE_KEY;
+    }
+    LOG_ERROR("判断失败");
+  }
+
   leaf=(IndexNode *)(pdata+sizeof(IndexFileHeader));
 
   if(leaf->key_num<file_header_.order-1){
@@ -901,7 +919,7 @@ RC BplusTreeHandler::get_entry(const char *pkey,RID *rid) {
 
   leaf = get_index_node(pdata);
   for(i=0;i<leaf->key_num;i++){
-    if(CmpKey(file_header_.attr_type, file_header_.attr_length,key,leaf->keys+(i*file_header_.key_length))==0){
+    if(CompareKey(key, leaf->keys+(i*file_header_.key_length), file_header_.attr_type, file_header_.attr_length) == 0){
       memcpy(rid,leaf->rids+i,sizeof(RID));
       free(key);
       return SUCCESS;

@@ -111,7 +111,7 @@ ParserContext *get_context(yyscan_t scanner)
 		ORDERBY
 		ASC
 		INNERJOIN
-
+		UNIQUE
 
 %union {
   struct _Attr *attr;
@@ -224,8 +224,14 @@ create_index:		/*create index 语句的语法解析树*/
     CREATE INDEX ID ON ID LBRACE ID id_list RBRACE SEMICOLON 
 		{
 			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5);
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, 0);
 			create_index_append_attribute(&CONTEXT->ssql->sstr.create_index, $7);
+		}
+	| CREATE UNIQUE INDEX ID ON ID LBRACE ID id_list RBRACE SEMICOLON 
+		{
+			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, 1);
+			create_index_append_attribute(&CONTEXT->ssql->sstr.create_index, $8);			
 		}
     ;
 id_list:

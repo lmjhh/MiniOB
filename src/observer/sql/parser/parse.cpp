@@ -411,9 +411,10 @@ void drop_table_destroy(DropTable *drop_table) {
   drop_table->relation_name = nullptr;
 }
 
-void create_index_init(CreateIndex *create_index, const char *index_name, const char *relation_name) {
+void create_index_init(CreateIndex *create_index, const char *index_name, const char *relation_name, int is_unique) {
   create_index->index_name = strdup(index_name);
   create_index->relation_name = strdup(relation_name);
+  create_index->is_unique = is_unique;
 }
 
 void create_index_append_attribute(CreateIndex *create_index, const char *attr_name){
