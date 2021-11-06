@@ -205,6 +205,7 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
       rc = handler_->create_index(current_trx, current_db, create_index.relation_name, 
                                   create_index.index_name, create_index.attribute_names, create_index.attribute_count, create_index.is_unique);
       snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
+      create_index_destroy(&sql->sstr.create_index);
     }
     break;
 

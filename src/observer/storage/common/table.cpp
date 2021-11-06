@@ -508,10 +508,8 @@ RC Table::create_index(Trx *trx, const char *index_name, char * const attribute_
     return RC::SCHEMA_INDEX_EXIST;
   }
 
-  for(int i = 0; i < attribute_count; i++){
-    if(table_meta_.find_index_by_fields((attribute_names)))
-       return RC::INVALID_ARGUMENT;
-  }
+  if(table_meta_.find_index_by_fields(attribute_names, attribute_count) != nullptr)
+    return RC::INVALID_ARGUMENT;
 
   const FieldMeta *field_metas[MAX_NUM];
   for(int i = 0; i < attribute_count; i++){
@@ -821,7 +819,7 @@ IndexScanner *Table::find_index_for_scan(const DefaultConditionFilter &filter) {
   }
   char * fields[1];
   fields[0] = strdup(field_meta->name());
-  const IndexMeta *index_meta = table_meta_.find_index_by_fields(fields);
+  const IndexMeta *index_meta = table_meta_.find_index_by_fields(fields, 1);
   if (nullptr == index_meta) {
     return nullptr;
   }

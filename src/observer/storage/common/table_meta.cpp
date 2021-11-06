@@ -149,8 +149,9 @@ const IndexMeta * TableMeta::index(const char *name) const {
   return nullptr;
 }
 
-const IndexMeta * TableMeta::find_index_by_fields(char * const fields[]) const {
+const IndexMeta * TableMeta::find_index_by_fields(char * const fields[], int fields_count) const {
   for (const IndexMeta &index : indexes_) {
+    if(index.fields_count() != fields_count) continue;
     bool is_exit = true;
     for(int i = 0; i < index.fields_count(); i++){
       if (0 != strcmp(index.fields()[i], fields[i])) {
