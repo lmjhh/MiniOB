@@ -404,11 +404,11 @@ RC Table::scan_record(Trx *trx, ConditionFilter *filter, int limit, void *contex
     limit = INT_MAX;
   }
 
-  // IndexScanner *index_scanner = find_index_for_scan(filter);
+  IndexScanner *index_scanner = find_index_for_scan(filter);
 
-  // if (index_scanner != nullptr) {
-  //   return scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
-  // }
+  if (index_scanner != nullptr) {
+    return scan_record_by_index(trx, index_scanner, filter, limit, context, record_reader);
+  }
   
   RC rc = RC::SUCCESS;
   RecordFileScanner scanner;
@@ -820,7 +820,8 @@ IndexScanner *Table::find_index_for_scan(const DefaultConditionFilter &filter) {
   char * fields[1];
   fields[0] = strdup(field_meta->name());
   const IndexMeta *index_meta = table_meta_.find_index_by_fields(fields, 1);
-  if (nullptr == index_meta) {
+  //先屏蔽多列
+  if (nullptr == index_meta || index_meta->fields_count > 1) {
     return nullptr;
   }
 
