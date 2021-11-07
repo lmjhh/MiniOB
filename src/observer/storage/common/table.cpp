@@ -821,7 +821,7 @@ IndexScanner *Table::find_index_for_scan(const DefaultConditionFilter &filter) {
   fields[0] = strdup(field_meta->name());
   const IndexMeta *index_meta = table_meta_.find_index_by_fields(fields, 1);
   //先屏蔽多列
-  if (nullptr == index_meta || index_meta->fields_count > 1) {
+  if (nullptr == index_meta || index_meta->fields_count() > 1) {
     return nullptr;
   }
 
