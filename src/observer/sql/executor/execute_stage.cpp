@@ -722,7 +722,7 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
       if(po.isAttr && strcmp(attr.attribute_name,"*") != 0){
         needAttrIndex[needAttrCount++] = full_tupleSet.get_schema().index_of_field(relation_name, attr.attribute_name);
       }else{
-        if(strcmp(attr.attribute_name,"*") == 0 && (po.poly_attr.poly_type == POMAX || po.poly_attr.poly_type == POMIN) ) return RC::GENERIC_ERROR;
+        if(strcmp(attr.attribute_name,"*") == 0 && (po.poly_attr.poly_type != POCOUNT) ) return RC::GENERIC_ERROR;
         needAttrIndex[needAttrCount++] = 0;
       }
 
