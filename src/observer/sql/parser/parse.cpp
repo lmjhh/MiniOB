@@ -450,9 +450,11 @@ void create_unique_index_init(CreateIndex *create_index, const char *index_name,
 void create_unique_index_destroy(CreateIndex *create_index) {
   free(create_index->index_name);
   free(create_index->relation_name);
+  free(create_index->attribute_name);
 
   create_index->index_name = nullptr;
   create_index->relation_name = nullptr;
+  create_index->attribute_name = nullptr;
 }
 
 void drop_index_init(DropIndex *drop_index, const char *index_name) {
