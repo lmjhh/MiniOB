@@ -40,6 +40,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
 RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects,TupleSet &return_tupleSet);
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
+RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet);
 
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
@@ -281,12 +282,14 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       } else {
         // 当前只查询一张表，直接返回结果即可
         std::cout << "begin-print------------" << std::endl;
-        RC rc = tuple_sets.front().print_poly_new(ss,selects);
+        TupleSet resultTupleSet;
+        rc = get_ploy_tupleSet(selects, tuple_sets.front(), resultTupleSet);
         if (rc != RC::SUCCESS){
           return rc;
         }
         std::cout << "end-print--------------" << std::endl;
         // tuple_sets.front().schema().print(ss);
+        resultTupleSet.print(ss, false);
       }
     for (SelectExeNode *& tmp_node: select_nodes) {
         delete tmp_node;
@@ -697,4 +700,91 @@ TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet){
   }
   full_tupleSet.clear();
   return result_tupleSet;
+}
+
+RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet){
+  TupleSchema schema;
+  int needAttrIndex[MAX_NUM];
+  int needAttrCount = 0;
+  for(int i = 0; i < selects.poly_num; i++){
+      Poly po = selects.poly_list[i];
+      if(po.attr_num != 1) return RC::GENERIC_ERROR;
+      std::string field_name = std::string(po.poly_attr.poly_name);
+      field_name += "(";
+      const RelAttr &attr = po.attributes[0];
+      if(attr.relation_name != nullptr) field_name = field_name + std::string(attr.relation_name) + ".";
+      if(attr.attribute_name != nullptr) field_name = field_name + std::string(attr.attribute_name) + ")";
+
+      char *relation_name;
+      if(attr.relation_name == nullptr) relation_name = strdup(full_tupleSet.get_schema().field(0).table_name());
+      else relation_name = strdup(attr.relation_name);
+
+      if(po.isAttr && strcmp(attr.attribute_name,"*") != 0){
+        needAttrIndex[needAttrCount++] = full_tupleSet.get_schema().index_of_field(relation_name, attr.attribute_name);
+      }else{
+        if(strcmp(attr.attribute_name,"*") == 0 && po.poly_attr.poly_type == POMAX || po.poly_attr.poly_type == POMIN) return RC::GENERIC_ERROR;
+        needAttrIndex[needAttrCount++] = 0;
+      }
+
+      if(po.poly_attr.poly_type == POAVG) schema.add(FLOATS, relation_name, field_name.c_str());
+      else if(po.poly_attr.poly_type == POCOUNT) schema.add(INTS, relation_name, field_name.c_str());
+      else {
+        const TupleField tuple_field = full_tupleSet.get_schema().field(full_tupleSet.get_schema().index_of_field(relation_name, attr.attribute_name));
+        schema.add(tuple_field.type(), relation_name, field_name.c_str());
+      }
+  }
+  resultTupleSet.set_schema(schema);
+  Tuple new_tuple;
+  for(int i = 0; i < selects.poly_num; i++){
+    int count = 0;
+    float avg = 0.0;
+
+    std::shared_ptr<TupleValue> value = full_tupleSet.get(0).get_pointer(needAttrIndex[i]);
+    Poly po = selects.poly_list[i];
+    for(int j = 0; j < full_tupleSet.size(); j++){
+      const std::vector<std::shared_ptr<TupleValue>> &values = full_tupleSet.get(j).values();
+      switch (po.poly_attr.poly_type)
+      {
+      case POAVG:{
+        if((*values[needAttrIndex[i]]).isNull()) continue;
+        else {
+          avg += (*values[needAttrIndex[i]]).getValue();
+          count++;
+        }
+      }break;
+      case POCOUNT:{
+        if(strcmp(po.attributes[0].attribute_name,"*") == 0 || po.isAttr == 0) count++;
+        else if( !(*values[needAttrIndex[i]]).isNull() ) count++;
+      }break;     
+      case POMAX:{
+        if( !(*values[needAttrIndex[i]]).isNull() && value->compare(*values[needAttrIndex[i]]) ) value = values[needAttrIndex[i]];
+      }break;
+      case POMIN:{
+        if( !(*values[needAttrIndex[i]]).isNull() && value->compare(*values[needAttrIndex[i]]) < 0 ) value = values[needAttrIndex[i]];
+      }break;
+      default:
+        break;
+      }
+    }
+  
+    switch (po.poly_attr.poly_type){
+      case POAVG:{
+        new_tuple.add(avg/(float)count);
+      }break;
+      case POCOUNT:{
+        LOG_ERROR("计数 %d",count);
+        new_tuple.add(count); 
+      }break;     
+      case POMAX:{
+        new_tuple.add(value);
+      }break;
+      case POMIN:{
+        new_tuple.add(value);
+      }break;
+      default:
+        break;
+    }     
+  }
+  resultTupleSet.add(std::move(new_tuple));
+  return RC::SUCCESS;
 }

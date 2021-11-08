@@ -28,6 +28,7 @@ public:
   virtual void to_string(std::ostream &os) const = 0;
   virtual int compare(const TupleValue &other) const = 0;
   virtual bool isNull() const = 0;
+  virtual float getValue() const = 0;
 private:
 };
 
@@ -49,6 +50,10 @@ public:
   bool isNull() const override{
     if(value_ == OB_INT_MIN) return true;
     return false; 
+  }
+
+  float getValue() const override{
+    return value_*1.0;
   }
 
 private:
@@ -103,6 +108,10 @@ public:
     return false; 
   }
 
+  float getValue() const override{
+    return value_*1.0;
+  }
+
 private:
   float value_;
 
@@ -128,6 +137,10 @@ public:
   bool isNull() const override{
     if(value_ == "NUL") return true;
     return false; 
+  }
+
+  float getValue() const override{
+    return 0.0;
   }
 
 private:
@@ -184,6 +197,10 @@ public:
   bool isNull() const override{
     if(value_ == 0) return true;
     return false; 
+  }
+
+  float getValue() const override{
+    return value_*1.0;
   }
 
   private:

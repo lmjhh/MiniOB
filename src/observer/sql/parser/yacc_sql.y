@@ -463,12 +463,7 @@ select_attr:
 
 select_poly:
 	poly_key LBRACE select_attr_poly RBRACE poly_list{
-		//Poly poly_tmp;
-		//poly_init(&poly_tmp, $1);
-		//selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
 
-		// need to add a flag to mark max()
-		// selects_set_poly(&CONTEXT->ssql->sstr.selection,1);
 		}
 	;
 
@@ -493,14 +488,14 @@ poly_value:
     NUMBER{	
 		RelAttr attr1;
 		relation_attr_init_for_number(&attr1, NULL, $1);
-		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1, 0);
 
   		//value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
     |FLOAT{
 		RelAttr attr1;
 		relation_attr_init_for_float(&attr1, NULL, $1);
-		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1, 0);
 
   		//value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
@@ -508,7 +503,7 @@ poly_value:
 		//$1 = substr($1,1,strlen($1)-2);
   		RelAttr attr1;
 		relation_attr_init(&attr1, NULL, $1);
-		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1, 0);
 
 		//value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
@@ -525,25 +520,25 @@ select_attr_poly:
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
     | ID attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
   	| ID DOT ID attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
 	| ID DOT STAR attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
 	;
 
@@ -578,7 +573,7 @@ attr_list_poly:
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
      	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
       }
@@ -586,7 +581,7 @@ attr_list_poly:
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }
@@ -594,7 +589,7 @@ attr_list_poly:
 			RelAttr attr;
 			relation_attr_init(&attr, $2, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
   	  }

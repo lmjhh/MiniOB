@@ -50,6 +50,8 @@ typedef enum { UNDEFINED, CHARS, INTS, DATES, FLOATS, NULLS} AttrType;
 
 typedef enum { BYASC, BYDESC } OrderType;
 
+typedef enum { POCOUNT, POAVG, POMAX, POMIN } PolyType;
+
 //属性值
 typedef struct _Value {
   AttrType type;  // type of value
@@ -68,11 +70,19 @@ typedef struct _Condition {
   Value right_value;   // right-hand side value if right_is_attr = FALSE
 } Condition;
 
+
+
+typedef struct {
+  char*     poly_name; // 标志聚合函数的名字
+  PolyType  poly_type;
+} PolyAttr;
+
 // 聚合函数
 typedef struct {
   RelAttr   attributes[MAX_NUM];    // attrs in Select clause
   size_t    attr_num;
-  char*       poly_name;            // 标志聚合函数的名字
+  PolyAttr  poly_attr;              // 标志聚合函数的名字
+  int       isAttr;                  // 值还是类型
 } Poly;
 
 
@@ -92,9 +102,8 @@ typedef struct {
   char *    relations[MAX_NUM];     // relations in From clause
   size_t    condition_num;          // Length of conditions in Where clause
   Condition conditions[MAX_NUM];    // conditions in Where clause
-  size_t       poly_type;            // 标志聚合函数的类型
   size_t    poly_num;               // Length of attrs in poly
-  Poly         poly_list[MAX_NUM];   //每扫描到一个poly 就记录下来是什么poly 以及涉及到的attri
+  Poly      poly_list[MAX_NUM];     //每扫描到一个poly 就记录下来是什么poly 以及涉及到的attri
   OrderBy   order_by;               // 需要排序的列集合
 } Selects;
 
@@ -237,14 +246,13 @@ void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
-void selects_set_poly(Selects *selects, size_t poly_type);
 void selects_destroy(Selects *selects);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);
 void poly_destroy(Poly *poly_tmp);
 
 void selects_append_poly(Selects *selects, Poly *rel_po);
-void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr);
+void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr, int is_attr);
 
 
 void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type);

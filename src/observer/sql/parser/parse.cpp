@@ -67,12 +67,26 @@ void relation_attr_destroy(RelAttr *relation_attr) {
   std::cout << "relation_attr_destroy" << std::endl;
 }
 
+void mystrlwr(char *ps){
+  while(*ps){
+    if('A' <= *ps && *ps <= 'Z')
+      *ps += 'a' - 'A'; 
+      ps++;
+  }
+}
+
 void poly_init(Poly *poly_tmp, const char *poly_name) {//在检测到attri时才将attri记录到poly的attributes里面
   std::cout << "paser: " << poly_name << std::endl;
   if (poly_name != nullptr) {
-    poly_tmp->poly_name = strdup(poly_name);
+    poly_tmp->poly_attr.poly_name = strdup(poly_name);
+    char *tmp_poly_name = strdup(poly_name);
+    mystrlwr(tmp_poly_name);
+    if(strcmp(poly_name, "avg") == 0) poly_tmp->poly_attr.poly_type = POAVG;
+    if(strcmp(poly_name, "max") == 0) poly_tmp->poly_attr.poly_type = POMAX;
+    if(strcmp(poly_name, "min") == 0) poly_tmp->poly_attr.poly_type = POMIN;
+    if(strcmp(poly_name, "count") == 0) poly_tmp->poly_attr.poly_type = POCOUNT;
   } else {
-    poly_tmp->poly_name = nullptr;
+    poly_tmp->poly_attr.poly_name = nullptr;
   }
 
 }
@@ -83,8 +97,8 @@ void poly_destroy(Poly *poly_tmp) {
       relation_attr_destroy(&poly_tmp->attributes[k]);
     }
   }
-  free(poly_tmp->poly_name);
-  poly_tmp->poly_name = nullptr;
+  free(poly_tmp->poly_attr.poly_name);
+  poly_tmp->poly_attr.poly_name = nullptr;
   poly_tmp->attr_num = 0;
   std::cout << "poly_destroy" << std::endl;
 }
@@ -264,9 +278,7 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
   }
   selects->condition_num = condition_num;
 }
-void selects_set_poly(Selects *selects, size_t poly_type){
-  selects->poly_type = poly_type;
-}
+
 void selects_append_poly(Selects *selects, Poly *rel_po) {
   std::cout << "selects->poly_num: " << selects->poly_num << std::endl;
   selects->poly_list[selects->poly_num] = *rel_po;
@@ -274,12 +286,13 @@ void selects_append_poly(Selects *selects, Poly *rel_po) {
   selects->poly_num++;
   // std::cout << "selects->poly_num" << selects->poly_num << std::endl;
 }
-void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr) {
+void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr, int is_attr) {
   std::cout << "selects->poly_list[selects->poly_num-1].attr_num " << selects->poly_list[selects->poly_num-1].attr_num << std::endl;
   if (selects->poly_list[selects->poly_num-1].attr_num < 0 or selects->poly_list[selects->poly_num-1].attr_num > MAX_NUM){
     selects->poly_list[selects->poly_num-1].attr_num = 0;
   }
   selects->poly_list[selects->poly_num-1].attributes[selects->poly_list[selects->poly_num-1].attr_num] = *rel_attr;
+  selects->poly_list[selects->poly_num-1].isAttr = is_attr;
   selects->poly_list[selects->poly_num-1].attr_num++;
   //std::cout << "OK" << std::endl;
 }

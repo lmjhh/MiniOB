@@ -230,253 +230,6 @@ void TupleSet::print(std::ostream &os, bool isMoreTable) const {
   }
 }
 
-void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
-  if (schema_.fields().empty()) {
-    LOG_WARN("Got empty schema");
-    return;
-  }
-  if (poly_type.find("1") != -1){
-    poly_type.pop_back();
-    os << poly_type;
-    os << "(";
-    std::stringstream ss_tmp;
-    schema_.print(ss_tmp, false);
-    std::string tmp = ss_tmp.str();
-    tmp.pop_back();
-    if (tmp.find("|") != -1){
-      tmp = "1";
-    }
-    os << tmp;
-    os << ")\n";
-  }
-  else{
-    os << poly_type;
-    os << "(";
-    std::stringstream ss_tmp;
-    schema_.print(ss_tmp, false);
-    std::string tmp = ss_tmp.str();
-    tmp.pop_back();
-    if (tmp.find("|") != -1){
-      tmp = "*";
-    }
-    os << tmp;
-    os << ")\n";
-  }
-  
-
-  std::set<std::string> lines;
-  std::vector<float> lines1;
-
-  for (const Tuple &item : tuples_) {
-    std::stringstream tmp;
-    tmp.str("");
-    const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
-    for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
-          iter != end; ++iter) {
-      (*iter)->to_string(tmp);
-      tmp << " | ";
-    }
-    values.back()->to_string(tmp);
-    // os << std::endl;
-    lines.insert(tmp.str());
-    if (poly_type == "avg" or poly_type == "AVG"){
-      // if tmp.str().lengh()
-      std::string tmp1 = tmp.str();
-      // tmp1.pop_back();
-      if (tmp1.size() > 0){
-        lines1.push_back(std::stof(tmp1));
-      }
-      
-    }
-  }
-  if(poly_type == "count" or poly_type == "COUNT"){
-    int countv = 0;
-    countv = lines.size();
-    os << std::to_string(countv);
-    os << std::endl;
-  }
-  else if(poly_type == "max" or poly_type == "MAX"){
-    os << *(lines.rbegin());
-    os << std::endl;
-  }
-  else if(poly_type == "min" or poly_type == "MIN"){
-    os << *lines.begin();
-    os << std::endl;
-  }
-  else{//avg
-    // add all values
-    float avg = 0.0;
-    if(lines1.size()>0){
-      for(int k=0;k<lines1.size();k++){
-        avg = avg+lines1[k];
-      }
-      avg = avg/lines1.size();
-    }
-    // os << std::to_string(avg);
-    os << avg;
-    os << std::endl;
-  }
-}
-
-int TupleSet::splitStringToVect(const std::string & srcStr, std::vector<std::string> & destVect, const std::string & strFlag) const {
-    int pos = srcStr.find(strFlag, 0);
-    int startPos = 0;
-    int splitN = pos;
-    std::string lineText(strFlag);
- 
-    while (pos > -1)
-    {
-        lineText = srcStr.substr(startPos, splitN);
-        startPos = pos + 1;
-        pos = srcStr.find(strFlag, pos + 1);
-        splitN = pos - startPos;
-        // if (lineText.size()>0 and lineText[0] == ' '){
-        //   lineText.erase(0,1);
-        // }
-        // if (lineText.size()>0 and lineText[-1] == ' '){
-        //   lineText.erase(lineText.size()-1,1);
-        // }
-        destVect.push_back(lineText);
-    }
- 
-    lineText = srcStr.substr(startPos, srcStr.length() - startPos);
-    // if (lineText.size()>0 and lineText[0] == ' '){
-    //       lineText.erase(0,1);
-    //     }
-    // if (lineText.size()>0 and lineText[-1] == ' '){
-    //       lineText.erase(lineText.size()-1,1);
-    //     }
-    destVect.push_back(lineText); 
- 
-    return destVect.size();
-}
-
-int TupleSet::in_needlist(std::vector<int> & needattrlist, int flag) const{
-  int i;
-  for(i=0; i<needattrlist.size();i++){
-    if (needattrlist[i] == flag){
-      return 1;
-    }
-  }
-  return 0;
-}
-
-void TupleSet::get_needattr(std::vector<std::string> & lines, const int needattr, std::vector<int> & needattrlist) const{
-  if(needattr != -2){
-    //选出第needattr列
-    for (const Tuple &item : tuples_) {
-      std::stringstream tmp;
-      tmp.str("");
-      int flag=0;
-      const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
-      for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
-            iter != end; ++iter) {
-        if (flag == needattr){
-          (*iter)->to_string(tmp);
-          // tmp << " | ";
-        }
-        flag++;
-      }
-      if (flag == needattr){
-        values.back()->to_string(tmp);
-      }
-      lines.push_back(tmp.str());
-    }
-
-  }
-  else if(needattrlist.size()>0){
-    //选出某几列
-    for (const Tuple &item : tuples_) {
-      std::stringstream tmp;
-      tmp.str("");
-      int flag=0;
-      const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
-      for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
-            iter != end; ++iter) {
-        if (in_needlist(needattrlist, flag)){
-          (*iter)->to_string(tmp);
-          tmp << " | ";
-        }
-        // if (std::find(needattrlist.begin(), needattrlist.end(), flag) != needattrlist.end()){
-        //   (*iter)->to_string(tmp);
-        //   tmp << " | ";
-        // }
-        flag++;
-      }
-      if (in_needlist(needattrlist, flag)){
-        values.back()->to_string(tmp);
-        lines.push_back(tmp.str());
-      }
-      else{
-        std::string tmp1 = tmp.str();
-        tmp1 = tmp1.substr(0, tmp1.length() - 3);
-        lines.push_back(tmp1);
-      }
-    }
-  }
-  else{
-    //all
-    for (const Tuple &item : tuples_) {
-      std::stringstream tmp;
-      tmp.str("");
-      const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
-      for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = --values.end();
-            iter != end; ++iter) {
-        (*iter)->to_string(tmp);
-        tmp << " | ";
-      }
-      values.back()->to_string(tmp);
-      lines.push_back(tmp.str());
-    }
-
-  }
-}
-
-std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::string polyname) const {
-  if (polyname == "avg" or polyname == "AVG"){
-    float avg = 0.0;
-    if(lines.size()>0){
-      for(int k=0;k<lines.size();k++){
-        avg = avg + std::stof(lines[k]);
-      }
-      avg = avg/lines.size();
-    }
-    std::stringstream ss1;
-    FloatValue avg_result = FloatValue(avg);
-    avg_result.to_string(ss1);
-    return ss1.str();
-  }
-  std::set<std::string> lines1;
-  for(int k=0;k<lines.size();k++){
-    lines1.insert(lines[k]);
-  }
-  if(polyname == "count" or polyname == "COUNT"){
-    int countv = 0;
-    countv = lines.size();
-    return std::to_string(countv);
-    // os << std::to_string(countv);
-    // os << std::endl;
-  }
-  else if(polyname == "max" or polyname == "MAX"){
-    std::stringstream ss1;
-    ss1 << *lines1.rbegin();
-    std::string tmp = ss1.str();
-    return tmp;
-    // os << *(lines.rbegin());
-    // os << std::endl;
-  }
-  else if(polyname == "min" or polyname == "MIN"){
-    std::stringstream ss1;
-    ss1 << *lines1.begin();
-    std::string tmp = ss1.str();
-    return tmp;
-  }
-  else{
-    // 异常情况
-    return "";
-  }
-}
-
 bool isNumber(const std::string& str)
 {
     for (char const &c : str) {
@@ -558,197 +311,197 @@ bool isChar(std::string s){
     return false;
 }
 
-RC TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
-  if (schema_.fields().empty()) {
-    LOG_WARN("Got empty schema");
-    return RC::GENERIC_ERROR;
-  }
-  // 遍历poly_list
-  int i;
-  std::vector<std::string> results;
-  std::string attri_tmp = "";
-  for(i=0;i<selects.poly_num;i++){
-    std::cout << "start ======================" << std::endl;
-    std::cout << "poly id:" << i << std::endl;
-    std::vector<std::string> lines;
-    std::vector<int> needattrlist;
-    int needattr = -2;
+// RC TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
+//   if (schema_.fields().empty()) {
+//     LOG_WARN("Got empty schema");
+//     return RC::GENERIC_ERROR;
+//   }
+//   // 遍历poly_list
+//   int i;
+//   std::vector<std::string> results;
+//   std::string attri_tmp = "";
+//   for(i=0;i<selects.poly_num;i++){
+//     std::cout << "start ======================" << std::endl;
+//     std::cout << "poly id:" << i << std::endl;
+//     std::vector<std::string> lines;
+//     std::vector<int> needattrlist;
+//     int needattr = -2;
     
-    // 针对关联attribute计算result
-    if (selects.poly_list[i].attr_num != 1){
-      // 异常情况
-      std::cout << "there are more than one attri" << std::endl;
-      return RC::GENERIC_ERROR;
-    }
-    const Poly &po = selects.poly_list[i];
-    std::cout << "get po " << std::endl;
-    std::cout << "po.attr_num " << po.attr_num << std::endl;
-    std::cout << "po.poly_name " << po.poly_name << std::endl;
-    std::cout << "==========" << std::endl;
+//     // 针对关联attribute计算result
+//     if (selects.poly_list[i].attr_num != 1){
+//       // 异常情况
+//       std::cout << "there are more than one attri" << std::endl;
+//       return RC::GENERIC_ERROR;
+//     }
+//     const Poly &po = selects.poly_list[i];
+//     std::cout << "get po " << std::endl;
+//     std::cout << "po.attr_num " << po.attr_num << std::endl;
+//     std::cout << "po.poly_name " << po.poly_name << std::endl;
+//     std::cout << "==========" << std::endl;
 
-    std::stringstream ss0;
-    ss0 << po.poly_name;
-    std::string tt1 = ss0.str();
-    // transform(tt1.begin(),tt1.end(),tt1.begin(),::tolower);
-    attri_tmp = attri_tmp + tt1;
-    attri_tmp = attri_tmp + "(";
-    // std::cout << "attri_tmp: " << attri_tmp << std::endl;
-    const RelAttr &attr = po.attributes[0];
-    // std::cout << "get attr" << std::endl;
+//     std::stringstream ss0;
+//     ss0 << po.poly_name;
+//     std::string tt1 = ss0.str();
+//     // transform(tt1.begin(),tt1.end(),tt1.begin(),::tolower);
+//     attri_tmp = attri_tmp + tt1;
+//     attri_tmp = attri_tmp + "(";
+//     // std::cout << "attri_tmp: " << attri_tmp << std::endl;
+//     const RelAttr &attr = po.attributes[0];
+//     // std::cout << "get attr" << std::endl;
 
-    std::stringstream ss;
-    ss << attr.attribute_name;
-    std::string attri = ss.str();
+//     std::stringstream ss;
+//     ss << attr.attribute_name;
+//     std::string attri = ss.str();
 
-    std::cout << "attri****** " << attr.attribute_name << std::endl;
-    if (attri.find("*") != -1 and ( (0 != strcmp(po.poly_name, "COUNT")) and (0 != strcmp(po.poly_name,"count")))){
-      return RC::GENERIC_ERROR;
-    }
-    if (attri.find("*") != -1){
-      // 获得selects.poly_list[i].attributes[0]->relation_name对应的所有attributes
-      if(attr.relation_name){
-        std::stringstream ss1;
-        ss1 << attr.relation_name;
-        std::string tbl = ss1.str();
-        //std::string tbl = attr.relation_name;
-        attri_tmp = attri_tmp+tbl;
-        attri_tmp = attri_tmp+".*)";
-        //筛选tbl
-        std::stringstream ss_tmp;
-        schema_.print(ss_tmp,false);
-        std::string tmp = ss_tmp.str();
-        tmp.pop_back();
-        int blank = tmp.find(' ');
-        while(blank != -1){
-          tmp.erase(blank,1);
-          blank = tmp.find(' ');
-        }
-        std::cout << tmp << std::endl;
-        // tmp.erase(remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
-        if (tmp.find("|") != -1){
-          std::vector<std::string> spl;
-          int attrnum = splitStringToVect(tmp, spl, "|");
-          for (int k=0;k<attrnum; k++){
-            if (spl[k].find(tbl) != -1){
-              needattrlist.push_back(k);
-            }
-          }
-          //根据needattrlist查找出需要的那几列到lines里面
-          get_needattr(lines,needattr,needattrlist);
-        }
-        else if(tmp.find(tbl) != -1){
-          //all
-          get_needattr(lines,needattr,needattrlist);
-        }
-        else{
-          //没选出需要的列，异常
-        }
-      }
-      else{
-        //all
-        attri_tmp = attri_tmp + "*)";
-        get_needattr(lines,needattr,needattrlist);
-      }
-    }
-    else if (isnum(attri) or isChar(attri) ){
-      if (ss0.str() != "count" and ss0.str() != "COUNT"){
-        std::string tmpres = attri;
-        if (isnum(attri)){
-          std::stringstream sat;
-          FloatValue poly_float = FloatValue(atof(attri.c_str()));
-          poly_float.to_string(sat);
-          tmpres = sat.str();
-        }
-        results.push_back(tmpres);
-        attri_tmp = attri_tmp + attri + ")";
-        if (i < selects.poly_num-1){
-          attri_tmp = attri_tmp + " | ";
-        }
-        continue;
-      }
-      else{
-        attri_tmp = attri_tmp + attri + ")";
-        get_needattr(lines,needattr,needattrlist);
-      }
-    }
-    else if (attri != ""){//指定了某个具体的列
-      std::string needattrname;
-      if(attr.relation_name){
-        std::stringstream ss1;
-        ss1 << attr.relation_name;
-        std::string tbl = ss1.str();
-        //std::string tbl = attr.relation_name;
-        //std::string attri = attr.attribute_name;
-        attri_tmp = attri_tmp+tbl;
-        attri_tmp = attri_tmp+".";
-        attri_tmp = attri_tmp+attri;
-        attri_tmp = attri_tmp+")";
-        needattrname = tbl+"."+attri;
-        std::cout << "needattrname " << needattrname << std::endl;
-        //筛选tbl.attr
-      }
-      else{
-        //std::string attri = attr.attribute_name;
-        attri_tmp = attri_tmp+attri;
-        attri_tmp = attri_tmp+")";
-        needattrname = attri;
-        std::cout << "needattrname " << needattrname << std::endl;
-        //筛选 attr
-      }
-      std::stringstream ss_tmp;
-      schema_.print(ss_tmp,false);
-      std::string tmp = ss_tmp.str();
-      tmp.pop_back();
-      int blank = tmp.find(' ');
-      while(blank != -1){
-        tmp.erase(blank,1);
-        blank = tmp.find(' ');
-      }
-      // std::cout << tmp << std::endl;
-      // tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
-      std::cout << "schema_: " << tmp << std::endl;
-      if (tmp.find("|") != -1){
-        std::vector<std::string> spl;
-        int attrnum = splitStringToVect(tmp, spl, "|");
-        for (int k=0;k<attrnum; k++){
-          if (spl[k] == needattrname){
-            needattr = k;
-            break;
-          }
-        }
-      }
-      //else 只有一列：肯定是我们需要的那列
-      //根据needattr查找出需要的那1列到lines里面/或者all
-      std::cout << "0_get_needattr " << needattr << std::endl;
-      get_needattr(lines,needattr,needattrlist);
-      std::cout << "1_get_needattr: " << needattr << std::endl;
-      if (lines.size()>0){
-        std::cout << "lines example: " << lines[0] << std::endl;
-      }
-      // 针对lines计算结果
-    }
-    else{
-      break;
-    }
-    std::string res;
-    res = cal_res(lines, po.poly_name);
-    results.push_back(res);
+//     std::cout << "attri****** " << attr.attribute_name << std::endl;
+//     if (attri.find("*") != -1 and ( (0 != strcmp(po.poly_name, "COUNT")) and (0 != strcmp(po.poly_name,"count")))){
+//       return RC::GENERIC_ERROR;
+//     }
+//     if (attri.find("*") != -1){
+//       // 获得selects.poly_list[i].attributes[0]->relation_name对应的所有attributes
+//       if(attr.relation_name){
+//         std::stringstream ss1;
+//         ss1 << attr.relation_name;
+//         std::string tbl = ss1.str();
+//         //std::string tbl = attr.relation_name;
+//         attri_tmp = attri_tmp+tbl;
+//         attri_tmp = attri_tmp+".*)";
+//         //筛选tbl
+//         std::stringstream ss_tmp;
+//         schema_.print(ss_tmp,false);
+//         std::string tmp = ss_tmp.str();
+//         tmp.pop_back();
+//         int blank = tmp.find(' ');
+//         while(blank != -1){
+//           tmp.erase(blank,1);
+//           blank = tmp.find(' ');
+//         }
+//         std::cout << tmp << std::endl;
+//         // tmp.erase(remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
+//         if (tmp.find("|") != -1){
+//           std::vector<std::string> spl;
+//           int attrnum = splitStringToVect(tmp, spl, "|");
+//           for (int k=0;k<attrnum; k++){
+//             if (spl[k].find(tbl) != -1){
+//               needattrlist.push_back(k);
+//             }
+//           }
+//           //根据needattrlist查找出需要的那几列到lines里面
+//           get_needattr(lines,needattr,needattrlist);
+//         }
+//         else if(tmp.find(tbl) != -1){
+//           //all
+//           get_needattr(lines,needattr,needattrlist);
+//         }
+//         else{
+//           //没选出需要的列，异常
+//         }
+//       }
+//       else{
+//         //all
+//         attri_tmp = attri_tmp + "*)";
+//         get_needattr(lines,needattr,needattrlist);
+//       }
+//     }
+//     else if (isnum(attri) or isChar(attri) ){
+//       if (ss0.str() != "count" and ss0.str() != "COUNT"){
+//         std::string tmpres = attri;
+//         if (isnum(attri)){
+//           std::stringstream sat;
+//           FloatValue poly_float = FloatValue(atof(attri.c_str()));
+//           poly_float.to_string(sat);
+//           tmpres = sat.str();
+//         }
+//         results.push_back(tmpres);
+//         attri_tmp = attri_tmp + attri + ")";
+//         if (i < selects.poly_num-1){
+//           attri_tmp = attri_tmp + " | ";
+//         }
+//         continue;
+//       }
+//       else{
+//         attri_tmp = attri_tmp + attri + ")";
+//         get_needattr(lines,needattr,needattrlist);
+//       }
+//     }
+//     else if (attri != ""){//指定了某个具体的列
+//       std::string needattrname;
+//       if(attr.relation_name){
+//         std::stringstream ss1;
+//         ss1 << attr.relation_name;
+//         std::string tbl = ss1.str();
+//         //std::string tbl = attr.relation_name;
+//         //std::string attri = attr.attribute_name;
+//         attri_tmp = attri_tmp+tbl;
+//         attri_tmp = attri_tmp+".";
+//         attri_tmp = attri_tmp+attri;
+//         attri_tmp = attri_tmp+")";
+//         needattrname = tbl+"."+attri;
+//         std::cout << "needattrname " << needattrname << std::endl;
+//         //筛选tbl.attr
+//       }
+//       else{
+//         //std::string attri = attr.attribute_name;
+//         attri_tmp = attri_tmp+attri;
+//         attri_tmp = attri_tmp+")";
+//         needattrname = attri;
+//         std::cout << "needattrname " << needattrname << std::endl;
+//         //筛选 attr
+//       }
+//       std::stringstream ss_tmp;
+//       schema_.print(ss_tmp,false);
+//       std::string tmp = ss_tmp.str();
+//       tmp.pop_back();
+//       int blank = tmp.find(' ');
+//       while(blank != -1){
+//         tmp.erase(blank,1);
+//         blank = tmp.find(' ');
+//       }
+//       // std::cout << tmp << std::endl;
+//       // tmp.erase(std::remove_if(tmp.begin(), tmp.end(), isspace), tmp.end());
+//       std::cout << "schema_: " << tmp << std::endl;
+//       if (tmp.find("|") != -1){
+//         std::vector<std::string> spl;
+//         int attrnum = splitStringToVect(tmp, spl, "|");
+//         for (int k=0;k<attrnum; k++){
+//           if (spl[k] == needattrname){
+//             needattr = k;
+//             break;
+//           }
+//         }
+//       }
+//       //else 只有一列：肯定是我们需要的那列
+//       //根据needattr查找出需要的那1列到lines里面/或者all
+//       std::cout << "0_get_needattr " << needattr << std::endl;
+//       get_needattr(lines,needattr,needattrlist);
+//       std::cout << "1_get_needattr: " << needattr << std::endl;
+//       if (lines.size()>0){
+//         std::cout << "lines example: " << lines[0] << std::endl;
+//       }
+//       // 针对lines计算结果
+//     }
+//     else{
+//       break;
+//     }
+//     std::string res;
+//     res = cal_res(lines, po.poly_name);
+//     results.push_back(res);
 
-    if (i < selects.poly_num-1){
-      attri_tmp = attri_tmp + " | ";
-    }
-  }
-  os << attri_tmp;
-  os << "\n";
-  for (int k=0;k<results.size();k++){
-    os << results[k];
-    if (k != results.size()-1){
-      os << " | ";
-    }
-  }
-  os << std::endl;
-  return RC::SUCCESS;
-}
+//     if (i < selects.poly_num-1){
+//       attri_tmp = attri_tmp + " | ";
+//     }
+//   }
+//   os << attri_tmp;
+//   os << "\n";
+//   for (int k=0;k<results.size();k++){
+//     os << results[k];
+//     if (k != results.size()-1){
+//       os << " | ";
+//     }
+//   }
+//   os << std::endl;
+//   return RC::SUCCESS;
+// }
 
 void TupleSet::set_schema(const TupleSchema &schema) {
   schema_ = schema;
