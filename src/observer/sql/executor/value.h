@@ -27,6 +27,7 @@ public:
 
   virtual void to_string(std::ostream &os) const = 0;
   virtual int compare(const TupleValue &other) const = 0;
+  virtual bool isNull() const = 0;
 private:
 };
 
@@ -43,6 +44,11 @@ public:
   int compare(const TupleValue &other) const override {
     const IntValue & int_other = (const IntValue &)other;
     return value_ - int_other.value_;
+  }
+
+  bool isNull() const override{
+    if(value_ == OB_INT_MIN) return true;
+    return false; 
   }
 
 private:
@@ -92,6 +98,11 @@ public:
     return 0;
   }
 
+  bool isNull() const override{
+    if(value_ - OB_FLT_MIN < 0.0000001) return true;
+    return false; 
+  }
+
 private:
   float value_;
 
@@ -113,6 +124,12 @@ public:
     const StringValue &string_other = (const StringValue &)other;
     return strcmp(value_.c_str(), string_other.value_.c_str());
   }
+
+  bool isNull() const override{
+    if(value_ == "NUL") return true;
+    return false; 
+  }
+
 private:
   std::string value_;
 };
@@ -162,6 +179,11 @@ public:
   int compare(const TupleValue &other) const override {
     const DateValue & date_other = (const DateValue &)other;
     return value_ - date_other.value_;
+  }
+
+  bool isNull() const override{
+    if(value_ == 0) return true;
+    return false; 
   }
 
   private:

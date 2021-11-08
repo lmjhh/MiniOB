@@ -626,6 +626,8 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
 
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op) {
   
+  if((*values1).isNull() || (*values2).isNull()) return false;  
+
   int cmp_result = (*values1).compare(*values2);
 
   switch (op) {
