@@ -754,7 +754,7 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
       }break;
       case POCOUNT:{
         if(strcmp(po.attributes[0].attribute_name,"*") == 0 || po.isAttr == 0) count++;
-        else if( !(*values[needAttrIndex[i]]).isNull() ) count++;
+        else if( (*values[needAttrIndex[i]]).isNull() == false) count++;
       }break;     
       case POMAX:{
         if( (*values[needAttrIndex[i]]).isNull() == false && filter_tuple(values[needAttrIndex[i]], value, GREAT_THAN) ) value = values[needAttrIndex[i]];
