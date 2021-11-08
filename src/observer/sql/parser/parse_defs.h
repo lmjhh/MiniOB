@@ -39,6 +39,8 @@ typedef enum {
   LESS_THAN,    //"<"     3
   GREAT_EQUAL,  //">="    4
   GREAT_THAN,   //">"     5
+  OP_IS,                     //针对NULL的比较
+  OP_NO_IS,                  //针对NULL的比较
   NO_OP
 } CompOp;
 

@@ -779,7 +779,7 @@ condition:
 		
 
 		Condition condition;
-		condition_init(&condition, EQUAL_TO, 0, NULL, left_value, 0, NULL, &right_value);
+		condition_init(&condition, OP_IS, 0, NULL, left_value, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| value IS NOTNULL {
@@ -789,7 +789,7 @@ condition:
 		
 
 		Condition condition;
-		condition_init(&condition, NOT_EQUAL, 0, NULL, left_value, 0, NULL, &right_value);
+		condition_init(&condition, OP_NO_IS, 0, NULL, left_value, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	} 
 	| ID IS NULL_T {
@@ -798,7 +798,7 @@ condition:
 		Value right_value;
 		value_init_null(&right_value, 0);
 		Condition condition;
-		condition_init(&condition, EQUAL_TO, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&condition, OP_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| ID IS NOTNULL {
@@ -807,7 +807,7 @@ condition:
 		Value right_value;
 		value_init_null(&right_value, 0);
 		Condition condition;
-		condition_init(&condition, NOT_EQUAL, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&condition, OP_NO_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| ID DOT ID IS NULL_T {
@@ -816,7 +816,7 @@ condition:
 		Value right_value;
 		value_init_null(&right_value, 0);
 		Condition condition;
-		condition_init(&condition, EQUAL_TO, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&condition, OP_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
 	| ID DOT ID IS NOTNULL {
@@ -825,7 +825,7 @@ condition:
 		Value right_value;	
 		value_init_null(&right_value, 0);
 		Condition condition;
-		condition_init(&condition, NOT_EQUAL, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&condition, OP_NO_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
     ;

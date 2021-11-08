@@ -144,11 +144,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   if(left_attr_type_ != right_attr_type_ && (left_attr_type_ == NULLS || right_attr_type_ == NULLS)){
     //如果左边或右边是值，和NULL比较 直接返回 false
     if(left_attr_type_ != NULLS && !left_.is_attr) {
-      if(comp_op_ == NOT_EQUAL) return true; 
+      if(comp_op_ == OP_NO_IS) return true; 
       return false;
     }
     if(right_attr_type_ != NULLS && !right_.is_attr) {
-      if(comp_op_ == NOT_EQUAL) return true; 
+      if(comp_op_ == OP_NO_IS) return true; 
       return false;
     }
     //如果左边或右边是属性，和NULL比较需判断
