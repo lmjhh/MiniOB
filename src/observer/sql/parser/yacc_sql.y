@@ -832,14 +832,14 @@ condition:
 		condition_init(&condition, OP_IS, 0, NULL, &left_value, 0, NULL, right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-	| NOTNULL IS value{
-		Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
-		Value left_value;
-		value_init_null(&left_value, 0);
-		Condition condition;
-		condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 0, NULL, right_value);
-		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-	}
+	// | NOTNULL IS value{
+	// 	Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
+	// 	Value left_value;
+	// 	value_init_null(&left_value, 0);
+	// 	Condition condition;
+	// 	condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 0, NULL, right_value);
+	// 	CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	// }
 	| NULL_T IS ID {
 		RelAttr right_attr;
 		relation_attr_init(&right_attr, NULL, $3);
@@ -849,15 +849,15 @@ condition:
 		condition_init(&condition, OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-	| NOTNULL IS ID {
-		RelAttr right_attr;
-		relation_attr_init(&right_attr, NULL, $3);
-		Value left_value;
-		value_init_null(&left_value, 0);
-		Condition condition;
-		condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
-		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-	}
+	// | NOTNULL IS ID {
+	// 	RelAttr right_attr;
+	// 	relation_attr_init(&right_attr, NULL, $3);
+	// 	Value left_value;
+	// 	value_init_null(&left_value, 0);
+	// 	Condition condition;
+	// 	condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
+	// 	CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	// }
 	| NULL_T IS ID DOT ID{
 		RelAttr right_attr;
 		relation_attr_init(&right_attr, $3, $5);
@@ -867,15 +867,15 @@ condition:
 		condition_init(&condition, OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-	| NOTNULL IS ID DOT ID{
-		RelAttr right_attr;
-		relation_attr_init(&right_attr, $3, $5);
-		Value left_value;
-		value_init_null(&left_value, 0);
-		Condition condition;
-		condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
-		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-	}
+	// | NOTNULL IS ID DOT ID{
+	// 	RelAttr right_attr;
+	// 	relation_attr_init(&right_attr, $3, $5);
+	// 	Value left_value;
+	// 	value_init_null(&left_value, 0);
+	// 	Condition condition;
+	// 	condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
+	// 	CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	// }
 	| NULL_T IS NOTNULL {
 		Value left_value;
 		value_init_null(&left_value, 0);
