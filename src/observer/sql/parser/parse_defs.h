@@ -23,8 +23,8 @@ See the Mulan PSL v2 for more details. */
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
 #define MAX_DATA 50
-#define OB_FLT_MIN 1.17549435e-30F
-#define OB_INT_MIN -214748364
+#define OB_FLT_MIN -200000.0
+#define OB_INT_MIN -200000
 
 //属性结构体
 typedef struct {
