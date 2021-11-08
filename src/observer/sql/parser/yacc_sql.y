@@ -776,8 +776,6 @@ condition:
 		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 		Value right_value;
 		value_init_null(&right_value, 0);
-		
-
 		Condition condition;
 		condition_init(&condition, OP_IS, 0, NULL, left_value, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
@@ -786,8 +784,6 @@ condition:
 		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 		Value right_value;
 		value_init_null(&right_value, 0);
-		
-
 		Condition condition;
 		condition_init(&condition, OP_NO_IS, 0, NULL, left_value, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
@@ -878,6 +874,15 @@ condition:
 		value_init_null(&left_value, 0);
 		Condition condition;
 		condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| NULL_T IS NOTNULL {
+		Value left_value;
+		value_init_null(&left_value, 0);
+		Value right_value;
+		value_init_null(&right_value, 0);
+		Condition condition;
+		condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 0, NULL, &right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
     ;
