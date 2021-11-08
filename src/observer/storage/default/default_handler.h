@@ -102,7 +102,7 @@ public:
    * @param attrName
    * @return
    */
-  RC create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const char *attribute_name);
+  RC create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, char * const attribute_name[], size_t attribute_count, int is_unique);
 
   /**
    * 该函数用来删除名为indexName的索引。
@@ -111,6 +111,21 @@ public:
    * @return
    */
   RC drop_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name);
+
+  /**
+   * 该函数用来在relName表中插入多个新元组
+   * nTuples为元组个数，tuples为对应的属性值数组。
+   * 函数会检查所有插入的元组是否合法，若合法则调用 insert_record
+   * insert_record 函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，
+   * 然后在该表的每个索引中为该元组创建合适的索引项
+   * @param relName
+   * @param nTuples
+   * @param tuples
+   * @return
+   */
+
+  RC insert_tuples(Trx *trx, const char *dbname, const char *relation_name, int tuple_num, const InsertsTuple *tuples);
+
 
   /**
    * 该函数用来在relName表中插入具有指定属性值的新元组，

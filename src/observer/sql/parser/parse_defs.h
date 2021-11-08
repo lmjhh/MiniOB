@@ -16,12 +16,14 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_SQL_PARSER_PARSE_DEFS_H__
 
 #include <stddef.h>
+#include <string.h>
 
 #define MAX_NUM 20
 #define MAX_REL_NAME 20
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
 #define MAX_DATA 50
+#define FLT_MIN 1.17549435e-38F
 
 //属性结构体
 typedef struct {
@@ -40,7 +42,10 @@ typedef enum {
 } CompOp;
 
 //属性值类型
-typedef enum { UNDEFINED, CHARS, INTS, DATES, FLOATS } AttrType;
+typedef enum { UNDEFINED, CHARS, INTS, DATES, FLOATS, NULLS} AttrType;
+
+
+typedef enum { BYASC, BYDESC } OrderType;
 
 //属性值
 typedef struct _Value {
@@ -67,6 +72,15 @@ typedef struct {
   char*       poly_name;            // 标志聚合函数的名字
 } Poly;
 
+
+
+// Order By
+typedef struct {
+  RelAttr   attributes[MAX_NUM];    //保存所有要排序的列
+  size_t    attr_num;               //列的个数
+  OrderType order_type[MAX_NUM];    //对应升序还是降序
+} OrderBy;
+
 // struct of select
 typedef struct {
   size_t    attr_num;               // Length of attrs in Select clause
@@ -78,13 +92,19 @@ typedef struct {
   size_t       poly_type;            // 标志聚合函数的类型
   size_t    poly_num;               // Length of attrs in poly
   Poly         poly_list[MAX_NUM];   //每扫描到一个poly 就记录下来是什么poly 以及涉及到的attri
+  OrderBy   order_by;               // 需要排序的列集合
 } Selects;
+
+typedef struct {
+   size_t value_num;       // Length of values
+   Value values[MAX_NUM];  // values to insert 
+} InsertsTuple;
 
 // struct of insert
 typedef struct {
   char *relation_name;    // Relation to insert into
-  size_t value_num;       // Length of values
-  Value values[MAX_NUM];  // values to insert
+  size_t tuple_num;       // Length of tuples
+  InsertsTuple tuples[MAX_NUM];  // tuples to insert
 } Inserts;
 
 // struct of delete
@@ -107,6 +127,7 @@ typedef struct {
   char *name;     // Attribute name
   AttrType type;  // Type of attribute
   size_t length;  // Length of attribute
+  int is_nullable;//是否可以为空
 } AttrInfo;
 
 // struct of craete_table
@@ -123,9 +144,11 @@ typedef struct {
 
 // struct of create_index
 typedef struct {
-  char *index_name;      // Index name
-  char *relation_name;   // Relation name
-  char *attribute_name;  // Attribute name
+  int   is_unique;                // 是否是唯一索引
+  char *index_name;               // Index name
+  char *relation_name;            // Relation name
+  char *attribute_names[MAX_NUM];  // Attribute name Array
+  size_t attribute_count;
 } CreateIndex;
 
 // struct of  drop_index
@@ -191,18 +214,20 @@ extern "C" {
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name);
 void relation_attr_destroy(RelAttr *relation_attr);
 void relation_attr_init_for_number(RelAttr *relation_attr, const char *relation_name, int attribute_name);
+void relation_attr_init_for_float(RelAttr *relation_attr, const char *relation_name, float attribute_name);
 
 void value_init_integer(Value *value, int v);
 void value_init_float(Value *value, float v);
 void value_init_string(Value *value, const char *v);
 void value_init_date(Value *value, const char *v);
+void value_init_null(Value *value, int v);
 void value_destroy(Value *value);
 
 void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
     int right_is_attr, RelAttr *right_attr, Value *right_value);
 void condition_destroy(Condition *condition);
 
-void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length);
+void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able);
 void attr_info_destroy(AttrInfo *attr_info);
 
 void selects_init(Selects *selects, ...);
@@ -214,10 +239,15 @@ void selects_destroy(Selects *selects);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);
 void poly_destroy(Poly *poly_tmp);
+
 void selects_append_poly(Selects *selects, Poly *rel_po);
 void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr);
 
-void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num);
+
+void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type);
+
+void inserts_init(Inserts *inserts, const char *relation_name);
+void inserts_append_tuple(Inserts *inserts, Value values[], size_t value_num);
 void inserts_destroy(Inserts *inserts);
 
 void deletes_init_relation(Deletes *deletes, const char *relation_name);
@@ -235,8 +265,9 @@ void create_table_destroy(CreateTable *create_table);
 void drop_table_init(DropTable *drop_table, const char *relation_name);
 void drop_table_destroy(DropTable *drop_table);
 
-void create_index_init(
-    CreateIndex *create_index, const char *index_name, const char *relation_name, const char *attr_name);
+void create_index_init(CreateIndex *create_index, const char *index_name, const char *relation_name, int is_unique);
+void create_index_append_attribute(CreateIndex *create_index, const char *attr_name);
+
 void create_index_destroy(CreateIndex *create_index);
 
 void create_unique_index_init(

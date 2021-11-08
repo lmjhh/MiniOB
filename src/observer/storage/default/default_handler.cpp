@@ -135,12 +135,12 @@ RC DefaultHandler::drop_table(const char *dbname, const char *relation_name) {
   return db->drop_table(relation_name);
 }
 
-RC DefaultHandler::create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, const char *attribute_name) {
+RC DefaultHandler::create_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name, char * const attribute_names[], size_t attribute_count, int is_unique) {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
-  return table->create_index(trx, index_name, attribute_name);
+  return table->create_index(trx, index_name, attribute_names, attribute_count, is_unique);
 }
 
 RC DefaultHandler::drop_index(Trx *trx, const char *dbname, const char *relation_name, const char *index_name) {
@@ -148,6 +148,15 @@ RC DefaultHandler::drop_index(Trx *trx, const char *dbname, const char *relation
   return RC::GENERIC_ERROR;
 }
 
+RC DefaultHandler::insert_tuples(Trx *trx, const char *dbname, const char *relation_name, int tuple_num, const InsertsTuple *tuples){
+  Table *table = find_table(dbname, relation_name);
+  if (nullptr == table) {
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+  return table->insert_records(trx, tuple_num, tuples);
+}
+
+//废弃
 RC DefaultHandler::insert_record(Trx *trx, const char *dbname, const char *relation_name, int value_num, const Value *values) {
   Table *table = find_table(dbname, relation_name);
   if (nullptr == table) {
@@ -156,6 +165,7 @@ RC DefaultHandler::insert_record(Trx *trx, const char *dbname, const char *relat
 
   return table->insert_record(trx, value_num, values);
 }
+
 RC DefaultHandler::delete_record(Trx *trx, const char *dbname, const char *relation_name,
                                  int condition_num, const Condition *conditions, int *deleted_count) {
   Table *table = find_table(dbname, relation_name);

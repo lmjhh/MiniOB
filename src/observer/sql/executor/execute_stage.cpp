@@ -38,7 +38,7 @@ using namespace common;
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
 
 RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects,TupleSet &return_tupleSet);
-bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op);
+bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
 
 //! Constructor
@@ -281,7 +281,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       } else {
         // 当前只查询一张表，直接返回结果即可
         std::cout << "begin-print------------" << std::endl;
-        tuple_sets.front().print_poly_new(ss,selects);
+        RC rc = tuple_sets.front().print_poly_new(ss,selects);
+        if (rc != RC::SUCCESS){
+          return rc;
+        }
         std::cout << "end-print--------------" << std::endl;
         // tuple_sets.front().schema().print(ss);
       }
@@ -311,12 +314,17 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             return rc;
           }
         }
+        rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
         result_tupleSet = get_final_result(selects, join_result_tupleSet);
         result_tupleSet.print(ss, true);
         result_tupleSet.clear();
       } else {
+
+          rc = tuple_sets.front().order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
           // 当前只查询一张表，直接返回结果即可
-          tuple_sets.front().print(ss, false);
+          TupleSet result_tupleSet;
+          result_tupleSet = get_final_result(selects, tuple_sets.front());
+          result_tupleSet.print(ss, false);
       }
       for (SelectExeNode *& tmp_node: select_nodes) {
         delete tmp_node;
@@ -352,29 +360,49 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
 // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node) {
   // 列出跟这张表关联的Attr
-  TupleSchema schema;
   Table * table = DefaultHandler::get_default().find_table(db, table_name);
   if (nullptr == table) {
     LOG_WARN("No such table [%s] in db [%s]", table_name, db);
     return RC::SCHEMA_TABLE_NOT_EXIST;
   }
+  TupleSchema schema;
+  TupleSchema::from_table(table, schema);
   if(selects.relation_num == 1){
+    TupleSchema tmpschema;
     for (int i = selects.attr_num - 1; i >= 0; i--) {
       const RelAttr &attr = selects.attributes[i];
       if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
         if (0 == strcmp("*", attr.attribute_name)) {
           // 列出这张表所有字段
-          TupleSchema::from_table(table, schema);
+          TupleSchema::from_table(table, tmpschema);
           break; // 没有校验，给出* 之后，再写字段的错误
         } else {
           // 列出这张表相关字段
-          RC rc = schema_add_field(table, attr.attribute_name, schema);
+          RC rc = schema_add_field(table, attr.attribute_name, tmpschema);
           if (rc != RC::SUCCESS) {
             return rc;
           }
         }
       }
     }
+    //校验 order by
+    for (int i = selects.order_by.attr_num - 1; i >= 0; i--) {
+      const RelAttr &attr = selects.order_by.attributes[i];
+      if (nullptr == attr.relation_name || 0 == strcmp(table_name, attr.relation_name)) {
+        if (0 == strcmp("*", attr.attribute_name)) {
+          // 列出这张表所有字段
+          TupleSchema::from_table(table, tmpschema);
+          break; // 没有校验，给出* 之后，再写字段的错误
+        } else {
+          // 列出这张表相关字段
+          RC rc = schema_add_field(table, attr.attribute_name, tmpschema);
+          if (rc != RC::SUCCESS) {
+            return rc;
+          }
+        }
+      }
+    }
+
   }else if(selects.relation_num > 1){   //多张表，先取出所有record到内存，同时过滤掉单个表的限定条件，再对所有tuple做join
     TupleSchema tmpschema;
     for (int i = selects.attr_num - 1; i >= 0; i--) {
@@ -442,9 +470,40 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
           } 
         } 
       }
-    }       
+    }
+  }
 
-    TupleSchema::from_table(table, schema);
+  //校验 order by
+  for (int i = selects.order_by.attr_num - 1; i >= 0; i--) {
+    const RelAttr &attr = selects.order_by.attributes[i];
+    TupleSchema tmpschema;
+    if(attr.relation_name != nullptr){
+      int isContain = 0;
+      for (int j = selects.relation_num - 1; j >= 0; j--){
+        if(0 == strcmp(attr.relation_name, selects.relations[j])) {
+          isContain = 1;
+          break;
+        }
+      }
+      if (isContain == 0) {
+        std::cout << "select order by no in selects.relations table" << std::endl;
+        return RC::SCHEMA_TABLE_NOT_EXIST;
+      }
+
+      if(0 == strcmp(table_name, attr.relation_name)){
+        RC rc = schema_add_field(table, attr.attribute_name, tmpschema);
+        if (rc != RC::SUCCESS) {
+          std::cout << "select order by no exit " <<  std::string(attr.relation_name) << "." << std::string(attr.attribute_name) << std::endl;
+          return rc;
+        }  
+      }
+    }else{
+      if(selects.relation_num > 1) return RC::SCHEMA_TABLE_NOT_EXIST;
+      RC rc = schema_add_field(table, attr.attribute_name, tmpschema);
+      if (rc != RC::SUCCESS) {
+          std::cout << "select order by no exit " << std::string(attr.attribute_name) << std::endl;
+      }
+    } 
   }
 
   // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
@@ -565,7 +624,7 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
   return RC::SUCCESS;
 }
 
-bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> values2, CompOp op) {
+bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op) {
   
   int cmp_result = (*values1).compare(*values2);
 

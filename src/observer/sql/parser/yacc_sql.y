@@ -19,7 +19,9 @@ typedef struct ParserContext {
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
-	char id[MAX_NUM];
+  char id[MAX_NUM];
+  int order_by_type;
+  int nullable;
 } ParserContext;
 
 //获取子串
@@ -43,7 +45,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
-  context->ssql->sstr.insertion.value_num = 0;
+  context->ssql->sstr.insertion.tuple_num = 0;
   printf("parse sql failed. error=%s", str);
 }
 
@@ -84,6 +86,7 @@ ParserContext *get_context(yyscan_t scanner)
 		DATE_T
         STRING_T
         FLOAT_T
+		NULL_T
         HELP
         EXIT
         DOT //QUOTE
@@ -107,7 +110,12 @@ ParserContext *get_context(yyscan_t scanner)
 		MIN
 		COUNT
 		AVG
-
+		ORDERBY
+		ASC
+		INNERJOIN
+		UNIQUE
+		NULLABLE
+		NOTNULL
 
 %union {
   struct _Attr *attr;
@@ -117,6 +125,7 @@ ParserContext *get_context(yyscan_t scanner)
   char *date;
   int number;
   float floats;
+  int isNULL;
 	char *position;
 }
 
@@ -125,6 +134,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> ID
 %token <string> PATH
 %token <date> DATE
+
 %token <string> SSS
 %token <string> STAR
 %token <string> STRING_V
@@ -217,12 +227,26 @@ desc_table:
     ;
 
 create_index:		/*create index 语句的语法解析树*/
-    CREATE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON 
+    CREATE INDEX ID ON ID LBRACE ID id_list RBRACE SEMICOLON 
 		{
 			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
-			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, $7);
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $3, $5, 0);
+			create_index_append_attribute(&CONTEXT->ssql->sstr.create_index, $7);
+		}
+	| CREATE UNIQUE INDEX ID ON ID LBRACE ID id_list RBRACE SEMICOLON 
+		{
+			CONTEXT->ssql->flag = SCF_CREATE_INDEX;//"create_index";
+			create_index_init(&CONTEXT->ssql->sstr.create_index, $4, $6, 1);
+			create_index_append_attribute(&CONTEXT->ssql->sstr.create_index, $8);			
 		}
     ;
+id_list:
+/* empty */
+| COMMA ID id_list {
+	create_index_append_attribute(&CONTEXT->ssql->sstr.create_index,$2);
+}
+;
+
 
 create_unique_index:		/*create unique index 语句的语法解析树*/
     CREATE UNIQUE INDEX ID ON ID LBRACE ID RBRACE SEMICOLON 
@@ -255,10 +279,10 @@ attr_def_list:
     ;
     
 attr_def:
-    ID_get type LBRACE number RBRACE 
+    ID_get type null LBRACE number RBRACE 
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, $5, CONTEXT->nullable);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -266,10 +290,10 @@ attr_def:
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length = $4;
 			CONTEXT->value_length++;
 		}
-    |ID_get type
+    |ID_get type null
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, 4);
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, CONTEXT->nullable);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -278,6 +302,19 @@ attr_def:
 			CONTEXT->value_length++;
 		}
     ;
+
+null:
+	/* empty */{
+		CONTEXT->nullable = 0;
+	}
+	| NOTNULL {
+		CONTEXT->nullable = 0;
+	}
+	| NULLABLE {
+		CONTEXT->nullable = 1;
+	}
+	;
+
 number:
 		NUMBER {$$ = $1;}
 		;
@@ -286,6 +323,7 @@ type:
 	   | DATE_T { $$=DATES; }
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
+	   | NULL_T {$$=NULLS;}
        ;
 ID_get:
 	ID 
@@ -297,7 +335,7 @@ ID_get:
 
 	
 insert:				/*insert   语句的语法解析树*/
-    INSERT INTO ID VALUES LBRACE value value_list RBRACE SEMICOLON 
+    INSERT INTO ID VALUES LBRACE value value_list RBRACE values_list  SEMICOLON 
 		{
 			// CONTEXT->values[CONTEXT->value_length++] = *$6;
 
@@ -307,14 +345,26 @@ insert:				/*insert   语句的语法解析树*/
 			// for(i = 0; i < CONTEXT->value_length; i++){
 			// 	CONTEXT->ssql->sstr.insertion.values[i] = CONTEXT->values[i];
       // }
-			inserts_init(&CONTEXT->ssql->sstr.insertion, $3, CONTEXT->values, CONTEXT->value_length);
-
-      //临时变量清零
-      CONTEXT->value_length=0;
+	  		//inserts_append_tuple(&CONTEXT->ssql->sstr.insertion, CONTEXT->values, CONTEXT->value_length);
+			inserts_init(&CONTEXT->ssql->sstr.insertion, $3);
+			CONTEXT->value_length=0;
     }
+	;
+	
+values_list:
+/* empty */
+| COMMA LBRACE value value_list RBRACE values_list{
+	//inserts_append_tuple(&CONTEXT->ssql->sstr.insertion, CONTEXT->values, CONTEXT->value_length);
+	//临时变量清零
+    //CONTEXT->value_length=0;
+}
+;
 
 value_list:
-    /* empty */
+    /* empty */ {
+		inserts_append_tuple(&CONTEXT->ssql->sstr.insertion, CONTEXT->values, CONTEXT->value_length);
+		CONTEXT->value_length=0;
+	}
     | COMMA value value_list  { 
   		// CONTEXT->values[CONTEXT->value_length++] = *$2;
 	  }
@@ -334,7 +384,9 @@ value:
 			$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
-	
+	|NULL_T {
+		value_init_null(&CONTEXT->values[CONTEXT->value_length++], 0);
+	}
     ;
     
 delete:		/*  delete 语句的语法解析树*/
@@ -358,7 +410,7 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list where SEMICOLON
+    SELECT select_attr FROM ID rel_list inner_join where order_by SEMICOLON 
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -373,6 +425,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
+			CONTEXT->order_by_type = 0;
 	}
 	| SELECT select_poly FROM ID rel_list where SEMICOLON
 		{
@@ -389,6 +442,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->from_length=0;
 			CONTEXT->select_length=0;
 			CONTEXT->value_length = 0;
+			CONTEXT->order_by_type = 0;
 	}
 	;
 
@@ -443,15 +497,37 @@ poly_list:
 		}
 	;
 
+poly_value:
+    NUMBER{	
+		RelAttr attr1;
+		relation_attr_init_for_number(&attr1, NULL, $1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+
+  		//value_init_integer(&CONTEXT->values[CONTEXT->value_length++], $1);
+		}
+    |FLOAT{
+		RelAttr attr1;
+		relation_attr_init_for_float(&attr1, NULL, $1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+
+  		//value_init_float(&CONTEXT->values[CONTEXT->value_length++], $1);
+		}
+    |SSS {
+		//$1 = substr($1,1,strlen($1)-2);
+  		RelAttr attr1;
+		relation_attr_init(&attr1, NULL, $1);
+		selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
+
+		//value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
+		}
+	
+    ;
+
 select_attr_poly:
-	NUMBER{  
+	poly_value{  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
 			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			
-			RelAttr attr1;
-			relation_attr_init_for_number(&attr1, NULL, $1);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr1);
 		}
 	| STAR {  
 			RelAttr attr;
@@ -539,6 +615,14 @@ rel_list:
 				selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
 		  }
     ;
+
+inner_join:
+	/* empty */
+	| INNERJOIN ID ON condition condition_list inner_join {
+		selects_append_relation(&CONTEXT->ssql->sstr.selection, $2);
+	}
+
+
 where:
     /* empty */ 
     | WHERE condition condition_list {	
@@ -706,6 +790,44 @@ comOp:
     | GE { CONTEXT->comp = GREAT_EQUAL; }
     | NE { CONTEXT->comp = NOT_EQUAL; }
     ;
+
+order_by :
+	/* empty */
+	| ORDERBY order_by_attr order_by_list {
+
+	}
+	;
+	order_by_list:
+	/* empty */
+	| COMMA order_by_attr order_by_list {
+			
+	}
+	;
+
+	order_by_attr:
+	ID order_by_type {	
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_orderbyAttr(&CONTEXT->ssql->sstr.selection, &attr, CONTEXT->order_by_type);
+		}
+	| ID DOT ID order_by_type {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_orderbyAttr(&CONTEXT->ssql->sstr.selection, &attr, CONTEXT->order_by_type);
+		}
+	;
+	order_by_type:
+	/* empty */{
+		CONTEXT->order_by_type = 0;
+	}
+	| ASC {
+		CONTEXT->order_by_type = 0;
+	}
+	| DESC {
+		CONTEXT->order_by_type = 1;
+	}
+	;
+
 
 load_data:
 		LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON

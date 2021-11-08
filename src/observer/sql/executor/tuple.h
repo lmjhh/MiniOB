@@ -37,10 +37,14 @@ public:
   Tuple & operator=(Tuple &&other) noexcept ;
 
   void add(TupleValue *value);
+  void add(const std::vector<std::shared_ptr<TupleValue>> &other);
   void add(const std::shared_ptr<TupleValue> &other);
   void add(int value);
   void add(float value);
+  void addDate(int value);
   void add(const char *s, int len);
+  void clear();
+  static void swapTuple(Tuple *A, Tuple *B);
 
   const std::vector<std::shared_ptr<TupleValue>> &values() const {
     return values_;
@@ -130,6 +134,8 @@ public:
 
   void set_schema(const TupleSchema &schema);
 
+  RC order_by_field_and_type(const RelAttr *attributes, const OrderType *order_types, size_t size);
+
   const TupleSchema &get_schema() const;
 
   void add(Tuple && tuple);
@@ -143,7 +149,7 @@ public:
 
   void print(std::ostream &os, bool isMoreTable) const;
   void print_poly(std::ostream &os,std::string poly_type) const;
-  void print_poly_new(std::ostream &os, const Selects &selects) const;
+  RC print_poly_new(std::ostream &os, const Selects &selects) const;
   int splitStringToVect(const std::string & srcStr, std::vector<std::string> & destVect, const std::string & strFlag) const;
   void get_needattr(std::vector<std::string> & lines, const int needattr, std::vector<int> & needattrlist) const;
   std::string cal_res(std::vector<std::string> & lines, const std::string polyname) const;
@@ -156,6 +162,8 @@ public:
 private:
   std::vector<Tuple> tuples_;
   TupleSchema schema_;
+  void buble_sort(int index, OrderType type);
+  bool compareTupleWithIndex(const Tuple &tuple1, const Tuple &tuple2, int index, OrderType type);
 };
 
 class TupleRecordConverter {

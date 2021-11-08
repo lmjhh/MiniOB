@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/executor/tuple.h"
 #include "storage/common/table.h"
 #include "common/log/log.h"
+#include <algorithm>
 
 Tuple::Tuple(const Tuple &other) {
   LOG_PANIC("Copy constructor of tuple is not supported");
@@ -41,9 +42,14 @@ Tuple::~Tuple() {
 void Tuple::add(TupleValue *value) {
   values_.emplace_back(value);
 }
+void Tuple::add(const std::vector<std::shared_ptr<TupleValue>> &other) {
+  values_.insert(values_.end(), other.begin(), other.end());
+}
+
 void Tuple::add(const std::shared_ptr<TupleValue> &other) {
   values_.emplace_back(other);
 }
+
 void Tuple::add(int value) {
   add(new IntValue(value));
 }
@@ -52,8 +58,26 @@ void Tuple::add(float value) {
   add(new FloatValue(value));
 }
 
+void Tuple::addDate(int value) {
+  add(new DateValue(value));
+}
+
 void Tuple::add(const char *s, int len) {
   add(new StringValue(s, len));
+}
+
+void Tuple::clear(){
+  values_.clear();
+}
+
+void Tuple::swapTuple(Tuple *A, Tuple *B){
+    const std::vector<std::shared_ptr<TupleValue>> &values1 = A->values();
+    const std::vector<std::shared_ptr<TupleValue>> &values2 = B->values();
+    A->clear();
+    B->clear();
+    LOG_ERROR("准备交换");
+    A->add(values2);
+    B->add(values1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -255,7 +279,7 @@ void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
     values.back()->to_string(tmp);
     // os << std::endl;
     lines.insert(tmp.str());
-    if (poly_type == "avg"){
+    if (poly_type == "avg" or poly_type == "AVG"){
       // if tmp.str().lengh()
       std::string tmp1 = tmp.str();
       // tmp1.pop_back();
@@ -265,17 +289,17 @@ void TupleSet::print_poly(std::ostream &os, std::string poly_type) const {
       
     }
   }
-  if(poly_type == "count"){
+  if(poly_type == "count" or poly_type == "COUNT"){
     int countv = 0;
     countv = lines.size();
     os << std::to_string(countv);
     os << std::endl;
   }
-  else if(poly_type == "max"){
+  else if(poly_type == "max" or poly_type == "MAX"){
     os << *(lines.rbegin());
     os << std::endl;
   }
-  else if(poly_type == "min"){
+  else if(poly_type == "min" or poly_type == "MIN"){
     os << *lines.begin();
     os << std::endl;
   }
@@ -409,7 +433,7 @@ void TupleSet::get_needattr(std::vector<std::string> & lines, const int needattr
 }
 
 std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::string polyname) const {
-  if (polyname == "avg"){
+  if (polyname == "avg" or polyname == "AVG"){
     float avg = 0.0;
     if(lines.size()>0){
       for(int k=0;k<lines.size();k++){
@@ -426,14 +450,14 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
   for(int k=0;k<lines.size();k++){
     lines1.insert(lines[k]);
   }
-  if(polyname == "count"){
+  if(polyname == "count" or polyname == "COUNT"){
     int countv = 0;
-    countv = lines1.size();
+    countv = lines.size();
     return std::to_string(countv);
     // os << std::to_string(countv);
     // os << std::endl;
   }
-  else if(polyname == "max"){
+  else if(polyname == "max" or polyname == "MAX"){
     std::stringstream ss1;
     ss1 << *lines1.rbegin();
     std::string tmp = ss1.str();
@@ -441,7 +465,7 @@ std::string TupleSet::cal_res(std::vector<std::string> & lines, const std::strin
     // os << *(lines.rbegin());
     // os << std::endl;
   }
-  else if(polyname == "min"){
+  else if(polyname == "min" or polyname == "MIN"){
     std::stringstream ss1;
     ss1 << *lines1.begin();
     std::string tmp = ss1.str();
@@ -461,10 +485,83 @@ bool isNumber(const std::string& str)
     return true;
 }
 
-void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
+RC TupleSet::order_by_field_and_type(const RelAttr *attributes, const OrderType *order_types, size_t size) {
+
+  /* 检查是否合法 */
+   for(int i = size - 1; i >= 0; i--){
+      if(attributes[i].relation_name == nullptr){
+        TupleField field = schema().field(0);
+        size_t vaule_index = schema().index_of_field(field.table_name(), attributes[i].attribute_name);
+        buble_sort(vaule_index, order_types[i]);
+      }else {
+        size_t vaule_index = schema().index_of_field(attributes[i].relation_name, attributes[i].attribute_name);
+        buble_sort(vaule_index, order_types[i]);
+      }
+   }
+   return RC::SUCCESS;
+
+}
+
+void TupleSet::buble_sort(int index, OrderType type){
+  for (int i = 0; i < size() - 1; i++) {
+    for(int j = 0; j < size() - 1 - i; j++){
+        if(compareTupleWithIndex(get(j),get(j + 1),index, type)){
+            std::swap(tuples_[j], tuples_[j + 1]);
+        }
+    }
+  }
+}
+
+
+bool TupleSet::compareTupleWithIndex(const Tuple &tuple1, const Tuple &tuple2, int index, OrderType type){
+  const std::vector<std::shared_ptr<TupleValue>> &values1 = tuple1.values();
+  const std::vector<std::shared_ptr<TupleValue>> &values2 = tuple2.values();
+  int cmp_result = (*values1[index]).compare(*values2[index]);
+  switch (type)
+  {
+    case OrderType::BYDESC:{
+      if(cmp_result < 0){
+        return true;
+      }else{
+        return false;
+      }
+    }
+    break;
+    default:{
+      if(cmp_result <= 0){
+        return false;
+      }else{
+        return true;
+      }    
+    }
+    break;
+  }
+}
+
+bool isnum(const std::string& s)
+{
+        std::stringstream sin(s);
+        double t;
+        char p;
+        if(!(sin >> t))
+          return false;
+        if(sin >> p)
+          return false;
+        else
+          return true;
+}
+
+bool isChar(std::string s){
+  if (s[0] == '\'' or  s[0] == '\"')
+    return true;
+  else
+    return false;
+}
+
+RC TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
   if (schema_.fields().empty()) {
     LOG_WARN("Got empty schema");
-    return;
+    return RC::GENERIC_ERROR;
   }
   // 遍历poly_list
   int i;
@@ -481,6 +578,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     if (selects.poly_list[i].attr_num != 1){
       // 异常情况
       std::cout << "there are more than one attri" << std::endl;
+      return RC::GENERIC_ERROR;
     }
     const Poly &po = selects.poly_list[i];
     std::cout << "get po " << std::endl;
@@ -490,7 +588,9 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
 
     std::stringstream ss0;
     ss0 << po.poly_name;
-    attri_tmp = attri_tmp + ss0.str();
+    std::string tt1 = ss0.str();
+    // transform(tt1.begin(),tt1.end(),tt1.begin(),::tolower);
+    attri_tmp = attri_tmp + tt1;
     attri_tmp = attri_tmp + "(";
     // std::cout << "attri_tmp: " << attri_tmp << std::endl;
     const RelAttr &attr = po.attributes[0];
@@ -499,7 +599,11 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     std::stringstream ss;
     ss << attr.attribute_name;
     std::string attri = ss.str();
-    // std::cout << "attri " << attri << std::endl;
+
+    std::cout << "attri****** " << attr.attribute_name << std::endl;
+    if (attri.find("*") != -1 and ( (0 != strcmp(po.poly_name, "COUNT")) and (0 != strcmp(po.poly_name,"count")))){
+      return RC::GENERIC_ERROR;
+    }
     if (attri.find("*") != -1){
       // 获得selects.poly_list[i].attributes[0]->relation_name对应的所有attributes
       if(attr.relation_name){
@@ -546,9 +650,16 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         get_needattr(lines,needattr,needattrlist);
       }
     }
-    else if (isNumber(attri)){
-      if (ss0.str() != "count"){
-        results.push_back(attri);
+    else if (isnum(attri) or isChar(attri) ){
+      if (ss0.str() != "count" and ss0.str() != "COUNT"){
+        std::string tmpres = attri;
+        if (isnum(attri)){
+          std::stringstream sat;
+          FloatValue poly_float = FloatValue(atof(attri.c_str()));
+          poly_float.to_string(sat);
+          tmpres = sat.str();
+        }
+        results.push_back(tmpres);
         attri_tmp = attri_tmp + attri + ")";
         if (i < selects.poly_num-1){
           attri_tmp = attri_tmp + " | ";
@@ -560,7 +671,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
         get_needattr(lines,needattr,needattrlist);
       }
     }
-    else{//指定了某个具体的列
+    else if (attri != ""){//指定了某个具体的列
       std::string needattrname;
       if(attr.relation_name){
         std::stringstream ss1;
@@ -616,6 +727,9 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
       }
       // 针对lines计算结果
     }
+    else{
+      break;
+    }
     std::string res;
     res = cal_res(lines, po.poly_name);
     results.push_back(res);
@@ -633,7 +747,7 @@ void TupleSet::print_poly_new(std::ostream &os, const Selects &selects) const {
     }
   }
   os << std::endl;
-
+  return RC::SUCCESS;
 }
 
 void TupleSet::set_schema(const TupleSchema &schema) {
@@ -675,38 +789,7 @@ void TupleRecordConverter::add_record(const char *record) {
     switch (field_meta->type()) {
       case DATES: {
         int value = *(int*)(record + field_meta->offset());
-        
-        std::cerr<<"---int_value:"<<value<<std::endl;
-        char date[20];
-        int a=0;
-        a = value % 10;
-        date[9] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[8] = (char)(48+a);
-        date[7] = '-';
-        value /= 10;
-        a = value % 10; 
-        date[6] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[5] = (char)(48+a);
-        date[4] = '-';
-        value /= 10;
-        a = value % 10;
-        date[3] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[2] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[1] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[0] = (char)(48+a);
-        date[10] = '\0';
-        tuple.add(date, strlen(date));
-        std::cerr<<"---date:"<<date<<std::endl;
+        tuple.addDate(value);
       }
       break;
       case INTS: {

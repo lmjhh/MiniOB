@@ -64,6 +64,13 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 [Ff][Rr][Oo][Mm]                      	 RETURN_TOKEN(FROM);
 [Ww][Hh][Ee][Rr][Ee]                  	 RETURN_TOKEN(WHERE);
 [Aa][Nn][Dd]                             RETURN_TOKEN(AND);
+[Oo][Rr][Dd][Ee][Rr][ ][Bb][Yy]		 		RETURN_TOKEN(ORDERBY);
+[Aa][Ss][Cc]							 	RETURN_TOKEN(ASC);
+[Ii][Nn][Nn][Ee][Rr][ ][Jj][Oo][Ii][Nn]		RETURN_TOKEN(INNERJOIN);
+[Uu][Nn][Ii][Qq][Uu][Ee]				RETURN_TOKEN(UNIQUE);
+[Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]		RETURN_TOKEN(NULLABLE);
+[Nn][Oo][Tt][ ][][Nn][Uu][Ll][Ll]		RETURN_TOKEN(NOTNULL);
+
 [Ii][Nn][Ss][Ee][rR][tT]                 RETURN_TOKEN(INSERT);
 [Ii][Nn][Tt][Oo]					 	             RETURN_TOKEN(INTO);
 [Vv][Aa][Ll][Uu][Ee][Ss]                 RETURN_TOKEN(VALUES);
@@ -77,6 +84,7 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 [Cc][Hh][Aa][Rr]				                 RETURN_TOKEN(STRING_T);
 [Ff][Ll][Oo][Aa][Tt]			               RETURN_TOKEN(FLOAT_T);
 [Dd][Aa][Tt][Ee]							RETURN_TOKEN(DATE_T);
+[Nn][Uu][Ll][Ll]						RETURN_TOKEN(NULL_T);
 [Ll][Oo][Aa][Dd]			                   RETURN_TOKEN(LOAD);
 [Dd][Aa][Tt][Aa]	                       RETURN_TOKEN(DATA);
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);

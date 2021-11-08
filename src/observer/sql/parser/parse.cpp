@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 #include "rc.h"
 #include "common/log/log.h"
 #include <string.h>
+#include<sstream>
 
 RC parse(char *st, Query *sqln);
 
@@ -24,6 +25,7 @@ RC parse(char *st, Query *sqln);
 extern "C" {
 #endif // __cplusplus
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name) {
+  std::cout << attribute_name << std::endl;
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
   } else {
@@ -42,6 +44,21 @@ void relation_attr_init_for_number(RelAttr *relation_attr, const char *relation_
   const char *p = str.c_str();
   relation_attr->attribute_name = strdup(p);
 }
+void relation_attr_init_for_float(RelAttr *relation_attr, const char *relation_name, float attribute_name){
+  std::cout << attribute_name << std::endl;
+  if (relation_name != nullptr) {
+    relation_attr->relation_name = strdup(relation_name);
+  } else {
+    relation_attr->relation_name = nullptr;
+  }  
+  std::ostringstream oss;
+  oss << attribute_name;
+  std::string str(oss.str());
+  // std::string str = std::f(attribute_name);
+  const char *p = str.c_str();
+  relation_attr->attribute_name = strdup(p);
+}
+
 void relation_attr_destroy(RelAttr *relation_attr) {
   free(relation_attr->relation_name);
   free(relation_attr->attribute_name);
@@ -84,6 +101,12 @@ void value_init_float(Value *value, float v) {
   memcpy(value->data, &v, sizeof(v));
   std::cerr<<"---value_init_float"<<std::endl;
 }
+void value_init_null(Value *value, int v){
+  value->type = NULLS;
+  value->data = malloc(sizeof(v));
+  memcpy(value->data, &v, sizeof(v));
+  std::cerr<<"---value_init_NULL"<<std::endl;  
+}
 void value_init_string(Value *value, const char *v) {
   value->type = CHARS;
   value->data = strdup(v);
@@ -94,7 +117,7 @@ void value_init_date(Value *value, const char *v) {
   std::cerr<<"---value_init_date"<<std::endl;
 
   int year=0, month=0, day=0, valid=1, leap_year=0;
-  char *d = ".-";
+  char d[20] = ".-";
   char date[20];
   strcpy(date, v);
   char *p;
@@ -213,9 +236,10 @@ void condition_destroy(Condition *condition) {
   }
 }
 
-void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length) {
+void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able) {
   attr_info->name = strdup(name);
   attr_info->type = type;
+  attr_info->is_nullable = is_null_able;
   std::cerr<<"----type:"<<type<<std::endl;
   attr_info->length = length;
 }
@@ -260,6 +284,21 @@ void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr) {
   //std::cout << "OK" << std::endl;
 }
 
+void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type){
+  if(attr->relation_name != nullptr){
+    std::cout << "order by  " << std::string(attr->relation_name) << "." << std::string(attr->attribute_name) << " order type " << type << std::endl;
+  }else{
+    std::cout << "order by " << std::string(attr->attribute_name) << " order type " << type << std::endl;
+  }
+
+  if(selects->order_by.attr_num < 0 || selects->order_by.attr_num > MAX_NUM){
+      selects->order_by.attr_num = 0;
+  }
+  selects->order_by.attributes[selects->order_by.attr_num] = *attr;
+  selects->order_by.order_type[selects->order_by.attr_num] = type;
+  selects->order_by.attr_num++;
+}
+
 void selects_destroy(Selects *selects) {
   for (size_t i = 0; i < selects->attr_num; i++) {
     relation_attr_destroy(&selects->attributes[i]);
@@ -283,23 +322,30 @@ void selects_destroy(Selects *selects) {
   selects->poly_num = 0;
 }
 
-void inserts_init(Inserts *inserts, const char *relation_name, Value values[], size_t value_num) {
-  assert(value_num <= sizeof(inserts->values)/sizeof(inserts->values[0]));
-
+void inserts_init(Inserts *inserts, const char *relation_name) {
   inserts->relation_name = strdup(relation_name);
-  for (size_t i = 0; i < value_num; i++) {
-    inserts->values[i] = values[i];
-  }
-  inserts->value_num = value_num;
 }
+
+void inserts_append_tuple(Inserts *inserts, Value values[], size_t value_num) {
+  assert(value_num <= sizeof(inserts->tuples[0].values)/sizeof(inserts->tuples[0].values[0]));
+  if(inserts->tuple_num < 0 || inserts->tuple_num > MAX_NUM) inserts->tuple_num = 0;
+  for (size_t i = 0; i < value_num; i++) {
+    inserts->tuples[inserts->tuple_num].values[i] = values[i];
+  }
+  inserts->tuples[inserts->tuple_num].value_num = value_num;
+  inserts->tuple_num++;
+}
+
 void inserts_destroy(Inserts *inserts) {
   free(inserts->relation_name);
   inserts->relation_name = nullptr;
-
-  for (size_t i = 0; i < inserts->value_num; i++) {
-    value_destroy(&inserts->values[i]);
+  for (size_t j = 0; j < inserts->tuple_num; j++){
+    for (size_t i = 0; i < inserts->tuples[j].value_num; i++) {
+      value_destroy(&inserts->tuples[j].values[i]);
+    }
+    inserts->tuples[j].value_num = 0;
   }
-  inserts->value_num = 0;
+  inserts->tuple_num = 0;
 }
 
 void deletes_init_relation(Deletes *deletes, const char *relation_name) {
@@ -372,20 +418,27 @@ void drop_table_destroy(DropTable *drop_table) {
   drop_table->relation_name = nullptr;
 }
 
-void create_index_init(CreateIndex *create_index, const char *index_name, 
-                       const char *relation_name, const char *attr_name) {
+void create_index_init(CreateIndex *create_index, const char *index_name, const char *relation_name, int is_unique) {
   create_index->index_name = strdup(index_name);
   create_index->relation_name = strdup(relation_name);
-  create_index->attribute_name = strdup(attr_name);
+  create_index->is_unique = is_unique;
 }
+
+void create_index_append_attribute(CreateIndex *create_index, const char *attr_name){
+  if(create_index->attribute_count < 0 || create_index->attribute_count > MAX_NUM) create_index->attribute_count = 0;
+  create_index->attribute_names[create_index->attribute_count++] = strdup(attr_name);
+}
+
 void create_index_destroy(CreateIndex *create_index) {
   free(create_index->index_name);
   free(create_index->relation_name);
-  free(create_index->attribute_name);
-
+  
+  for(int i = 0; i < create_index->attribute_count; i++){
+    free(create_index->attribute_names[i]);
+  }
+  create_index->attribute_count = 0;
   create_index->index_name = nullptr;
   create_index->relation_name = nullptr;
-  create_index->attribute_name = nullptr;
 }
 
 void create_unique_index_init(CreateIndex *create_index, const char *index_name, 

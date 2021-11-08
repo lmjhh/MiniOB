@@ -36,7 +36,8 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
-    os << value_;
+    if(value_ == INT_MIN) os<<"NULL";
+    else os << value_;
   }
 
   int compare(const TupleValue &other) const override {
@@ -54,25 +55,29 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
-    char fomatValueStr[256];
-    snprintf(fomatValueStr, sizeof(fomatValueStr), "%.2f", value_);
-    
-    if (NULL != strchr(fomatValueStr, '.')){
-      int length = strlen(fomatValueStr);
-      for (int i = length - 1; i > 0; i--) {
-        if ('\0' == fomatValueStr[i]) {
-          continue;
-        }else if ('0' == fomatValueStr[i]) {
-          fomatValueStr[i] = '\0';
-        }else if ('.' == fomatValueStr[i]) {
-          fomatValueStr[i] = '\0';
-          break;
-        }else{
-          break;
+    if(value_ - FLT_MIN < 0.0000001) os<<"NULL";
+    else {
+
+      char fomatValueStr[256];
+      snprintf(fomatValueStr, sizeof(fomatValueStr), "%.2f", value_);
+      
+      if (NULL != strchr(fomatValueStr, '.')){
+        int length = strlen(fomatValueStr);
+        for (int i = length - 1; i > 0; i--) {
+          if ('\0' == fomatValueStr[i]) {
+            continue;
+          }else if ('0' == fomatValueStr[i]) {
+            fomatValueStr[i] = '\0';
+          }else if ('.' == fomatValueStr[i]) {
+            fomatValueStr[i] = '\0';
+            break;
+          }else{
+            break;
+          }
         }
       }
+      os << fomatValueStr;
     }
-    os << fomatValueStr;
   }
 
   int compare(const TupleValue &other) const override {
@@ -100,7 +105,8 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
-      os << value_;
+      if(value_ == "NUL") os << "NULL";
+      else os << value_;
   }
 
   int compare(const TupleValue &other) const override {
@@ -109,6 +115,57 @@ public:
   }
 private:
   std::string value_;
+};
+
+class DateValue : public TupleValue {
+
+public:
+  explicit DateValue(int value) : value_(value) {
+  }
+
+  void to_string(std::ostream &os) const override {
+    if(value_ == 0) os<<"NULL";
+    else{
+      char date[20];
+      int value = value_;
+      int a=0;
+      a = value % 10;
+      date[9] = (char)(48+a);
+      value /= 10;
+      a = value % 10;
+      date[8] = (char)(48+a);
+      date[7] = '-';
+      value /= 10;
+      a = value % 10; 
+      date[6] = (char)(48+a);
+      value /= 10;
+      a = value % 10;
+      date[5] = (char)(48+a);
+      date[4] = '-';
+      value /= 10;
+      a = value % 10;
+      date[3] = (char)(48+a);
+      value /= 10;
+      a = value % 10;
+      date[2] = (char)(48+a);
+      value /= 10;
+      a = value % 10;
+      date[1] = (char)(48+a);
+      value /= 10;
+      a = value % 10;
+      date[0] = (char)(48+a);
+      date[10] = '\0';
+      os << date;
+    }
+  }
+
+  int compare(const TupleValue &other) const override {
+    const DateValue & date_other = (const DateValue &)other;
+    return value_ - date_other.value_;
+  }
+
+  private:
+    int value_;
 };
 
 
