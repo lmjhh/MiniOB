@@ -158,29 +158,29 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       case CHARS:{
         LOG_ERROR("左边是属性：%s 右边是NULL", left_value);
         int result = strcmp(left_value, "NUL");
-        if(result == 0 && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(result == 0 && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }
       case DATES:{
         LOG_ERROR("左边是属性：%d 右边是NULL", *(int *)left_value);
         int left = *(int *)left_value;
-        if(left == 0 && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(left == 0 && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }
       case INTS:{
         LOG_ERROR("左边是属性：%d 右边是NULL", *(int *)left_value);
         int left = *(int *)left_value;
-        if(left == OB_INT_MIN && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(left == OB_INT_MIN && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }
       case FLOATS:{
         LOG_ERROR("左边是属性：%f 右边是NULL", *(float *)left_value);
         float left = *(float *)left_value;
-        if(left - OB_FLT_MIN < 0.00001 && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(left - OB_FLT_MIN < 0.00001 && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }   
       default:
@@ -192,26 +192,26 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       {
       case CHARS:{
         int result = strcmp(right_value, "NUL");
-        if(result == 0 && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(result == 0 && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }
       case DATES:{
         int right = *(int *)right_value;
-        if(right == 0 && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(right == 0 && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }
       case INTS:{
         int right = *(int *)right_value;
-        if(right == OB_INT_MIN && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(right == OB_INT_MIN && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }
       case FLOATS:{
         float right = *(float *)right_value;
-        if(right - OB_FLT_MIN < 0.00001 && comp_op_ == EQUAL_TO) return true;
-        else if(comp_op_ == NOT_EQUAL) return true;
+        if(right - OB_FLT_MIN < 0.00001 && comp_op_ == OP_IS) return true;
+        else if(comp_op_ == OP_NO_IS) return true;
         else return false;
       }   
       default:
@@ -252,6 +252,9 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       int left = *(int *)left_value;
       int right = *(int *)right_value;
       cmp_result = left - right;
+      if(cmp_result == 0 && comp_op_ == OP_IS) return true;
+      else if(comp_op_ == OP_NO_IS) return true;
+      else return false;
     } break;
     default: {
     }
