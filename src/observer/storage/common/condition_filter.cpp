@@ -117,7 +117,6 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   }
 
   if(type_left != type_right && type_left != NULLS && type_right != NULLS){
-    LOG_ERROR("左右类型不一致，并且都不为NULL");
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
@@ -145,11 +144,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   if(left_attr_type_ != right_attr_type_ && (left_attr_type_ == NULLS || right_attr_type_ == NULLS)){
     //如果左边或右边是值，和NULL比较 直接返回 false
     if(left_attr_type_ != NULLS && !left_.is_attr) {
-      LOG_ERROR("左边是值，右边是NULL");
+      if(comp_op_ == NOT_EQUAL) return true; 
       return false;
     }
     if(right_attr_type_ != NULLS && !right_.is_attr) {
-      LOG_ERROR("右边是值，左边是NULL");
+      if(comp_op_ == NOT_EQUAL) return true; 
       return false;
     }
     //如果左边或右边是属性，和NULL比较需判断
