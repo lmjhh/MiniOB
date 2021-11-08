@@ -722,7 +722,7 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
       if(po.isAttr && strcmp(attr.attribute_name,"*") != 0){
         needAttrIndex[needAttrCount++] = full_tupleSet.get_schema().index_of_field(relation_name, attr.attribute_name);
       }else{
-        if(strcmp(attr.attribute_name,"*") == 0 && po.poly_attr.poly_type == POMAX || po.poly_attr.poly_type == POMIN) return RC::GENERIC_ERROR;
+        if(strcmp(attr.attribute_name,"*") == 0 && (po.poly_attr.poly_type == POMAX || po.poly_attr.poly_type == POMIN) ) return RC::GENERIC_ERROR;
         needAttrIndex[needAttrCount++] = 0;
       }
 
@@ -757,10 +757,11 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
         else if( !(*values[needAttrIndex[i]]).isNull() ) count++;
       }break;     
       case POMAX:{
-        if( !(*values[needAttrIndex[i]]).isNull() && value->compare(*values[needAttrIndex[i]]) ) value = values[needAttrIndex[i]];
+        if( (*values[needAttrIndex[i]]).isNull() == false && filter_tuple(values[needAttrIndex[i]], value, GREAT_THAN) ) value = values[needAttrIndex[i]];
       }break;
       case POMIN:{
-        if( !(*values[needAttrIndex[i]]).isNull() && value->compare(*values[needAttrIndex[i]]) < 0 ) value = values[needAttrIndex[i]];
+        LOG_ERROR("我要找最小的，当前值 %f 对比值 %f",(*value).getValue(),(*values[needAttrIndex[i]]).getValue());
+        if( (*values[needAttrIndex[i]]).isNull() == false && filter_tuple(values[needAttrIndex[i]], value, LESS_THAN) ) value = values[needAttrIndex[i]];
       }break;
       default:
         break;
@@ -772,7 +773,6 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
         new_tuple.add(avg/(float)count);
       }break;
       case POCOUNT:{
-        LOG_ERROR("计数 %d",count);
         new_tuple.add(count); 
       }break;     
       case POMAX:{
