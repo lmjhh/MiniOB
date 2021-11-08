@@ -330,13 +330,13 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       switch (field->type())
       {
       case AttrType::INTS:{
-          int null_int = INT_MIN;
+          int null_int = OB_INT_MIN;
           int *vdata = &null_int;
           memcpy(record + field->offset(), vdata, field->len());
       }
         break;
       case AttrType::FLOATS:{
-          float null_float = FLT_MIN;
+          float null_float = OB_FLT_MIN;
           float *vdata = &null_float;
           memcpy(record + field->offset(), vdata, field->len());       
       }
