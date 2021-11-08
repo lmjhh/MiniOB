@@ -209,12 +209,6 @@ void DefaultStorageStage::handle_event(StageEvent *event) {
     }
     break;
 
-  case SCF_CREATE_UNIQUE_INDEX: {
-      
-      snprintf(response, sizeof(response), "%s\n", rc == RC::SUCCESS ? "SUCCESS" : "FAILURE");
-    }
-    break;
-
   case SCF_SHOW_TABLES: {
       Db *db = handler_->find_db(current_db);
       if (nullptr == db) {

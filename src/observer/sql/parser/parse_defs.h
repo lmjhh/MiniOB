@@ -271,10 +271,6 @@ void create_index_append_attribute(CreateIndex *create_index, const char *attr_n
 
 void create_index_destroy(CreateIndex *create_index);
 
-void create_unique_index_init(
-    CreateIndex *create_index, const char *index_name, const char *relation_name, const char *attr_name);
-void create_unique_index_destroy(CreateIndex *create_index);
-
 void drop_index_init(DropIndex *drop_index, const char *index_name);
 void drop_index_destroy(DropIndex *drop_index);
 
