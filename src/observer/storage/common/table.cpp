@@ -312,7 +312,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
     const Value &value = values[i];
     std::cerr<<"---field->type():"<<field->type()<<std::endl;
     std::cerr<<"---value.type:"<<value.type<<std::endl;
-    if (field->type() != value.type) {
+    if ( field->type() != value.type && field->is_nullable() == false ) {
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -326,6 +326,38 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
+    if(value.type == AttrType::NULLS && field->is_nullable()){
+      switch (field->type())
+      {
+      case AttrType::INTS:{
+          int null_int = INT_MIN;
+          int *vdata = &null_int;
+          memcpy(record + field->offset(), vdata, field->len());
+      }
+        break;
+      case AttrType::FLOATS:{
+          float null_float = __FLT_MIN__;
+          float *vdata = &null_float;
+          memcpy(record + field->offset(), vdata, field->len());       
+      }
+        break;
+      case AttrType::CHARS:{
+          char *vdata = "NUL";
+          memcpy(record + field->offset(), vdata, field->len()); 
+      }
+        break;
+      case AttrType::DATES:{
+          int null_date = 0;
+          int *vdata = &null_date;
+          memcpy(record + field->offset(), vdata, field->len());
+      }
+        break;      
+      default:
+        break;
+      }
+      continue;
+    }
+
     if(field->type() == AttrType::FLOATS && value.type == AttrType::INTS){
       int *vdata = (int *)value.data;
       float i2fdata = (float)(*vdata * 1.0);

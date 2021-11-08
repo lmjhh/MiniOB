@@ -19,8 +19,9 @@ typedef struct ParserContext {
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
-	char id[MAX_NUM];
+  char id[MAX_NUM];
   int order_by_type;
+  int nullable;
 } ParserContext;
 
 //获取子串
@@ -85,6 +86,7 @@ ParserContext *get_context(yyscan_t scanner)
 		DATE_T
         STRING_T
         FLOAT_T
+		NULL_T
         HELP
         EXIT
         DOT //QUOTE
@@ -112,6 +114,8 @@ ParserContext *get_context(yyscan_t scanner)
 		ASC
 		INNERJOIN
 		UNIQUE
+		NULLABLE
+		NOTNULL
 
 %union {
   struct _Attr *attr;
@@ -121,6 +125,7 @@ ParserContext *get_context(yyscan_t scanner)
   char *date;
   int number;
   float floats;
+  int isNULL;
 	char *position;
 }
 
@@ -129,6 +134,7 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> ID
 %token <string> PATH
 %token <date> DATE
+
 %token <string> SSS
 %token <string> STAR
 %token <string> STRING_V
@@ -265,10 +271,10 @@ attr_def_list:
     ;
     
 attr_def:
-    ID_get type LBRACE number RBRACE 
+    ID_get type null LBRACE number RBRACE 
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, $4);
+			attr_info_init(&attribute, CONTEXT->id, $2, $5, CONTEXT->nullable);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name =(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -276,10 +282,10 @@ attr_def:
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].length = $4;
 			CONTEXT->value_length++;
 		}
-    |ID_get type
+    |ID_get type null
 		{
 			AttrInfo attribute;
-			attr_info_init(&attribute, CONTEXT->id, $2, 4);
+			attr_info_init(&attribute, CONTEXT->id, $2, 4, CONTEXT->nullable);
 			create_table_append_attribute(&CONTEXT->ssql->sstr.create_table, &attribute);
 			// CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name=(char*)malloc(sizeof(char));
 			// strcpy(CONTEXT->ssql->sstr.create_table.attributes[CONTEXT->value_length].name, CONTEXT->id); 
@@ -288,6 +294,19 @@ attr_def:
 			CONTEXT->value_length++;
 		}
     ;
+
+null:
+	/* empty */{
+		CONTEXT->nullable = 0;
+	}
+	| NOTNULL {
+		CONTEXT->nullable = 0;
+	}
+	| NULLABLE {
+		CONTEXT->nullable = 1;
+	}
+	;
+
 number:
 		NUMBER {$$ = $1;}
 		;
@@ -296,6 +315,7 @@ type:
 	   | DATE_T { $$=DATES; }
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
+	   | NULL_T {$$=NULLS;}
        ;
 ID_get:
 	ID 
@@ -356,7 +376,9 @@ value:
 			$1 = substr($1,1,strlen($1)-2);
   		value_init_string(&CONTEXT->values[CONTEXT->value_length++], $1);
 		}
-	
+	|NULL_T {
+		value_init_null(&CONTEXT->values[CONTEXT->value_length++], 0);
+	}
     ;
     
 delete:		/*  delete 语句的语法解析树*/

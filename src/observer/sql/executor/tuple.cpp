@@ -49,12 +49,17 @@ void Tuple::add(const std::vector<std::shared_ptr<TupleValue>> &other) {
 void Tuple::add(const std::shared_ptr<TupleValue> &other) {
   values_.emplace_back(other);
 }
+
 void Tuple::add(int value) {
   add(new IntValue(value));
 }
 
 void Tuple::add(float value) {
   add(new FloatValue(value));
+}
+
+void Tuple::addDate(int value) {
+  add(new DateValue(value));
 }
 
 void Tuple::add(const char *s, int len) {
@@ -784,38 +789,7 @@ void TupleRecordConverter::add_record(const char *record) {
     switch (field_meta->type()) {
       case DATES: {
         int value = *(int*)(record + field_meta->offset());
-        
-        std::cerr<<"---int_value:"<<value<<std::endl;
-        char date[20];
-        int a=0;
-        a = value % 10;
-        date[9] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[8] = (char)(48+a);
-        date[7] = '-';
-        value /= 10;
-        a = value % 10; 
-        date[6] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[5] = (char)(48+a);
-        date[4] = '-';
-        value /= 10;
-        a = value % 10;
-        date[3] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[2] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[1] = (char)(48+a);
-        value /= 10;
-        a = value % 10;
-        date[0] = (char)(48+a);
-        date[10] = '\0';
-        tuple.add(date, strlen(date));
-        std::cerr<<"---date:"<<date<<std::endl;
+        tuple.addDate(value);
       }
       break;
       case INTS: {

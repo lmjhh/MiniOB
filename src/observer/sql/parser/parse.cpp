@@ -101,6 +101,12 @@ void value_init_float(Value *value, float v) {
   memcpy(value->data, &v, sizeof(v));
   std::cerr<<"---value_init_float"<<std::endl;
 }
+void value_init_null(Value *value, int v){
+  value->type = NULLS;
+  value->data = malloc(sizeof(v));
+  memcpy(value->data, &v, sizeof(v));
+  std::cerr<<"---value_init_NULL"<<std::endl;  
+}
 void value_init_string(Value *value, const char *v) {
   value->type = CHARS;
   value->data = strdup(v);
@@ -111,7 +117,7 @@ void value_init_date(Value *value, const char *v) {
   std::cerr<<"---value_init_date"<<std::endl;
 
   int year=0, month=0, day=0, valid=1, leap_year=0;
-  char *d = ".-";
+  char d[20] = ".-";
   char date[20];
   strcpy(date, v);
   char *p;
@@ -230,9 +236,10 @@ void condition_destroy(Condition *condition) {
   }
 }
 
-void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length) {
+void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able) {
   attr_info->name = strdup(name);
   attr_info->type = type;
+  attr_info->is_nullable = is_null_able;
   std::cerr<<"----type:"<<type<<std::endl;
   attr_info->length = length;
 }
