@@ -770,7 +770,8 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
   
     switch (po.poly_attr.poly_type){
       case POAVG:{
-        new_tuple.add(avg/(float)count);
+        if((*value).isNull()) new_tuple.add(value);
+        else new_tuple.add(avg/(float)count);
       }break;
       case POCOUNT:{
         new_tuple.add(count); 
