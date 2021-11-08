@@ -55,7 +55,7 @@ public:
   }
 
   void to_string(std::ostream &os) const override {
-    if(value_ - __FLT_MIN__ < 0.0000001) os<<"NULL";
+    if(value_ - FLT_MIN < 0.0000001) os<<"NULL";
     else {
 
       char fomatValueStr[256];
