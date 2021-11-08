@@ -38,12 +38,18 @@ DefaultConditionFilter::DefaultConditionFilter()
 DefaultConditionFilter::~DefaultConditionFilter()
 {}
 
-RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op)
+RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrType left_attr_type, AttrType right_attr_type, CompOp comp_op)
 {
-  if (attr_type < CHARS || attr_type > FLOATS) {
-    LOG_ERROR("Invalid condition with unsupported attribute type: %d", attr_type);
+  if (left_attr_type < CHARS || left_attr_type > NULLS) {
+    LOG_ERROR("Invalid condition with unsupported attribute type: %d", left_attr_type);
     return RC::INVALID_ARGUMENT;
   }
+
+  if (right_attr_type < CHARS || right_attr_type > NULLS) {
+    LOG_ERROR("Invalid condition with unsupported attribute type: %d", right_attr_type);
+    return RC::INVALID_ARGUMENT;
+  }
+
 
   if (comp_op < EQUAL_TO || comp_op >= NO_OP) {
     LOG_ERROR("Invalid condition with unsupported compare operation: %d", comp_op);
@@ -52,7 +58,8 @@ RC DefaultConditionFilter::init(const ConDesc &left, const ConDesc &right, AttrT
 
   left_ = left;
   right_ = right;
-  attr_type_ = attr_type;
+  left_attr_type_ = left_attr_type;
+  right_attr_type_ = right_attr_type;
   comp_op_ = comp_op;
   return RC::SUCCESS;
 }
@@ -109,18 +116,12 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     right.attr_offset = 0;
   }
 
-  // 校验和转换
-  //  if (!field_type_compare_compatible_table[type_left][type_right]) {
-  //    // 不能比较的两个字段， 要把信息传给客户端
-  //    return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-  //  }
-  // NOTE：这里没有实现不同类型的数据比较，比如整数跟浮点数之间的对比
-  // 但是选手们还是要实现。这个功能在预选赛中会出现
-  if (type_left != type_right) {
+  if(type_left != type_right && type_left != NULLS && type_right != NULLS){
+    LOG_ERROR("左右类型不一致，并且都不为NULL");
     return RC::SCHEMA_FIELD_TYPE_MISMATCH;
   }
 
-  return init(left, right, type_left, condition.comp);
+  return init(left, right, type_left, type_right,condition.comp);
 }
 
 bool DefaultConditionFilter::filter(const Record &rec) const
@@ -140,8 +141,89 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     right_value = (char *)right_.value;
   }
 
+
+  if(left_attr_type_ != right_attr_type_ && (left_attr_type_ == NULLS || right_attr_type_ == NULLS)){
+    //如果左边或右边是值，和NULL比较 直接返回 false
+    if(left_attr_type_ != NULLS && !left_.is_attr) {
+      LOG_ERROR("左边是值，右边是NULL");
+      return false;
+    }
+    if(right_attr_type_ != NULLS && !right_.is_attr) {
+      LOG_ERROR("右边是值，左边是NULL");
+      return false;
+    }
+    //如果左边或右边是属性，和NULL比较需判断
+    if(left_attr_type_ != NULLS){
+      switch (left_attr_type_)
+      {
+      case CHARS:{
+        LOG_ERROR("左边是属性：%s 右边是NULL", left_value);
+        int result = strcmp(left_value, "NUL");
+        if(result == 0 && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }
+      case DATES:{
+        LOG_ERROR("左边是属性：%d 右边是NULL", *(int *)left_value);
+        int left = *(int *)left_value;
+        if(left == 0 && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }
+      case INTS:{
+        LOG_ERROR("左边是属性：%d 右边是NULL", *(int *)left_value);
+        int left = *(int *)left_value;
+        if(left == OB_INT_MIN && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }
+      case FLOATS:{
+        LOG_ERROR("左边是属性：%f 右边是NULL", *(float *)left_value);
+        float left = *(float *)left_value;
+        if(left - OB_FLT_MIN < 0.00001 && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }   
+      default:
+        break;
+      }
+    }
+    if(right_attr_type_ != NULLS){
+      switch (right_attr_type_)
+      {
+      case CHARS:{
+        int result = strcmp(right_value, "NUL");
+        if(result == 0 && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }
+      case DATES:{
+        int right = *(int *)right_value;
+        if(right == 0 && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }
+      case INTS:{
+        int right = *(int *)right_value;
+        if(right == OB_INT_MIN && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }
+      case FLOATS:{
+        float right = *(float *)right_value;
+        if(right - OB_FLT_MIN < 0.00001 && comp_op_ == EQUAL_TO) return true;
+        else if(comp_op_ == NOT_EQUAL) return true;
+        else return false;
+      }   
+      default:
+        break;
+      }      
+    }
+  }
+
+  
   int cmp_result = 0;
-  switch (attr_type_) {
+  switch (left_attr_type_) {
     case CHARS: {  // 字符串都是定长的，直接比较
       // 按照C字符串风格来定
       cmp_result = strcmp(left_value, right_value);
@@ -166,6 +248,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       if(left - right < 0.00001 && left - right >= 0) cmp_result = 0;
       if(left - right > 0.00001) cmp_result = 1;
       if(left - right < 0.00001) cmp_result = -1;
+    } break;
+    case NULLS: {
+      int left = *(int *)left_value;
+      int right = *(int *)right_value;
+      cmp_result = left - right;
     } break;
     default: {
     }

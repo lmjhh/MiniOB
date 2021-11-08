@@ -116,6 +116,7 @@ ParserContext *get_context(yyscan_t scanner)
 		UNIQUE
 		NULLABLE
 		NOTNULL
+		IS
 
 %union {
   struct _Attr *attr;
@@ -771,6 +772,62 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+	| value IS NULL_T {
+		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
+		Value right_value;
+		value_init_null(&right_value, 0);
+		
+
+		Condition condition;
+		condition_init(&condition, EQUAL_TO, 0, NULL, left_value, 0, NULL, &right_value);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| value IS NOTNULL {
+		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
+		Value right_value;
+		value_init_null(&right_value, 0);
+		
+
+		Condition condition;
+		condition_init(&condition, NOT_EQUAL, 0, NULL, left_value, 0, NULL, &right_value);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	} 
+	| ID IS NULL_T {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, NULL, $1);
+		Value right_value;
+		value_init_null(&right_value, 0);
+		Condition condition;
+		condition_init(&condition, EQUAL_TO, 1, &left_attr, NULL, 0, NULL, &right_value);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| ID IS NOTNULL {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, NULL, $1);
+		Value right_value;
+		value_init_null(&right_value, 0);
+		Condition condition;
+		condition_init(&condition, NOT_EQUAL, 1, &left_attr, NULL, 0, NULL, &right_value);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| ID DOT ID IS NULL_T {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
+		Value right_value;
+		value_init_null(&right_value, 0);
+		Condition condition;
+		condition_init(&condition, EQUAL_TO, 1, &left_attr, NULL, 0, NULL, &right_value);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
+	| ID DOT ID IS NOTNULL {
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
+		Value right_value;	
+		value_init_null(&right_value, 0);
+		Condition condition;
+		condition_init(&condition, NOT_EQUAL, 1, &left_attr, NULL, 0, NULL, &right_value);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
+	}
     ;
 
 comOp:

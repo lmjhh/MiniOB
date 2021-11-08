@@ -70,7 +70,7 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 [Uu][Nn][Ii][Qq][Uu][Ee]				RETURN_TOKEN(UNIQUE);
 [Nn][Uu][Ll][Ll][Aa][Bb][Ll][Ee]		RETURN_TOKEN(NULLABLE);
 [Nn][Oo][Tt][ ][][Nn][Uu][Ll][Ll]		RETURN_TOKEN(NOTNULL);
-
+[Ii][Ss]								RETURN_TOKEN(IS);
 [Ii][Nn][Ss][Ee][rR][tT]                 RETURN_TOKEN(INSERT);
 [Ii][Nn][Tt][Oo]					 	             RETURN_TOKEN(INTO);
 [Vv][Aa][Ll][Uu][Ee][Ss]                 RETURN_TOKEN(VALUES);
