@@ -46,7 +46,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->select_length = 0;
   context->value_length = 0;
   context->ssql->sstr.insertion.tuple_num = 0;
-  printf("parse sql failed. error=%s", str);
+  printf(". error=%s", str);
 }
 
 ParserContext *get_context(yyscan_t scanner)
@@ -117,6 +117,7 @@ ParserContext *get_context(yyscan_t scanner)
 		NULLABLE
 		NOTNULL
 		IS
+		GROUPBY
 
 %union {
   struct _Attr *attr;
@@ -322,6 +323,11 @@ ID_get:
 	{
 		char *temp=$1; 
 		snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
+			
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	
 	}
 	;
 
@@ -436,7 +442,42 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->value_length = 0;
 			CONTEXT->order_by_type = 0;
 	}
+	| SELECT select_attr FROM ID rel_list where group_by SEMICOLON
+		{
+			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
+
+			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
+
+			CONTEXT->ssql->flag=SCF_SELECT;//"select";
+			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
+
+			//临时变量清零
+			CONTEXT->condition_length=0;
+			CONTEXT->from_length=0;
+			CONTEXT->select_length=0;
+			CONTEXT->value_length = 0;
+			CONTEXT->order_by_type = 0;
+	}
+	| SELECT select_poly FROM ID rel_list where group_by SEMICOLON
+		{
+			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
+			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
+
+			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
+
+			CONTEXT->ssql->flag=SCF_SELECT;//"select";
+			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
+
+			//临时变量清零
+			CONTEXT->condition_length=0;
+			CONTEXT->from_length=0;
+			CONTEXT->select_length=0;
+			CONTEXT->value_length = 0;
+			CONTEXT->order_by_type = 0;
+	}
 	;
+
 
 select_attr:
     STAR {  
@@ -461,10 +502,24 @@ select_attr:
 		}
     ;
 
+id_poly:
+	ID {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	| ID DOT ID {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+	}
+	;
+
+
 select_poly:
 	poly_key LBRACE select_attr_poly RBRACE poly_list{
 
-		}
+	}
 	;
 
 poly_key:
@@ -514,30 +569,30 @@ select_attr_poly:
 	poly_value{  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 		}
 	| STAR {  
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
     | ID attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
   	| ID DOT ID attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, $3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
 	| ID DOT STAR attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $1, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
 		}
 	;
@@ -572,7 +627,7 @@ attr_list_poly:
     | COMMA ID attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, $2);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
      	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
@@ -580,7 +635,7 @@ attr_list_poly:
     | COMMA ID DOT ID attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, $4);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
@@ -588,7 +643,7 @@ attr_list_poly:
 	| COMMA ID DOT STAR attr_list_poly {
 			RelAttr attr;
 			relation_attr_init(&attr, $2, "*");
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
 			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
         // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
@@ -827,14 +882,7 @@ condition:
 		condition_init(&condition, OP_IS, 0, NULL, &left_value, 0, NULL, right_value);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-	// | NOTNULL IS value{
-	// 	Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
-	// 	Value left_value;
-	// 	value_init_null(&left_value, 0);
-	// 	Condition condition;
-	// 	condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 0, NULL, right_value);
-	// 	CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-	// }
+
 	| NULL_T IS ID {
 		RelAttr right_attr;
 		relation_attr_init(&right_attr, NULL, $3);
@@ -844,15 +892,7 @@ condition:
 		condition_init(&condition, OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-	// | NOTNULL IS ID {
-	// 	RelAttr right_attr;
-	// 	relation_attr_init(&right_attr, NULL, $3);
-	// 	Value left_value;
-	// 	value_init_null(&left_value, 0);
-	// 	Condition condition;
-	// 	condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
-	// 	CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-	// }
+
 	| NULL_T IS ID DOT ID{
 		RelAttr right_attr;
 		relation_attr_init(&right_attr, $3, $5);
@@ -862,15 +902,7 @@ condition:
 		condition_init(&condition, OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
 		CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 	}
-	// | NOTNULL IS ID DOT ID{
-	// 	RelAttr right_attr;
-	// 	relation_attr_init(&right_attr, $3, $5);
-	// 	Value left_value;
-	// 	value_init_null(&left_value, 0);
-	// 	Condition condition;
-	// 	condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
-	// 	CONTEXT->conditions[CONTEXT->condition_length++] = condition;
-	// }
+
 	| NULL_T IS NOTNULL {
 		Value left_value;
 		value_init_null(&left_value, 0);
@@ -894,7 +926,7 @@ comOp:
 order_by :
 	/* empty */
 	| ORDERBY order_by_attr order_by_list {
-
+		
 	}
 	;
 	order_by_list:
@@ -927,6 +959,31 @@ order_by :
 		CONTEXT->order_by_type = 1;
 	}
 	;
+
+group_by:
+	GROUPBY group_by_attr group_by_list {
+
+	}
+	;
+	group_by_list:
+	/* empty */
+	| COMMA group_by_attr group_by_list {
+			
+	}
+	;
+
+	group_by_attr:
+	ID order_by_type {	
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_groupbyAttr(&CONTEXT->ssql->sstr.selection, &attr, CONTEXT->order_by_type);
+		}
+	| ID DOT ID order_by_type {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_groupbyAttr(&CONTEXT->ssql->sstr.selection, &attr, CONTEXT->order_by_type);
+		}
+	;	
 
 
 load_data:

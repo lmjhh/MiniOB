@@ -45,4 +45,5 @@ private:
   Stage *mem_storage_stage_ = nullptr;
 };
 
+
 #endif //__OBSERVER_SQL_EXECUTE_STAGE_H__

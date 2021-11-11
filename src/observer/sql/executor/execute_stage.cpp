@@ -36,12 +36,11 @@ See the Mulan PSL v2 for more details. */
 using namespace common;
 
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node);
-
 RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects,TupleSet &return_tupleSet);
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
-RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet);
-
+RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleSet, TupleSet &resultTupleSet);
+RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet);
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
 
@@ -272,72 +271,53 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
   }
 
-  for (SelectExeNode *& tmp_node: select_nodes) {
-    // 此处对tuple_sets进行处理，更新返回的内容
-    if (selects.poly_num > 0){
-      std::cout <<  "poly_num:  " << selects.poly_num << std::endl;
-      std::stringstream ss;
-      if (tuple_sets.size() > 1) {
-        // 本次查询了多张表，需要做join操作
-      } else {
-        // 当前只查询一张表，直接返回结果即可
-        std::cout << "begin-print------------" << std::endl;
-        TupleSet resultTupleSet;
-        rc = get_ploy_tupleSet(selects, tuple_sets.front(), resultTupleSet);
-        if (rc != RC::SUCCESS){
-          return rc;
-        }
-        std::cout << "end-print--------------" << std::endl;
-        // tuple_sets.front().schema().print(ss);
-        resultTupleSet.print(ss, false);
+  std::stringstream ss;
+  if (tuple_sets.size() > 1) { //这时候取到的数据是所有过滤掉单表限制的 tuple
+    TupleSet join_result_tupleSet, result_tupleSet;
+    // 本次查询了多张表，需要做join操作
+    for(int i = tuple_sets.size() - 1; i >= 0; i--){
+      if(i == tuple_sets.size() - 1){
+          rc = table_Join_execute(tuple_sets[i], tuple_sets[i - 1], selects, join_result_tupleSet);
+          i--;
+      }else{
+          rc = table_Join_execute(join_result_tupleSet, tuple_sets[i], selects, join_result_tupleSet);
       }
-    for (SelectExeNode *& tmp_node: select_nodes) {
-        delete tmp_node;
+      if(rc != RC::SUCCESS) {
+        std::cout << "join failure" << std::endl;
+        return rc;
+      }
     }
-    // std::cout << ss.str() << std::endl;
-    session_event->set_response(ss.str());
-    end_trx_if_need(session, trx, true);
-    selects_destroy(&sql->sstr.selection);
-
-    return rc;
+    rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
+    if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
+      rc = group_by_field(selects, join_result_tupleSet, result_tupleSet);
+      if(rc != RC::SUCCESS) return rc;
     }else{
-      std::stringstream ss;
-      if (tuple_sets.size() > 1) { //这时候取到的数据是所有过滤掉单表限制的 tuple
-        TupleSet join_result_tupleSet, result_tupleSet;
-        // 本次查询了多张表，需要做join操作
-        for(int i = tuple_sets.size() - 1; i >= 0; i--){
-          if(i == tuple_sets.size() - 1){
-              rc = table_Join_execute(tuple_sets[i], tuple_sets[i - 1], selects, join_result_tupleSet);
-              i--;
-          }else{
-              rc = table_Join_execute(join_result_tupleSet, tuple_sets[i], selects, join_result_tupleSet);
-          }
-          if(rc != RC::SUCCESS) {
-            std::cout << "join failure" << std::endl;
-            return rc;
-          }
-        }
-        rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
-        result_tupleSet = get_final_result(selects, join_result_tupleSet);
-        result_tupleSet.print(ss, true);
-        result_tupleSet.clear();
-      } else {
-
-          rc = tuple_sets.front().order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
-          // 当前只查询一张表，直接返回结果即可
-          TupleSet result_tupleSet;
-          result_tupleSet = get_final_result(selects, tuple_sets.front());
-          result_tupleSet.print(ss, false);
-      }
-      for (SelectExeNode *& tmp_node: select_nodes) {
-        delete tmp_node;
-      }
-      session_event->set_response(ss.str());
-      end_trx_if_need(session, trx, true);
-      
-      return rc;
+      result_tupleSet = get_final_result(selects, join_result_tupleSet);
     }
+    result_tupleSet.print(ss, true);
+    result_tupleSet.clear();
+  } else { //单张表
+    TupleSet result_tupleSet;
+    LOG_ERROR("poly_num = %d, attr_num = %d, group_by_num = %d",selects.poly_num,selects.attr_num,selects.group_by.attr_num);
+      if(selects.poly_num > 0 && selects.attr_num == 0){ //给单张表做聚合
+        rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, tuple_sets.front(), result_tupleSet);
+      }else if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
+        LOG_ERROR("单表做Group by");
+        rc = group_by_field(selects, tuple_sets.front(), result_tupleSet);
+        if(rc != RC::SUCCESS) return rc;          
+      } else {
+        rc = tuple_sets.front().order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
+        result_tupleSet = get_final_result(selects, tuple_sets.front());
+      }
+      result_tupleSet.print(ss, false);
   }
+  for (SelectExeNode *& tmp_node: select_nodes) {
+    delete tmp_node;
+  }
+  session_event->set_response(ss.str());
+  end_trx_if_need(session, trx, true);
+  
+  return rc;
 }
 
 
@@ -507,6 +487,27 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
           std::cout << "select order by no exit " << std::string(attr.attribute_name) << std::endl;
       }
     } 
+  }
+
+  //校验 group by
+  if(selects.poly_num > 0 && selects.attr_num > 0){
+    if(selects.attr_num != selects.group_by.attr_num) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    for (int i = 0; i < selects.group_by.attr_num ; i++) {
+      const RelAttr &attr = selects.group_by.attributes[i];
+      int flag = 1;
+      for(int j = 0; j < selects.attr_num; j++){
+        if(attr.relation_name != nullptr){
+          if(strcmp(selects.attributes[j].relation_name, attr.relation_name) == 0 && strcmp(selects.attributes[j].attribute_name, attr.attribute_name) == 0){
+            flag = 0; break;
+          }
+        }else {
+            if(strcmp(selects.attributes[j].attribute_name, attr.attribute_name) == 0){
+            flag = 0; break;
+          }        
+        }
+      }
+      if(flag) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
   }
 
   // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
@@ -702,12 +703,13 @@ TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet){
   return result_tupleSet;
 }
 
-RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet){
+
+RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleSet, TupleSet &resultTupleSet){
   TupleSchema schema;
   int needAttrIndex[MAX_NUM];
   int needAttrCount = 0;
-  for(int i = 0; i < selects.poly_num; i++){
-      Poly po = selects.poly_list[i];
+  for(int i = 0; i < poly_num; i++){
+      Poly po = poly_list[i];
       if(po.attr_num != 1) return RC::GENERIC_ERROR;
       std::string field_name = std::string(po.poly_attr.poly_name);
       field_name += "(";
@@ -735,12 +737,12 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
   }
   resultTupleSet.set_schema(schema);
   Tuple new_tuple;
-  for(int i = 0; i < selects.poly_num; i++){
+  for(int i = 0; i < poly_num; i++){
     int count = 0;
     float avg = 0.0;
 
     std::shared_ptr<TupleValue> value = full_tupleSet.get(0).get_pointer(needAttrIndex[i]);
-    Poly po = selects.poly_list[i];
+    Poly po = poly_list[i];
     for(int j = 0; j < full_tupleSet.size(); j++){
       const std::vector<std::shared_ptr<TupleValue>> &values = full_tupleSet.get(j).values();
       switch (po.poly_attr.poly_type)
@@ -754,13 +756,12 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
       }break;
       case POCOUNT:{
         if(strcmp(po.attributes[0].attribute_name,"*") == 0 || po.isAttr == 0) count++;
-        else if( (*values[needAttrIndex[i]]).isNull() == false) count++;
+        else if( (*values[needAttrIndex[i]]).isNull() == false ) count++;
       }break;     
       case POMAX:{
         if( (*values[needAttrIndex[i]]).isNull() == false && filter_tuple(values[needAttrIndex[i]], value, GREAT_THAN) ) value = values[needAttrIndex[i]];
       }break;
       case POMIN:{
-        LOG_ERROR("我要找最小的，当前值 %f 对比值 %f",(*value).getValue(),(*values[needAttrIndex[i]]).getValue());
         if( (*values[needAttrIndex[i]]).isNull() == false && filter_tuple(values[needAttrIndex[i]], value, LESS_THAN) ) value = values[needAttrIndex[i]];
       }break;
       default:
@@ -787,5 +788,100 @@ RC get_ploy_tupleSet(const Selects &selects, TupleSet &full_tupleSet, TupleSet &
     }     
   }
   resultTupleSet.add(std::move(new_tuple));
+  return RC::SUCCESS;
+}
+
+RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet){
+  RC rc;
+  rc = full_tupleSet.order_by_field_and_type(selects.group_by.attributes, selects.group_by.order_type, selects.group_by.attr_num);   
+  if(rc != RC::SUCCESS){
+    return rc;
+  }
+
+  resultTupleSet.clear();
+  TupleSchema schema;
+  LOG_ERROR("排序成功");
+  int group_by_index[MAX_NUM];
+  for(int i = 0; i < selects.group_by.attr_num; i++){
+    if(selects.group_by.attributes[i].relation_name == nullptr){
+        TupleField field = full_tupleSet.schema().field(0);
+        group_by_index[i] = full_tupleSet.schema().index_of_field(field.table_name(), selects.group_by.attributes[i].attribute_name);
+    }else{
+        group_by_index[i] =  full_tupleSet.get_schema().index_of_field(selects.group_by.attributes[i].relation_name, selects.group_by.attributes[i].attribute_name);
+    }
+  }
+  int cout_field = 1;
+  for(int i = 0; i < full_tupleSet.size(); i++){
+    const std::vector<std::shared_ptr<TupleValue>> &values1 = full_tupleSet.get(i).values();
+    TupleSet new_tupleSet;
+    new_tupleSet.set_schema(full_tupleSet.get_schema());
+    Tuple new_tuple1;
+    new_tuple1.add(values1);
+    new_tupleSet.add(std::move(new_tuple1));
+
+    for(int j = i + 1; j < full_tupleSet.size(); j++){
+      const std::vector<std::shared_ptr<TupleValue>> &values2 = full_tupleSet.get(j).values();
+      int flag = 1; //判断是否匹配成功
+      for(int gb_index = 0; gb_index < selects.group_by.attr_num; gb_index++){
+        if(filter_tuple(values1[group_by_index[gb_index]], values2[group_by_index[gb_index]], NOT_EQUAL)) {flag = 0; break;}
+      }
+      if(flag){ //匹配成功加入到 new_tupleSet
+        Tuple new_tuple2;
+        new_tuple2.add(values2);
+        new_tupleSet.add(std::move(new_tuple2));
+      }else{ i = j - 1; break; }
+    }
+    TupleSet sub_tupleSet;
+    rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, new_tupleSet, sub_tupleSet);
+    if(rc != SUCCESS) return rc;
+
+    //初始化 resultSchem{
+    int index = selects.lsn - 1;
+    Tuple result_tuple;
+    LOG_ERROR("一共 %d 条属性", selects.lsn);
+    schema.clear();
+    while (index > -1)
+    {
+      const TupleField *tmpField = nullptr;
+      int value1_index = -1;
+      int value2_index = -1;
+      for(int i = selects.attr_num - 1; i >= 0 ; i--){
+        if(selects.attributes[i].lsn == index){
+          if(selects.attributes[i].relation_name != nullptr){
+            value1_index = full_tupleSet.get_schema().index_of_field(selects.attributes[i].relation_name, selects.attributes[i].attribute_name);
+            tmpField = &full_tupleSet.get_schema().field(value1_index);
+          }else{
+            const char *table_name = full_tupleSet.get_schema().field(0).table_name();
+            value1_index = full_tupleSet.get_schema().index_of_field(table_name, selects.attributes[i].attribute_name);
+            tmpField = &full_tupleSet.get_schema().field(value1_index);          
+          }
+          break;
+        }
+      }
+      for(int i = selects.poly_num - 1; i >= 0; i--){
+        if(selects.poly_list[i].lsn == index){
+          LOG_ERROR("找到 poly 位置 %d", i);
+          TupleSchema tmpSchema = sub_tupleSet.get_schema();
+          tmpField = &tmpSchema.field(i);
+          value2_index = i;
+          break;
+        }
+      }
+      index--;
+      if(cout_field){
+        LOG_ERROR("%d %s %s",tmpField->type(), tmpField->table_name(),tmpField->field_name());
+        schema.add(tmpField->type(), tmpField->table_name(), tmpField->field_name());
+      }
+      if(value1_index >= 0){
+        result_tuple.add(values1[value1_index]);
+      }else if(value2_index >= 0){
+        const std::vector<std::shared_ptr<TupleValue>> &sub_values = sub_tupleSet.get(0).values();
+        result_tuple.add(sub_values[value2_index]);
+      }
+    }
+    cout_field--;
+    resultTupleSet.add(std::move(result_tuple));
+  }
+  resultTupleSet.set_schema(schema);
   return RC::SUCCESS;
 }

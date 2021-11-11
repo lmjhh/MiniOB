@@ -30,6 +30,7 @@ See the Mulan PSL v2 for more details. */
 typedef struct {
   char *relation_name;   // relation name (may be NULL) 表名
   char *attribute_name;  // attribute name              属性名
+  size_t lsn;
 } RelAttr;
 
 typedef enum {
@@ -83,6 +84,7 @@ typedef struct {
   size_t    attr_num;
   PolyAttr  poly_attr;              // 标志聚合函数的名字
   int       isAttr;                  // 值还是类型
+  int       lsn;
 } Poly;
 
 
@@ -93,6 +95,13 @@ typedef struct {
   size_t    attr_num;               //列的个数
   OrderType order_type[MAX_NUM];    //对应升序还是降序
 } OrderBy;
+
+// GropuBy
+typedef struct {
+  RelAttr   attributes[MAX_NUM];    //保存所有要排序的列
+  size_t    attr_num;               //列的个数
+  OrderType order_type[MAX_NUM];    //对应升序还是降序
+} GroupBy;
 
 // struct of select
 typedef struct {
@@ -105,6 +114,8 @@ typedef struct {
   size_t    poly_num;               // Length of attrs in poly
   Poly      poly_list[MAX_NUM];     //每扫描到一个poly 就记录下来是什么poly 以及涉及到的attri
   OrderBy   order_by;               // 需要排序的列集合
+  GroupBy   group_by;
+  size_t    lsn;                    //用来排序 group by poly 和 attr
 } Selects;
 
 typedef struct {
@@ -256,6 +267,7 @@ void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr, int is_a
 
 
 void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type);
+void selects_append_groupbyAttr(Selects *selects, RelAttr *attr, OrderType type);
 
 void inserts_init(Inserts *inserts, const char *relation_name);
 void inserts_append_tuple(Inserts *inserts, Value values[], size_t value_num);

@@ -253,7 +253,7 @@ RC TupleSet::order_by_field_and_type(const RelAttr *attributes, const OrderType 
    }
    return RC::SUCCESS;
 
-}
+} 
 
 void TupleSet::buble_sort(int index, OrderType type){
   for (int i = 0; i < size() - 1; i++) {

@@ -25,7 +25,6 @@ RC parse(char *st, Query *sqln);
 extern "C" {
 #endif // __cplusplus
 void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const char *attribute_name) {
-  std::cout << attribute_name << std::endl;
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
   } else {
@@ -34,7 +33,6 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
   relation_attr->attribute_name = strdup(attribute_name);
 }
 void relation_attr_init_for_number(RelAttr *relation_attr, const char *relation_name, int attribute_name){
-  std::cout << attribute_name << std::endl;
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
   } else {
@@ -45,7 +43,6 @@ void relation_attr_init_for_number(RelAttr *relation_attr, const char *relation_
   relation_attr->attribute_name = strdup(p);
 }
 void relation_attr_init_for_float(RelAttr *relation_attr, const char *relation_name, float attribute_name){
-  std::cout << attribute_name << std::endl;
   if (relation_name != nullptr) {
     relation_attr->relation_name = strdup(relation_name);
   } else {
@@ -265,8 +262,15 @@ void attr_info_destroy(AttrInfo *attr_info) {
 
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
+  if(rel_attr->relation_name != nullptr){
+    LOG_ERROR("attr %s.%s",rel_attr->relation_name,rel_attr->attribute_name);
+  }else{
+    LOG_ERROR("attr %s",rel_attr->attribute_name);
+  }
+  if(selects->lsn < 0) selects->lsn = 0;
+  rel_attr->lsn = selects->lsn++;
+  LOG_ERROR("attr lsn = %d",rel_attr->lsn);
   selects->attributes[selects->attr_num++] = *rel_attr;
-  std::cout << "selects_append_attribute" << std::endl;
 }
 void selects_append_relation(Selects *selects, const char *relation_name) {
   selects->relations[selects->relation_num++] = strdup(relation_name);
@@ -281,36 +285,43 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
 }
 
 void selects_append_poly(Selects *selects, Poly *rel_po) {
-  std::cout << "selects->poly_num: " << selects->poly_num << std::endl;
+  if(selects->lsn < 0) selects->lsn = 0;
+  rel_po->lsn = selects->lsn++;
   selects->poly_list[selects->poly_num] = *rel_po;
   rel_po->attr_num = 0;
   selects->poly_num++;
   // std::cout << "selects->poly_num" << selects->poly_num << std::endl;
 }
 void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr, int is_attr) {
-  std::cout << "selects->poly_list[selects->poly_num-1].attr_num " << selects->poly_list[selects->poly_num-1].attr_num << std::endl;
   if (selects->poly_list[selects->poly_num-1].attr_num < 0 or selects->poly_list[selects->poly_num-1].attr_num > MAX_NUM){
     selects->poly_list[selects->poly_num-1].attr_num = 0;
   }
   selects->poly_list[selects->poly_num-1].attributes[selects->poly_list[selects->poly_num-1].attr_num] = *rel_attr;
   selects->poly_list[selects->poly_num-1].isAttr = is_attr;
   selects->poly_list[selects->poly_num-1].attr_num++;
-  //std::cout << "OK" << std::endl;
 }
 
 void selects_append_orderbyAttr(Selects *selects, RelAttr *attr, OrderType type){
-  if(attr->relation_name != nullptr){
-    std::cout << "order by  " << std::string(attr->relation_name) << "." << std::string(attr->attribute_name) << " order type " << type << std::endl;
-  }else{
-    std::cout << "order by " << std::string(attr->attribute_name) << " order type " << type << std::endl;
-  }
-
   if(selects->order_by.attr_num < 0 || selects->order_by.attr_num > MAX_NUM){
       selects->order_by.attr_num = 0;
   }
   selects->order_by.attributes[selects->order_by.attr_num] = *attr;
   selects->order_by.order_type[selects->order_by.attr_num] = type;
   selects->order_by.attr_num++;
+}
+
+void selects_append_groupbyAttr(Selects *selects, RelAttr *attr, OrderType type){
+  if(selects->group_by.attr_num < 0 || selects->group_by.attr_num > MAX_NUM){
+      selects->group_by.attr_num = 0;
+  }
+  if(attr->relation_name != nullptr){
+    LOG_ERROR("group_by %s.%s",attr->relation_name,attr->attribute_name);
+  }else{
+    LOG_ERROR("group_by %s",attr->attribute_name);
+  }
+  selects->group_by.attributes[selects->group_by.attr_num] = *attr;
+  selects->group_by.order_type[selects->group_by.attr_num] = type;
+  selects->group_by.attr_num++;
 }
 
 void selects_destroy(Selects *selects) {
