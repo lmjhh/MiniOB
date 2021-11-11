@@ -724,6 +724,8 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
       else relation_name = strdup(attr.relation_name);
 
       if(po.isAttr && strcmp(attr.attribute_name,"*") != 0){
+        int index = full_tupleSet.get_schema().index_of_field(relation_name, attr.attribute_name);
+        if(index < 0) return RC::GENERIC_ERROR;
         needAttrIndex[needAttrCount++] = full_tupleSet.get_schema().index_of_field(relation_name, attr.attribute_name);
       }else{
         if(strcmp(attr.attribute_name,"*") == 0 && (po.poly_attr.poly_type != POCOUNT) ) return RC::GENERIC_ERROR;
