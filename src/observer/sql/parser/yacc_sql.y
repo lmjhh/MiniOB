@@ -323,11 +323,6 @@ ID_get:
 	{
 		char *temp=$1; 
 		snprintf(CONTEXT->id, sizeof(CONTEXT->id), "%s", temp);
-			
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	
 	}
 	;
 
