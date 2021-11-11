@@ -437,40 +437,6 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->value_length = 0;
 			CONTEXT->order_by_type = 0;
 	}
-	| SELECT select_attr FROM ID rel_list where group_by SEMICOLON
-		{
-			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
-			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
-
-			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
-
-			CONTEXT->ssql->flag=SCF_SELECT;//"select";
-			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
-
-			//临时变量清零
-			CONTEXT->condition_length=0;
-			CONTEXT->from_length=0;
-			CONTEXT->select_length=0;
-			CONTEXT->value_length = 0;
-			CONTEXT->order_by_type = 0;
-	}
-	| SELECT select_poly FROM ID rel_list where group_by SEMICOLON
-		{
-			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
-			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
-
-			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
-
-			CONTEXT->ssql->flag=SCF_SELECT;//"select";
-			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
-
-			//临时变量清零
-			CONTEXT->condition_length=0;
-			CONTEXT->from_length=0;
-			CONTEXT->select_length=0;
-			CONTEXT->value_length = 0;
-			CONTEXT->order_by_type = 0;
-	}
 	;
 
 

@@ -310,13 +310,15 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         result_tupleSet = get_final_result(selects, tuple_sets.front());
       }
       result_tupleSet.print(ss, false);
+      result_tupleSet.clear();
   }
+
   for (SelectExeNode *& tmp_node: select_nodes) {
     delete tmp_node;
   }
   session_event->set_response(ss.str());
   end_trx_if_need(session, trx, true);
-  
+  selects_destroy(&sql->sstr.selection);
   return rc;
 }
 
