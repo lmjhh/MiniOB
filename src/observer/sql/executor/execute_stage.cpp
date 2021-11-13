@@ -318,7 +318,6 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   }
   session_event->set_response(ss.str());
   end_trx_if_need(session, trx, true);
-  selects_destroy(&sql->sstr.selection);
   return rc;
 }
 

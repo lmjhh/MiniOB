@@ -61,6 +61,7 @@ void relation_attr_destroy(RelAttr *relation_attr) {
   free(relation_attr->attribute_name);
   relation_attr->relation_name = nullptr;
   relation_attr->attribute_name = nullptr;
+  relation_attr->lsn = 0;
   std::cout << "relation_attr_destroy" << std::endl;
 }
 
@@ -98,6 +99,7 @@ void poly_destroy(Poly *poly_tmp) {
   free(poly_tmp->poly_attr.poly_name);
   poly_tmp->poly_attr.poly_name = nullptr;
   poly_tmp->attr_num = 0;
+  poly_tmp->lsn = 0;
   std::cout << "poly_destroy" << std::endl;
 }
 
@@ -346,6 +348,18 @@ void selects_destroy(Selects *selects) {
     poly_destroy(&selects->poly_list[i]);
   }
   selects->poly_num = 0;
+
+  for (size_t i = 0; i < selects->order_by.attr_num; i++) {
+    relation_attr_destroy(&selects->order_by.attributes[i]);
+    selects->order_by.order_type[i] = BYASC;
+  }
+
+  selects->group_by.attr_num = 0;
+  for (size_t i = 0; i < selects->group_by.attr_num; i++) {
+    relation_attr_destroy(&selects->group_by.attributes[i]);
+    selects->group_by.order_type[i] = BYASC;
+  }
+  selects->group_by.attr_num = 0;
 }
 
 void inserts_init(Inserts *inserts, const char *relation_name) {
