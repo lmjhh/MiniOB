@@ -171,13 +171,13 @@ void TupleSchema::print(std::ostream &os, bool isMoreTable) const {
 
   for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
        iter != end; ++iter) {
-    if ((table_names.size() > 1 || isMoreTable) ) {
+    if (table_names.size() > 1 || isMoreTable) {
       os << iter->table_name() << ".";
     }
     os << iter->field_name() << " | ";
   }
 
-  if ((table_names.size() > 1 || isMoreTable ) ) {
+  if (table_names.size() > 1 || isMoreTable) {
     os << fields_.back().table_name() << ".";
   }
   os << fields_.back().field_name() << std::endl;
