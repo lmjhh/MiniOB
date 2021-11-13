@@ -78,10 +78,10 @@ void poly_init(Poly *poly_tmp, const char *poly_name) {//在检测到attri时才
     poly_tmp->poly_attr.poly_name = strdup(poly_name);
     char *tmp_poly_name = strdup(poly_name);
     mystrlwr(tmp_poly_name);
-    if(strcmp(poly_name, "avg") == 0) poly_tmp->poly_attr.poly_type = POAVG;
-    if(strcmp(poly_name, "max") == 0) poly_tmp->poly_attr.poly_type = POMAX;
-    if(strcmp(poly_name, "min") == 0) poly_tmp->poly_attr.poly_type = POMIN;
-    if(strcmp(poly_name, "count") == 0) poly_tmp->poly_attr.poly_type = POCOUNT;
+    if(strcmp(tmp_poly_name, "avg") == 0) {poly_tmp->poly_attr.poly_type = POAVG;}
+    if(strcmp(tmp_poly_name, "max") == 0) {poly_tmp->poly_attr.poly_type = POMAX;}
+    if(strcmp(tmp_poly_name, "min") == 0) {poly_tmp->poly_attr.poly_type = POMIN;}
+    if(strcmp(tmp_poly_name, "count") == 0) {poly_tmp->poly_attr.poly_type = POCOUNT;}
     poly_tmp->attr_num = 0;
   } else {
     poly_tmp->poly_attr.poly_name = nullptr;
