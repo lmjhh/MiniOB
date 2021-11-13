@@ -757,21 +757,21 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
       switch (po.poly_attr.poly_type)
       {
       case POAVG:{
-        if((*values[needAttrIndex[i]]).isNull()) continue;
+        if((*values[needAttrIndex[poly_num - 1 - i]]).isNull()) continue;
         else {
-          avg += (*values[needAttrIndex[i]]).getValue();
+          avg += (*values[needAttrIndex[poly_num - 1 - i]]).getValue();
           count++;
         }
       }break;
       case POCOUNT:{
         if(strcmp(po.attributes[0].attribute_name,"*") == 0 || po.isAttr == 0) count++;
-        else if( (*values[needAttrIndex[i]]).isNull() == false ) count++;
+        else if( (*values[needAttrIndex[poly_num - 1 - i]]).isNull() == false ) count++;
       }break;     
       case POMAX:{
-        if( (*values[needAttrIndex[i]]).isNull() == false && filter_tuple(values[needAttrIndex[i]], value, GREAT_THAN) ) value = values[needAttrIndex[i]];
+        if( (*values[needAttrIndex[poly_num - 1 - i]]).isNull() == false && filter_tuple(values[needAttrIndex[poly_num - 1 - i]], value, GREAT_THAN) ) value = values[needAttrIndex[poly_num - 1 - i]];
       }break;
       case POMIN:{
-        if( (*values[needAttrIndex[i]]).isNull() == false && filter_tuple(values[needAttrIndex[i]], value, LESS_THAN) ) value = values[needAttrIndex[i]];
+        if( (*values[needAttrIndex[poly_num - 1 - i]]).isNull() == false && filter_tuple(values[needAttrIndex[poly_num - 1 - i]], value, LESS_THAN) ) value = values[needAttrIndex[poly_num - 1 - i]];
       }break;
       default:
         break;
@@ -840,9 +840,20 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
         new_tupleSet.add(std::move(new_tuple2));
       }else{ i = j - 1; break; }
     }
+
+    std::stringstream aa;
+    new_tupleSet.print(aa, false);
+    std::cout << aa.str() << std::endl;
+
+
     TupleSet sub_tupleSet;
     rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, new_tupleSet, sub_tupleSet);
     if(rc != SUCCESS) return rc;
+
+    std::stringstream ss;
+    sub_tupleSet.print(ss, false);
+    std::cout << ss.str() << std::endl;
+
     //初始化 resultSchem{
     int index = selects.lsn - 1;
     Tuple result_tuple;
@@ -871,7 +882,7 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
           LOG_ERROR("找到 poly 位置 %d", i);
           TupleSchema tmpSchema = sub_tupleSet.get_schema();
           tmpField = &tmpSchema.field(selects.poly_num - i - 1);
-          value2_index = i;
+          value2_index = selects.poly_num - i - 1;
           break;
         }
       }
