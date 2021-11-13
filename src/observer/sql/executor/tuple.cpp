@@ -181,7 +181,7 @@ void TupleSchema::print(std::ostream &os, bool isMoreTable) const {
       }
     }
     
-    if ((table_names.size() > 1 || isMoreTable) && is_func_field == 0 ) {
+    if ((table_names.size() > 2 || isMoreTable) && is_func_field == 0 ) {
       os << iter->table_name() << ".";
     }
     os << iter->field_name() << " | ";
@@ -195,7 +195,7 @@ void TupleSchema::print(std::ostream &os, bool isMoreTable) const {
     }
   }
 
-  if ((table_names.size() > 1 || isMoreTable ) && is_func_field == 0) {
+  if ((table_names.size() > 2 || isMoreTable ) && is_func_field == 0) {
     os << fields_.back().table_name() << ".";
   }
   os << fields_.back().field_name() << std::endl;
