@@ -329,6 +329,7 @@ void selects_destroy(Selects *selects) {
     relation_attr_destroy(&selects->attributes[i]);
   }
   selects->attr_num = 0;
+  selects->lsn = 0;
 
   for (size_t i = 0; i < selects->relation_num; i++) {
     free(selects->relations[i]);

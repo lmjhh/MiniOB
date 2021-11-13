@@ -843,7 +843,6 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
     TupleSet sub_tupleSet;
     rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, new_tupleSet, sub_tupleSet);
     if(rc != SUCCESS) return rc;
-
     //初始化 resultSchem{
     int index = selects.lsn - 1;
     Tuple result_tuple;
@@ -872,7 +871,7 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
           LOG_ERROR("找到 poly 位置 %d", i);
           TupleSchema tmpSchema = sub_tupleSet.get_schema();
           tmpField = &tmpSchema.field(selects.poly_num - i - 1);
-          value2_index = selects.poly_num - i - 1;
+          value2_index = i;
           break;
         }
       }
