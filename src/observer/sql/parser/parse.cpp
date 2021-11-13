@@ -267,7 +267,7 @@ void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
   }else{
     LOG_ERROR("attr %s",rel_attr->attribute_name);
   }
-  if(selects->lsn < 0) selects->lsn = 0;
+  if(selects->lsn < 0 or selects->lsn > MAX_NUM) selects->lsn = 0;
   rel_attr->lsn = selects->lsn++;
   LOG_ERROR("attr lsn = %d",rel_attr->lsn);
   selects->attributes[selects->attr_num++] = *rel_attr;
@@ -285,7 +285,7 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
 }
 
 void selects_append_poly(Selects *selects, Poly *rel_po) {
-  if(selects->lsn < 0) selects->lsn = 0;
+  if(selects->lsn < 0 or selects->lsn > MAX_NUM) selects->lsn = 0;
   rel_po->lsn = selects->lsn++;
   selects->poly_list[selects->poly_num] = *rel_po;
   rel_po->attr_num = 0;

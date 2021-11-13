@@ -492,6 +492,11 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   }
 
   //校验 group by
+  if(selects.group_by.attr_num > 0) {
+    if (selects.attr_num != selects.group_by.attr_num){
+      return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    }
+  }
   if(selects.poly_num > 0 && selects.attr_num > 0){
     if(selects.attr_num != selects.group_by.attr_num) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     for (int i = 0; i < selects.group_by.attr_num ; i++) {
@@ -710,7 +715,7 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
   TupleSchema schema;
   int needAttrIndex[MAX_NUM];
   int needAttrCount = 0;
-  for(int i = 0; i < poly_num; i++){
+  for(int i = poly_num - 1; i >=0; i--){
       Poly po = poly_list[i];
       if(po.attr_num != 1) return RC::GENERIC_ERROR;
       std::string field_name = std::string(po.poly_attr.poly_name);
@@ -741,7 +746,7 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
   }
   resultTupleSet.set_schema(schema);
   Tuple new_tuple;
-  for(int i = 0; i < poly_num; i++){
+  for(int i = poly_num - 1; i >=0; i--){
     int count = 0;
     float avg = 0.0;
 
@@ -806,7 +811,7 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
   TupleSchema schema;
   LOG_ERROR("排序成功");
   int group_by_index[MAX_NUM];
-  for(int i = 0; i < selects.group_by.attr_num; i++){
+  for(int i = selects.group_by.attr_num - 1; i >=0; i--){
     if(selects.group_by.attributes[i].relation_name == nullptr){
         TupleField field = full_tupleSet.schema().field(0);
         group_by_index[i] = full_tupleSet.schema().index_of_field(field.table_name(), selects.group_by.attributes[i].attribute_name);

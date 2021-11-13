@@ -403,24 +403,7 @@ update:			/*  update 语句的语法解析树*/
 		}
     ;
 select:				/*  select 语句的语法解析树*/
-    SELECT select_attr FROM ID rel_list inner_join where order_by SEMICOLON 
-		{
-			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
-			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
-
-			selects_append_conditions(&CONTEXT->ssql->sstr.selection, CONTEXT->conditions, CONTEXT->condition_length);
-
-			CONTEXT->ssql->flag=SCF_SELECT;//"select";
-			// CONTEXT->ssql->sstr.selection.attr_num = CONTEXT->select_length;
-
-			//临时变量清零
-			CONTEXT->condition_length=0;
-			CONTEXT->from_length=0;
-			CONTEXT->select_length=0;
-			CONTEXT->value_length = 0;
-			CONTEXT->order_by_type = 0;
-	}
-	| SELECT select_poly FROM ID rel_list where SEMICOLON
+    SELECT select_mix FROM ID rel_list inner_join where group_by order_by SEMICOLON 
 		{
 			// CONTEXT->ssql->sstr.selection.relations[CONTEXT->from_length++]=$4;
 			selects_append_relation(&CONTEXT->ssql->sstr.selection, $4);
@@ -438,6 +421,139 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->order_by_type = 0;
 	}
 	;
+
+select_mix:
+	STAR {  
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+    | ID  mix_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $1);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+
+		}
+	| ID DOT ID mix_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, $3);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| ID DOT STAR mix_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $1, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| POLYKEY LBRACE poly_value RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+		//select_append_poly_lsn(&CONTEXT->ssql->sstr.selection);
+		
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		}
+	| POLYKEY LBRACE STAR RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| POLYKEY LBRACE ID RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $3);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+		}
+	| POLYKEY LBRACE ID DOT ID RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $3, $5);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+	}
+	| POLYKEY LBRACE ID DOT STAR RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $3, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+    ;
+
+
+mix_list:
+	/* empty */
+	| COMMA ID  mix_list {
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $2);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+
+		}
+	| COMMA ID DOT ID mix_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, $4);
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| COMMA ID DOT STAR mix_list {
+			RelAttr attr;
+			relation_attr_init(&attr, $2, "*");
+			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
+		}
+	| COMMA POLYKEY LBRACE poly_value RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+		//select_append_poly_lsn(&CONTEXT->ssql->sstr.selection);
+		
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+		}
+	| COMMA POLYKEY LBRACE STAR RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| COMMA POLYKEY LBRACE ID RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $4);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+		}
+	| COMMA POLYKEY LBRACE ID DOT ID RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $4, $6);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+	}
+	| COMMA POLYKEY LBRACE ID DOT STAR RBRACE mix_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $4, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+    ;
 
 
 select_attr:
@@ -463,42 +579,115 @@ select_attr:
 		}
     ;
 
-id_poly:
-	ID {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $1);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	}
-	| ID DOT ID {
-			RelAttr attr;
-			relation_attr_init(&attr, $1, $3);
-			selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-	}
-	;
-
-
-select_poly:
-	poly_key LBRACE select_attr_poly RBRACE poly_list{
-
-	}
-	;
 
 poly_key:
-	POLYKEY {
+	POLYKEY{
 		Poly poly_tmp;
 		poly_init(&poly_tmp, $1);
 		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+
 	}
 	;
 
+select_poly:
+	POLYKEY LBRACE poly_value RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+		//select_append_poly_lsn(&CONTEXT->ssql->sstr.selection);
+		
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, "*");
+
+	}
+	|	POLYKEY LBRACE STAR RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| 	POLYKEY LBRACE ID RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $3);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| 	POLYKEY LBRACE ID DOT ID RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $3, $5);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| POLYKEY LBRACE ID DOT STAR RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $1);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $3, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	;
+
+
 poly_list:
 	/* empty */
-	| COMMA poly_key LBRACE select_attr_poly RBRACE poly_list {
-		//Poly poly_tmp;
-		//poly_init(&poly_tmp, $2);
-		//selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
-		}
+	| COMMA POLYKEY LBRACE poly_value RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+
+	}
+	| COMMA	POLYKEY LBRACE STAR RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| COMMA	POLYKEY LBRACE ID RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, NULL, $4);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| COMMA	POLYKEY LBRACE ID DOT ID RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $4, $6);
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
+	| COMMA POLYKEY LBRACE ID DOT STAR RBRACE poly_list{
+		Poly poly_tmp;
+		poly_init(&poly_tmp, $2);
+		selects_append_poly(&CONTEXT->ssql->sstr.selection, &poly_tmp);
+			RelAttr attr;
+			relation_attr_init(&attr, $4, "*");
+			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
+
+	}
 	;
+
 
 poly_value:
     NUMBER{	
@@ -585,30 +774,6 @@ attr_list:
 
 attr_list_poly:
     /* empty */
-    | COMMA ID attr_list_poly {
-			RelAttr attr;
-			relation_attr_init(&attr, NULL, $2);
-			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
-     	  // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].relation_name = NULL;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].attribute_name=$2;
-      }
-    | COMMA ID DOT ID attr_list_poly {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, $4);
-			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
-  	  }
-	| COMMA ID DOT STAR attr_list_poly {
-			RelAttr attr;
-			relation_attr_init(&attr, $2, "*");
-			// selects_append_attribute(&CONTEXT->ssql->sstr.selection, &attr);
-			selects_append_poly_attribute(&CONTEXT->ssql->sstr.selection, &attr, 1);
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length].attribute_name=$4;
-        // CONTEXT->ssql->sstr.selection.attributes[CONTEXT->select_length++].relation_name=$2;
-  	  }
   	;
 
 
@@ -922,7 +1087,8 @@ order_by :
 	;
 
 group_by:
-	GROUPBY group_by_attr group_by_list {
+	/* empty */
+	| GROUPBY group_by_attr group_by_list {
 
 	}
 	;
