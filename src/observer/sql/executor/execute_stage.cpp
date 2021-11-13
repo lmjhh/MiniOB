@@ -806,9 +806,9 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
     return rc;
   }
 
-  std::stringstream bb;
-  full_tupleSet.print(bb, false);
-  std::cout << bb.str() << std::endl;
+  // std::stringstream bb;
+  // full_tupleSet.print(bb, false);
+  // std::cout << bb.str() << std::endl;
   
 
   resultTupleSet.clear();
@@ -844,18 +844,18 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
       }else{ i = j - 1; break; }
     }
 
-    std::stringstream aa;
-    new_tupleSet.print(aa, false);
-    std::cout << aa.str() << std::endl;
+    // std::stringstream aa;
+    // new_tupleSet.print(aa, false);
+    // std::cout << aa.str() << std::endl;
 
 
     TupleSet sub_tupleSet;
     rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, new_tupleSet, sub_tupleSet);
     if(rc != SUCCESS) return rc;
 
-    std::stringstream ss;
-    sub_tupleSet.print(ss, false);
-    std::cout << ss.str() << std::endl;
+    // std::stringstream ss;
+    // sub_tupleSet.print(ss, false);
+    // std::cout << ss.str() << std::endl;
 
     //初始化 resultSchem{
     int index = selects.lsn - 1;
@@ -908,10 +908,10 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
   }
   resultTupleSet.set_schema(schema);
 
-  LOG_ERROR("resultTupleSet size = %d", resultTupleSet.size());
-  std::stringstream cc;
-  resultTupleSet.print(cc, false);
-  std::cout << cc.str() << std::endl;
+  // LOG_ERROR("resultTupleSet size = %d", resultTupleSet.size());
+  // std::stringstream cc;
+  // resultTupleSet.print(cc, false);
+  // std::cout << cc.str() << std::endl;
 
   return RC::SUCCESS;
 }
