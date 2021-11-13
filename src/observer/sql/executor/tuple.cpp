@@ -169,15 +169,33 @@ void TupleSchema::print(std::ostream &os, bool isMoreTable) const {
     table_names.insert(field.table_name());
   }
 
+
   for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
        iter != end; ++iter) {
-    if ((table_names.size() > 1 || isMoreTable) && std::string(iter->field_name()).find("(")==-1 ) {
+
+    int is_func_field = 0;
+    for(int i = 0; iter->field_name()[i]; i++){
+      if(iter->field_name()[i] == '(') {
+         is_func_field = 1;
+         break;
+      }
+    }
+    
+    if ((table_names.size() > 1 || isMoreTable) && is_func_field == 0 ) {
       os << iter->table_name() << ".";
     }
     os << iter->field_name() << " | ";
   }
 
-  if ((table_names.size() > 1 || isMoreTable ) && std::string(fields_.back().field_name()).find("(")==-1) {
+  int is_func_field = 0;
+  for(int i = 0; fields_.back().field_name()[i]; i++){
+    if(fields_.back().field_name()[i] == '(') {
+        is_func_field = 1;
+        break;
+    }
+  }
+
+  if ((table_names.size() > 1 || isMoreTable ) && is_func_field == 0) {
     os << fields_.back().table_name() << ".";
   }
   os << fields_.back().field_name() << std::endl;
