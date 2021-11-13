@@ -867,12 +867,12 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
           break;
         }
       }
-      for(int i = selects.poly_num - 1; i >= 0; i--){
+      for(int i = 0; i < selects.poly_num; i++){
         if(selects.poly_list[i].lsn == index){
           LOG_ERROR("找到 poly 位置 %d", i);
           TupleSchema tmpSchema = sub_tupleSet.get_schema();
-          tmpField = &tmpSchema.field(i);
-          value2_index = i;
+          tmpField = &tmpSchema.field(selects.poly_num - i - 1);
+          value2_index = selects.poly_num - i - 1;
           break;
         }
       }
