@@ -288,12 +288,12 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       }
     }
     rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
-    if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
-      rc = group_by_field(selects, join_result_tupleSet, result_tupleSet);
-      if(rc != RC::SUCCESS) return rc;
-    }else{
+    // if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
+    //   rc = group_by_field(selects, join_result_tupleSet, result_tupleSet);
+    //   if(rc != RC::SUCCESS) return rc;
+    // }else{
       result_tupleSet = get_final_result(selects, join_result_tupleSet);
-    }
+    // }
     result_tupleSet.print(ss, true);
     result_tupleSet.clear();
   } else { //单张表
@@ -806,9 +806,9 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
     return rc;
   }
 
-  // std::stringstream bb;
-  // full_tupleSet.print(bb, false);
-  // std::cout << bb.str() << std::endl;
+  std::stringstream bb;
+  full_tupleSet.print(bb, false);
+  std::cout << bb.str() << std::endl;
   
 
   resultTupleSet.clear();
@@ -844,18 +844,18 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
       }else{ i = j - 1; break; }
     }
 
-    // std::stringstream aa;
-    // new_tupleSet.print(aa, false);
-    // std::cout << aa.str() << std::endl;
+    std::stringstream aa;
+    new_tupleSet.print(aa, false);
+    std::cout << aa.str() << std::endl;
 
 
     TupleSet sub_tupleSet;
     rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, new_tupleSet, sub_tupleSet);
     if(rc != SUCCESS) return rc;
 
-    // std::stringstream ss;
-    // sub_tupleSet.print(ss, false);
-    // std::cout << ss.str() << std::endl;
+    std::stringstream ss;
+    sub_tupleSet.print(ss, false);
+    std::cout << ss.str() << std::endl;
 
     //初始化 resultSchem{
     int index = selects.lsn - 1;
