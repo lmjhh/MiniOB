@@ -862,6 +862,20 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
     sub_tupleSet.print(ss, false);
     std::cout << ss.str() << std::endl;
 
+    if(isMultiTable){
+      int result_size = sub_tupleSet.size();
+      for(size_t result_ite = 0; result_ite < result_size; result_ite++){
+        const std::vector<std::shared_ptr<TupleValue>> &values = sub_tupleSet.get(result_ite).values();
+        Tuple new_tuple;
+        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+            iter != end; ++iter){
+              new_tuple.add(*iter);
+          }
+        resultTupleSet.add(std::move(new_tuple));
+      }
+      resultTupleSet.set_schema(sub_tupleSet.get_schema());
+      return resultTupleSet;
+    }
     //初始化 resultSchem{
     int index = selects.lsn - 1;
     Tuple result_tuple;
@@ -910,11 +924,6 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
 
     }
     resultTupleSet.add(std::move(result_tuple));
-
-    if(isMultiTable){
-      resultTupleSet.set_schema(schema);
-      return resultTupleSet;
-    }
   }
   resultTupleSet.set_schema(schema);
 
