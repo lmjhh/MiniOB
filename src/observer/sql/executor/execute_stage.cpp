@@ -833,6 +833,7 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
     Tuple new_tuple1;
     new_tuple1.add(values1);
     new_tupleSet.add(std::move(new_tuple1));
+    if(i == full_tupleSet.size() - 1) i++;
     for(int j = i + 1; j < full_tupleSet.size(); j++){
       const std::vector<std::shared_ptr<TupleValue>> &values2 = full_tupleSet.get(j).values();
       int flag = 1; //判断是否匹配成功
