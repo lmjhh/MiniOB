@@ -40,7 +40,7 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
 RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleSet, TupleSet &resultTupleSet);
-TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet);
+TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool isMultiTable);
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
 
@@ -289,7 +289,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     }
     rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
     if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
-      result_tupleSet = group_by_field(selects, join_result_tupleSet);
+      result_tupleSet = group_by_field(selects, join_result_tupleSet, true);
       // return RC::SUCCESS;
       // if(rc != RC::SUCCESS) return rc;
     }else{
@@ -304,7 +304,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, tuple_sets.front(), result_tupleSet);
       }else if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
         LOG_ERROR("单表做Group by");
-        result_tupleSet = group_by_field(selects, tuple_sets.front());
+        result_tupleSet = group_by_field(selects, tuple_sets.front(), false);
         // return RC::SUCCESS;
         // if(rc != RC::SUCCESS) return rc;          
       } else {
@@ -801,7 +801,7 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
   return RC::SUCCESS;
 }
 
-TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
+TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool isMultiTable){
   TupleSet resultTupleSet;
   RC rc;
   rc = full_tupleSet.order_by_field_and_type(selects.group_by.attributes, selects.group_by.order_type, selects.group_by.attr_num);   
@@ -830,8 +830,14 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
     const std::vector<std::shared_ptr<TupleValue>> &values1 = full_tupleSet.get(i).values();
     TupleSet new_tupleSet;
     new_tupleSet.set_schema(full_tupleSet.get_schema());
+    if(isMultiTable){
+      resultTupleSet.set_schema(full_tupleSet.get_schema());
+    }
     Tuple new_tuple1;
     new_tuple1.add(values1);
+    if(isMultiTable){
+      resultTupleSet.add(std::move(new_tuple1));
+    }
     new_tupleSet.add(std::move(new_tuple1));
     for(int j = i + 1; j < full_tupleSet.size(); j++){
       const std::vector<std::shared_ptr<TupleValue>> &values2 = full_tupleSet.get(j).values();
@@ -843,8 +849,13 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
         Tuple new_tuple2;
         new_tuple2.add(values2);
         new_tupleSet.add(std::move(new_tuple2));
+        if(isMultiTable){
+          resultTupleSet.add(std::move(new_tuple1));
+        }
       }else{ i = j - 1; break; }
     }
+    
+    if(isMultiTable) return resultTupleSet;
 
     std::stringstream aa;
     new_tupleSet.print(aa, false);
