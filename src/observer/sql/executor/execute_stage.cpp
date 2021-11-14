@@ -830,14 +830,8 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
     const std::vector<std::shared_ptr<TupleValue>> &values1 = full_tupleSet.get(i).values();
     TupleSet new_tupleSet;
     new_tupleSet.set_schema(full_tupleSet.get_schema());
-    if(isMultiTable){
-      resultTupleSet.set_schema(full_tupleSet.get_schema());
-    }
     Tuple new_tuple1;
     new_tuple1.add(values1);
-    if(isMultiTable){
-      resultTupleSet.add(std::move(new_tuple1));
-    }
     new_tupleSet.add(std::move(new_tuple1));
     for(int j = i + 1; j < full_tupleSet.size(); j++){
       const std::vector<std::shared_ptr<TupleValue>> &values2 = full_tupleSet.get(j).values();
@@ -854,8 +848,6 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
         }
       }else{ i = j - 1; break; }
     }
-    
-    if(isMultiTable) return resultTupleSet;
 
     std::stringstream aa;
     new_tupleSet.print(aa, false);
@@ -918,6 +910,11 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
 
     }
     resultTupleSet.add(std::move(result_tuple));
+
+    if(isMultiTable){
+      resultTupleSet.set_schema(schema);
+      return resultTupleSet;
+    }
   }
   resultTupleSet.set_schema(schema);
 
