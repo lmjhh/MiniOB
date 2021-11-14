@@ -40,7 +40,7 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
 bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_ptr<TupleValue> &values2, CompOp op);
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet);
 RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleSet, TupleSet &resultTupleSet);
-RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet);
+TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet);
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
 
@@ -288,12 +288,13 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
       }
     }
     rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
-    // if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
-    //   rc = group_by_field(selects, join_result_tupleSet, result_tupleSet);
-    //   if(rc != RC::SUCCESS) return rc;
-    // }else{
+    if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
+      result_tupleSet = group_by_field(selects, join_result_tupleSet);
+      // return RC::SUCCESS;
+      // if(rc != RC::SUCCESS) return rc;
+    }else{
       result_tupleSet = get_final_result(selects, join_result_tupleSet);
-    // }
+    }
     result_tupleSet.print(ss, true);
     result_tupleSet.clear();
   } else { //单张表
@@ -303,8 +304,9 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, tuple_sets.front(), result_tupleSet);
       }else if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
         LOG_ERROR("单表做Group by");
-        rc = group_by_field(selects, tuple_sets.front(), result_tupleSet);
-        if(rc != RC::SUCCESS) return rc;          
+        result_tupleSet = group_by_field(selects, tuple_sets.front());
+        // return RC::SUCCESS;
+        // if(rc != RC::SUCCESS) return rc;          
       } else {
         rc = tuple_sets.front().order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
         result_tupleSet = get_final_result(selects, tuple_sets.front());
@@ -799,11 +801,12 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
   return RC::SUCCESS;
 }
 
-RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &resultTupleSet){
+TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
+  TupleSet resultTupleSet;
   RC rc;
   rc = full_tupleSet.order_by_field_and_type(selects.group_by.attributes, selects.group_by.order_type, selects.group_by.attr_num);   
   if(rc != RC::SUCCESS){
-    return rc;
+    return resultTupleSet;
   }
 
   std::stringstream bb;
@@ -830,7 +833,6 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
     Tuple new_tuple1;
     new_tuple1.add(values1);
     new_tupleSet.add(std::move(new_tuple1));
-
     for(int j = i + 1; j < full_tupleSet.size(); j++){
       const std::vector<std::shared_ptr<TupleValue>> &values2 = full_tupleSet.get(j).values();
       int flag = 1; //判断是否匹配成功
@@ -851,7 +853,7 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
 
     TupleSet sub_tupleSet;
     rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, new_tupleSet, sub_tupleSet);
-    if(rc != SUCCESS) return rc;
+    if(rc != SUCCESS) return resultTupleSet;
 
     std::stringstream ss;
     sub_tupleSet.print(ss, false);
@@ -908,10 +910,10 @@ RC group_by_field(const Selects &selects, TupleSet &full_tupleSet, TupleSet &res
   }
   resultTupleSet.set_schema(schema);
 
-  // LOG_ERROR("resultTupleSet size = %d", resultTupleSet.size());
-  // std::stringstream cc;
-  // resultTupleSet.print(cc, false);
-  // std::cout << cc.str() << std::endl;
+  LOG_ERROR("resultTupleSet size = %d", resultTupleSet.size());
+  std::stringstream cc;
+  resultTupleSet.print(cc, false);
+  std::cout << cc.str() << std::endl;
 
-  return RC::SUCCESS;
+  return resultTupleSet;
 }
