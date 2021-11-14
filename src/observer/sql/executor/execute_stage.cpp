@@ -826,7 +826,7 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
         group_by_index[i] =  full_tupleSet.get_schema().index_of_field(selects.group_by.attributes[i].relation_name, selects.group_by.attributes[i].attribute_name);
     }
   }
-  for(int i = 0; i < full_tupleSet.size(); i++){
+  for(int i = 0; i < full_tupleSet.size();){
     const std::vector<std::shared_ptr<TupleValue>> &values1 = full_tupleSet.get(i).values();
     TupleSet new_tupleSet;
     new_tupleSet.set_schema(full_tupleSet.get_schema());
@@ -843,10 +843,8 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
         Tuple new_tuple2;
         new_tuple2.add(values2);
         new_tupleSet.add(std::move(new_tuple2));
-        if(isMultiTable){
-          resultTupleSet.add(std::move(new_tuple1));
-        }
-      }else{ i = j - 1; break; }
+        i = j;
+      }else{ i = j; break; }
     }
 
     std::stringstream aa;
@@ -862,57 +860,37 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
     sub_tupleSet.print(ss, false);
     std::cout << ss.str() << std::endl;
 
-    if(isMultiTable){
-      int result_size = sub_tupleSet.size();
-      for(size_t result_ite = 0; result_ite < result_size; result_ite++){
-        const std::vector<std::shared_ptr<TupleValue>> &values = sub_tupleSet.get(result_ite).values();
-        Tuple new_tuple;
-        for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
-            iter != end; ++iter){
-              new_tuple.add(*iter);
-          }
-        resultTupleSet.add(std::move(new_tuple));
-      }
-      resultTupleSet.set_schema(sub_tupleSet.get_schema());
-      return resultTupleSet;
-    }
     //初始化 resultSchem{
-    int index = selects.lsn - 1;
-    Tuple result_tuple;
     LOG_ERROR("一共 %d 条属性", selects.lsn);
     schema.clear();
-    while (index > -1)
-    {
-      const TupleField *tmpField = nullptr;
+    Tuple result_tuple;
+    for (int index = selects.lsn - 1; index >= 0; index--){
       int value1_index = -1;
       int value2_index = -1;
-      for(int i = selects.attr_num - 1; i >= 0 ; i--){
-        if(selects.attributes[i].lsn == index){
-          if(selects.attributes[i].relation_name != nullptr){
-            value1_index = full_tupleSet.get_schema().index_of_field(selects.attributes[i].relation_name, selects.attributes[i].attribute_name);
-            tmpField = &full_tupleSet.get_schema().field(value1_index);
+      for(int attrIndex = selects.attr_num - 1; attrIndex >= 0 ; attrIndex--){
+        if(selects.attributes[attrIndex].lsn == index){
+          if(selects.attributes[attrIndex].relation_name != nullptr){
+            value1_index = full_tupleSet.get_schema().index_of_field(selects.attributes[attrIndex].relation_name, selects.attributes[attrIndex].attribute_name);
+            const TupleField *tmpField = &full_tupleSet.get_schema().field(value1_index);
+            schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());
           }else{
             const char *table_name = full_tupleSet.get_schema().field(0).table_name();
-            value1_index = full_tupleSet.get_schema().index_of_field(table_name, selects.attributes[i].attribute_name);
-            tmpField = &full_tupleSet.get_schema().field(value1_index);          
+            value1_index = full_tupleSet.get_schema().index_of_field(table_name, selects.attributes[attrIndex].attribute_name);
+            const TupleField *tmpField = &full_tupleSet.get_schema().field(value1_index);  
+            schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());        
           }
-          LOG_ERROR("value1_index = %d",value1_index);
           break;
         }
       }
-      for(int i = 0; i < selects.poly_num; i++){
-        if(selects.poly_list[i].lsn == index){
+      for(int polyIndex = 0; polyIndex < selects.poly_num ; polyIndex++){
+        if(selects.poly_list[polyIndex].lsn == index){
           TupleSchema tmpSchema = sub_tupleSet.get_schema();
-          tmpField = &tmpSchema.field(selects.poly_num - i - 1);
-          value2_index = selects.poly_num - i - 1;
-          LOG_ERROR("value2_index = %d",value2_index);
+          const TupleField *tmpField = &tmpSchema.field(selects.poly_num - polyIndex - 1);
+          value2_index = selects.poly_num - polyIndex - 1;
+          schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());
           break;
         }
       }
-      index--;
-      LOG_ERROR("%d %s %s",tmpField->type(), tmpField->table_name(),tmpField->field_name());
-      schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());
-
       if(value1_index >= 0){
         LOG_ERROR("add value %f ",values1[value1_index]->getValue());
         result_tuple.add(values1[value1_index]);
@@ -921,7 +899,6 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet, bool is
         LOG_ERROR("add value %f ",sub_values[value2_index]->getValue());
         result_tuple.add(sub_values[value2_index]);
       }
-
     }
     resultTupleSet.add(std::move(result_tuple));
   }
