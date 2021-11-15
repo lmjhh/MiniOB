@@ -870,6 +870,7 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
       }
   }
   resultTupleSet.set_schema(schema);
+  if(full_tupleSet.size() == 0) return RC::SUCCESS;
   Tuple new_tuple;
   for(int i = poly_num - 1; i >=0; i--){
     int count = 0;
