@@ -1056,9 +1056,9 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
     TupleField tuple1_field = full_tupleSet.get_schema().field(tuple1_index);
     TupleField tuple2_field = sub_tupleSet.get_schema().field(tuple2_index);
     if(tuple1_field.type() != tuple2_field.type()) {
-      if((tuple1_field.type() == INTS || tuple1_field.type() == FLOATS) && (tuple2_field.type() != INTS || tuple2_field.type() != FLOATS))
+      if((tuple1_field.type() == INTS || tuple1_field.type() == FLOATS) && (tuple2_field.type() != INTS && tuple2_field.type() != FLOATS))
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
-      else if((tuple2_field.type() == INTS || tuple2_field.type() == FLOATS) && (tuple1_field.type() != INTS || tuple1_field.type() != FLOATS))
+      else if((tuple2_field.type() == INTS || tuple2_field.type() == FLOATS) && (tuple1_field.type() != INTS && tuple1_field.type() != FLOATS))
         return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     }
     //比较两个 tuple 
