@@ -1048,7 +1048,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
 
     TupleField tuple1_field = full_tupleSet.get_schema().field(tuple1_index);
     TupleField tuple2_field = sub_tupleSet.get_schema().field(tuple2_index);
-    if(tuple1_field.type() != tuple2_field.type()) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
+    // if(tuple1_field.type() != tuple2_field.type()) return RC::SCHEMA_FIELD_TYPE_MISMATCH;
     //比较两个 tuple 
     int table1_size = full_tupleSet.size();
     int table2_size = sub_tupleSet.size();
@@ -1058,7 +1058,9 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
       for(size_t table2_ite = 0; table2_ite < table2_size; table2_ite++){
         const std::vector<std::shared_ptr<TupleValue>> &values2 = sub_tupleSet.get(table2_ite).values();
         if(condition.comp != OP_IN && condition.comp != OP_NO_IN){
-          if(filter_tuple(values1[tuple1_index], values2[tuple2_index], condition.comp)){
+          std::shared_ptr<TupleValue> value1_float = (std::shared_ptr<TupleValue>)new FloatValue(values1[tuple1_index]->getValue());
+          std::shared_ptr<TupleValue> value2_float = (std::shared_ptr<TupleValue>)new FloatValue(values2[tuple2_index]->getValue());
+          if(filter_tuple(value1_float, value2_float, condition.comp)){
             Tuple new_tuple;
             for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values1.begin(), end = values1.end();
               iter != end; ++iter){
