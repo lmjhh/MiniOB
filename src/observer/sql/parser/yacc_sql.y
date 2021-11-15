@@ -434,7 +434,7 @@ select:				/*  select 语句的语法解析树*/
 	{
 			selects_append_relation(&CONTEXT->selects[CONTEXT->select_length], $5);
 			selects_append_conditions(&CONTEXT->selects[CONTEXT->select_length], CONTEXT->conditions, CONTEXT->condition_length_tmp[CONTEXT->select_length - 1], CONTEXT->condition_length);
-			CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length]].sub_select = &CONTEXT->selects[CONTEXT->select_length];
+			CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length - 1] - 1].sub_select = &CONTEXT->selects[CONTEXT->select_length];
 			//临时变量退栈
 			CONTEXT->select_length--;
 			CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
@@ -517,7 +517,7 @@ select_mix:
 			relation_attr_init(&attr, $3, "*");
 			selects_append_poly_attribute(&CONTEXT->selects[CONTEXT->select_length], &attr, 1);
 	}
-    ;
+  ;
 
 
 mix_list:

@@ -1144,9 +1144,9 @@ void selects_print(const Selects &selects){
     if(condition.left_is_attr){
       RelAttr attr = condition.left_attr;
       if(attr.relation_name == nullptr){
-        LOG_ERROR("Condition left attr   : %s", attr.relation_name);
+        LOG_ERROR("Condition left attr : %s", attr.attribute_name);
       }else{
-        LOG_ERROR("Condition left attr  : %s.%s", attr.relation_name,attr.attribute_name);
+        LOG_ERROR("Condition left attr : %s.%s", attr.relation_name,attr.attribute_name);
       }
     }
     switch (condition.comp)
