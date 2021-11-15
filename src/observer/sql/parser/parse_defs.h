@@ -42,12 +42,13 @@ typedef enum {
   GREAT_THAN,   //">"     5
   OP_IS,                     //针对NULL的比较
   OP_NO_IS,                  //针对NULL的比较
+  OP_IN,
+  OP_NO_IN,
   NO_OP
 } CompOp;
 
 //属性值类型
 typedef enum { UNDEFINED, CHARS, INTS, DATES, FLOATS, NULLS} AttrType;
-
 
 typedef enum { BYASC, BYDESC } OrderType;
 
@@ -59,6 +60,8 @@ typedef struct _Value {
   void *data;     // value
 } Value;
 
+typedef struct _Selects Selects;
+
 typedef struct _Condition {
   int left_is_attr;    // TRUE if left-hand side is an attribute
                        // 1时，操作符左边是属性名，0时，是属性值
@@ -69,6 +72,8 @@ typedef struct _Condition {
                        // 1时，操作符右边是属性名，0时，是属性值
   RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value right_value;   // right-hand side value if right_is_attr = FALSE
+
+  Selects *sub_select;
 } Condition;
 
 
@@ -104,7 +109,7 @@ typedef struct {
 } GroupBy;
 
 // struct of select
-typedef struct {
+struct _Selects{
   size_t    attr_num;               // Length of attrs in Select clause
   RelAttr   attributes[MAX_NUM];    // attrs in Select clause
   size_t    relation_num;           // Length of relations in Fro clause
@@ -116,7 +121,7 @@ typedef struct {
   OrderBy   order_by;               // 需要排序的列集合
   GroupBy   group_by;
   size_t    lsn;                    //用来排序 group by poly 和 attr
-} Selects;
+};
 
 typedef struct {
    size_t value_num;       // Length of values
@@ -248,6 +253,7 @@ void value_destroy(Value *value);
 
 void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
     int right_is_attr, RelAttr *right_attr, Value *right_value);
+void condition_init_with_comp(Condition *condition, CompOp comp);
 void condition_destroy(Condition *condition);
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able);
@@ -256,7 +262,7 @@ void attr_info_destroy(AttrInfo *attr_info);
 void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
-void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num);
+void selects_append_conditions(Selects *selects, Condition conditions[], size_t start, size_t end);
 void selects_destroy(Selects *selects);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);

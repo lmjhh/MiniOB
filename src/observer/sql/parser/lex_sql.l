@@ -89,6 +89,9 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 [Ll][Oo][Aa][Dd]			                   RETURN_TOKEN(LOAD);
 [Dd][Aa][Tt][Aa]	                       RETURN_TOKEN(DATA);
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);
+[Ii][Nn]				 													RETURN_TOKEN(IN);
+[Nn][Oo][Tt][ ][Ii][Nn]										RETURN_TOKEN(NOTIN);
+
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("								                       RETURN_TOKEN(LBRACE);
 ")"								                       RETURN_TOKEN(RBRACE);

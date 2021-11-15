@@ -237,6 +237,11 @@ void condition_init(Condition *condition, CompOp comp,
     condition->right_value = *right_value;
   }
 }
+
+void condition_init_with_comp(Condition *condition, CompOp comp){
+  condition->comp = comp;
+} 
+
 void condition_destroy(Condition *condition) {
   if (condition->left_is_attr) {
     relation_attr_destroy(&condition->left_attr);
@@ -248,6 +253,10 @@ void condition_destroy(Condition *condition) {
   } else {
     value_destroy(&condition->right_value);
   }
+  if (condition->sub_select != nullptr){
+    selects_destroy(condition->sub_select);
+  }
+  condition->sub_select = nullptr;
 }
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able) {
@@ -278,12 +287,13 @@ void selects_append_relation(Selects *selects, const char *relation_name) {
   selects->relations[selects->relation_num++] = strdup(relation_name);
 }
 
-void selects_append_conditions(Selects *selects, Condition conditions[], size_t condition_num) {
-  assert(condition_num <= sizeof(selects->conditions)/sizeof(selects->conditions[0]));
-  for (size_t i = 0; i < condition_num; i++) {
-    selects->conditions[i] = conditions[i];
+void selects_append_conditions(Selects *selects, Condition conditions[], size_t start, size_t end) {
+  // assert((end - start)) <= sizeof(selects->conditions)/sizeof(selects->conditions[0]));
+  int index = 0;
+  for (size_t i = start; i < end; i++) {
+    selects->conditions[index++] = conditions[i];
   }
-  selects->condition_num = condition_num;
+  selects->condition_num = end - start;
 }
 
 void selects_append_poly(Selects *selects, Poly *rel_po) {
@@ -297,6 +307,11 @@ void selects_append_poly(Selects *selects, Poly *rel_po) {
 void selects_append_poly_attribute(Selects *selects, RelAttr *rel_attr, int is_attr) {
   if (selects->poly_list[selects->poly_num-1].attr_num < 0 or selects->poly_list[selects->poly_num-1].attr_num > MAX_NUM){
     selects->poly_list[selects->poly_num-1].attr_num = 0;
+  }
+  if(rel_attr->relation_name != nullptr){
+    LOG_ERROR("poly attr %s.%s",rel_attr->relation_name,rel_attr->attribute_name);
+  }else{
+    LOG_ERROR("poly attr %s",rel_attr->attribute_name);
   }
   selects->poly_list[selects->poly_num-1].attributes[selects->poly_list[selects->poly_num-1].attr_num] = *rel_attr;
   selects->poly_list[selects->poly_num-1].isAttr = is_attr;
@@ -361,6 +376,7 @@ void selects_destroy(Selects *selects) {
   }
   selects->group_by.attr_num = 0;
 }
+
 
 void inserts_init(Inserts *inserts, const char *relation_name) {
   inserts->relation_name = strdup(relation_name);
