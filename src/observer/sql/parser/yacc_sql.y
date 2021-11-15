@@ -1097,8 +1097,12 @@ condition:
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_attr = left_attr;
 	}
 
-	| select comOp ID{
-
+	| select comOp ID{		//放 condition 左边了 改一下符号
+		if(CONTEXT->comp_tmp[CONTEXT->select_length] == LESS_THAN) CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN;
+		if(CONTEXT->comp_tmp[CONTEXT->select_length] == LESS_EQUAL) CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL;
+		if(CONTEXT->comp_tmp[CONTEXT->select_length] == GREAT_THAN) CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN;
+		if(CONTEXT->comp_tmp[CONTEXT->select_length] == GREAT_EQUAL) CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL;
+		
 		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length];
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_is_attr = 1;
 		RelAttr left_attr;
@@ -1113,7 +1117,7 @@ condition:
 		if(CONTEXT->comp_tmp[CONTEXT->select_length] == LESS_EQUAL) CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL;
 		if(CONTEXT->comp_tmp[CONTEXT->select_length] == GREAT_THAN) CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN;
 		if(CONTEXT->comp_tmp[CONTEXT->select_length] == GREAT_EQUAL) CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL;
-		
+
 		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length];
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_is_attr = 1;
 		RelAttr left_attr;
