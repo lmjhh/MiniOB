@@ -1050,7 +1050,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
       tuple1_index = full_tupleSet.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
     }
     if(tuple1_index < 0) return RC::GENERIC_ERROR;
-    if(sub_tupleSet.size() > 1 && condition.comp != OP_NO_IN && condition.comp != OP_IN) return RC::GENERIC_ERROR;
+    if(sub_tupleSet.size() > 1 && (condition.comp != OP_NO_IN || condition.comp != OP_IN)) return RC::GENERIC_ERROR;
     if(sub_tupleSet.get_schema().fields().size() > 1) return RC::GENERIC_ERROR;
     TupleField tuple1_field = full_tupleSet.get_schema().field(tuple1_index);
     TupleField tuple2_field = sub_tupleSet.get_schema().field(tuple2_index);
