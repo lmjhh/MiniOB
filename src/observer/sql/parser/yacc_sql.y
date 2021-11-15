@@ -852,8 +852,7 @@ condition:
 			RelAttr left_attr;
 			relation_attr_init(&left_attr, NULL, $1);
 			Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
-			Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];
-			condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 0, NULL, right_value);
+			condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, 0, NULL, right_value);
 
 			// $$ = ( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
@@ -870,9 +869,7 @@ condition:
 		{
 			Value *left_value = &CONTEXT->values[CONTEXT->value_length - 2];
 			Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
-
-			Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-			condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 0, NULL, right_value);
+			condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 0, NULL, left_value, 0, NULL, right_value);
 			// $$ = ( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;
 			// $$->left_attr.relation_name=NULL;
@@ -891,9 +888,7 @@ condition:
 			relation_attr_init(&left_attr, NULL, $1);
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, NULL, $3);
-
-			Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-			condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
+			condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
 			// $$->left_attr.relation_name=NULL;
@@ -909,9 +904,7 @@ condition:
 			Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, NULL, $3);
-
-			Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-			condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
+			condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
 
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;
@@ -930,9 +923,7 @@ condition:
 			RelAttr left_attr;
 			relation_attr_init(&left_attr, $1, $3);
 			Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
-
-			Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-			condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 0, NULL, right_value);
+			condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, 0, NULL, right_value);
 
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;
@@ -952,8 +943,7 @@ condition:
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, $3, $5);
 
-			Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-			condition_init(&condition, CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
+			condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 0, NULL, left_value, 1, &right_attr, NULL);
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 0;//属性值
 			// $$->left_attr.relation_name=NULL;
@@ -971,9 +961,7 @@ condition:
 			relation_attr_init(&left_attr, $1, $3);
 			RelAttr right_attr;
 			relation_attr_init(&right_attr, $5, $7);
-
-			Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-			condition_init(&condition, CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
+			condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, 1, &right_attr, NULL);
 			// $$=( Condition *)malloc(sizeof( Condition));
 			// $$->left_is_attr = 1;		//属性
 			// $$->left_attr.relation_name=$1;
@@ -987,39 +975,34 @@ condition:
 		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 		Value right_value;
 		value_init_null(&right_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_IS, 0, NULL, left_value, 0, NULL, &right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_IS, 0, NULL, left_value, 0, NULL, &right_value);
 	}
 	| value IS NOTNULL {
 		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 		Value right_value;
 		value_init_null(&right_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_NO_IS, 0, NULL, left_value, 0, NULL, &right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_NO_IS, 0, NULL, left_value, 0, NULL, &right_value);
 	} 
 	| ID IS NULL_T {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $1);
 		Value right_value;
 		value_init_null(&right_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 	}
 	| ID IS NOTNULL {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $1);
 		Value right_value;
 		value_init_null(&right_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_NO_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_NO_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 	}
 	| ID DOT ID IS NULL_T {
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, $1, $3);
 		Value right_value;
 		value_init_null(&right_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 
 	}
 	| ID DOT ID IS NOTNULL {
@@ -1027,15 +1010,13 @@ condition:
 		relation_attr_init(&left_attr, $1, $3);
 		Value right_value;	
 		value_init_null(&right_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_NO_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_NO_IS, 1, &left_attr, NULL, 0, NULL, &right_value);
 	}
 	| NULL_T IS value{
 		Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
 		Value left_value;
 		value_init_null(&left_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_IS, 0, NULL, &left_value, 0, NULL, right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_IS, 0, NULL, &left_value, 0, NULL, right_value);
 	}
 
 	| NULL_T IS ID {
@@ -1043,8 +1024,7 @@ condition:
 		relation_attr_init(&right_attr, NULL, $3);
 		Value left_value;
 		value_init_null(&left_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
 	}
 
 	| NULL_T IS ID DOT ID{
@@ -1052,8 +1032,7 @@ condition:
 		relation_attr_init(&right_attr, $3, $5);
 		Value left_value;
 		value_init_null(&left_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_IS, 0, NULL, &left_value, 1, &right_attr, NULL);
 	}
 
 	| NULL_T IS NOTNULL {
@@ -1061,8 +1040,7 @@ condition:
 		value_init_null(&left_value, 0);
 		Value right_value;
 		value_init_null(&right_value, 0);
-		Condition condition = CONTEXT->conditions[CONTEXT->condition_length - 1];;
-		condition_init(&condition, OP_NO_IS, 0, NULL, &left_value, 0, NULL, &right_value);
+		condition_init(&CONTEXT->conditions[CONTEXT->condition_length - 1], OP_NO_IS, 0, NULL, &left_value, 0, NULL, &right_value);
 	}
 
 	| ID in_or_not_in select {
@@ -1102,7 +1080,7 @@ condition:
 		if(CONTEXT->comp_tmp[CONTEXT->select_length] == LESS_EQUAL) CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL;
 		if(CONTEXT->comp_tmp[CONTEXT->select_length] == GREAT_THAN) CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN;
 		if(CONTEXT->comp_tmp[CONTEXT->select_length] == GREAT_EQUAL) CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL;
-		
+
 		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length];
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_is_attr = 1;
 		RelAttr left_attr;

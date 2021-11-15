@@ -299,6 +299,7 @@ std::vector<TupleSet> tuple_sets;
       } else {
         rc = tuple_sets.front().order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
         TupleSet sub_result_tupleSet;
+        bool is_need_sub_select = false;
         LOG_ERROR("准备子查询");
         for(int condition_index = 0; condition_index < selects.condition_num; condition_index++){
           Condition condition = selects.conditions[condition_index];
@@ -308,11 +309,12 @@ std::vector<TupleSet> tuple_sets;
             rc = do_sub_select(trx, db, *condition.sub_select, sub_select_tupleSet);
             rc = filter_sub_selects(tuple_sets.front(),condition,sub_select_tupleSet,sub_result_tupleSet);
             if(rc != SUCCESS) return rc;
+            is_need_sub_select = true;
             break;
           }
         }
 
-        if(sub_result_tupleSet.size() > 0){
+        if(is_need_sub_select){
           result_tupleSet = get_final_result(selects, sub_result_tupleSet);
         }else {
           result_tupleSet = get_final_result(selects, tuple_sets.front());
@@ -402,6 +404,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     result_tupleSet.clear();
   } else { //单张表
     TupleSet result_tupleSet, sub_result_tupleSet;
+    bool is_need_sub_select = false;
     LOG_ERROR("poly_num = %d, attr_num = %d, group_by_num = %d",selects.poly_num,selects.attr_num,selects.group_by.attr_num);
       if(selects.poly_num > 0 && selects.attr_num == 0){ //给单张表做聚合
         rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, tuple_sets.front(), result_tupleSet);
@@ -419,10 +422,11 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
             rc = do_sub_select(trx, db, *condition.sub_select, sub_select_tupleSet);
             rc = filter_sub_selects(tuple_sets.front(),condition,sub_select_tupleSet,sub_result_tupleSet);
             if(rc != SUCCESS) return rc;
+            is_need_sub_select = true;
             break;
           }
         }
-        if(sub_result_tupleSet.size() > 0){
+        if(is_need_sub_select){
           result_tupleSet = get_final_result(selects, sub_result_tupleSet);
         }else {
           result_tupleSet = get_final_result(selects, tuple_sets.front());
@@ -1098,7 +1102,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
         result_tupleSet.add(std::move(new_tuple));
       }
     }
-  return RC::SUCCESS;
+    return RC::SUCCESS;
 }
 
 
