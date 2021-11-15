@@ -814,11 +814,17 @@ rel_list:
 
 inner_join:
 	/* empty */
-	| INNERJOIN ID ON condition condition_list inner_join {
+	| INNERJOIN ID inner_join_on condition condition_list inner_join {
 		selects_append_relation(&CONTEXT->selects[CONTEXT->select_length], $2);
 	}
 	;
-
+inner_join_on:
+	ON {
+		Condition condition;
+		condition_init_with_comp(&condition, NO_OP);
+		CONTEXT->conditions[CONTEXT->condition_length++] = condition;	
+	}
+	;
 where:
     /* empty */ 
     | where_key condition condition_list {	
