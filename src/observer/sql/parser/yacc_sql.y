@@ -1175,8 +1175,6 @@ condition:
 
 	| select comOp select{
 
-		// printf("当前selects = %d \n", CONTEXT->select_length);
-		// printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
 		CONTEXT->conditions[CONTEXT->condition_length - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length];
 		//临时变量退栈
 		CONTEXT->select_length--;
@@ -1184,17 +1182,12 @@ condition:
 		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
 		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
-		// printf("当前selects = %d \n", CONTEXT->select_length);
-		// printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_sub_select = &CONTEXT->selects[CONTEXT->select_length];
 		//临时变量退栈
 		CONTEXT->select_length--;
 		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
 		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
 		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
-
-		// printf("当前selects = %d \n", CONTEXT->select_length);
-		// printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
 
 		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length + 1];
 	}
@@ -1219,7 +1212,7 @@ comOp:
     ;
 
 
-order_by :
+order_by:
 	/* empty */
 	| ORDERBY order_by_attr order_by_list {
 		
