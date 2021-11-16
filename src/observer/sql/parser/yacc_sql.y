@@ -1218,14 +1218,6 @@ comOp:
     | NE { CONTEXT->comp = NOT_EQUAL; CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
     ;
 
-// comOp:
-//   	  EQ { CONTEXT->comp = EQUAL_TO; printf("当前 select %d 最后一condition : = \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
-//     | LT { CONTEXT->comp = LESS_THAN; printf("当前 select %d 最后一condition : < \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
-//     | GT { CONTEXT->comp = GREAT_THAN; printf("当前 select %d 最后一condition : > \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
-//     | LE { CONTEXT->comp = LESS_EQUAL; printf("当前 select %d 最后一condition : <= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
-//     | GE { CONTEXT->comp = GREAT_EQUAL; printf("当前 select %d 最后一condition : >= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
-//     | NE { CONTEXT->comp = NOT_EQUAL; printf("当前 select %d 最后一condition : != \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
-//     ;
 
 order_by :
 	/* empty */

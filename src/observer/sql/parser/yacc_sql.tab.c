@@ -668,9 +668,9 @@ static const yytype_int16 yyrline[] =
      816,   822,   824,   829,   836,   838,   843,   850,   868,   885,
      902,   921,   939,   958,   974,   980,   986,   993,  1000,  1008,
     1015,  1022,  1030,  1038,  1046,  1061,  1076,  1092,  1108,  1142,
-    1176,  1204,  1207,  1213,  1214,  1215,  1216,  1217,  1218,  1230,
-    1232,  1236,  1238,  1244,  1249,  1256,  1259,  1262,  1267,  1269,
-    1273,  1275,  1281,  1286,  1295
+    1176,  1204,  1207,  1213,  1214,  1215,  1216,  1217,  1218,  1222,
+    1224,  1228,  1230,  1236,  1241,  1248,  1251,  1254,  1259,  1261,
+    1265,  1267,  1273,  1278,  1287
 };
 #endif
 
@@ -2657,7 +2657,7 @@ yyreduce:
     break;
 
   case 130: /* order_by: ORDERBY order_by_attr order_by_list  */
-#line 1232 "yacc_sql.y"
+#line 1224 "yacc_sql.y"
                                               {
 		
 	}
@@ -2665,7 +2665,7 @@ yyreduce:
     break;
 
   case 132: /* order_by_list: COMMA order_by_attr order_by_list  */
-#line 1238 "yacc_sql.y"
+#line 1230 "yacc_sql.y"
                                             {
 			
 	}
@@ -2673,7 +2673,7 @@ yyreduce:
     break;
 
   case 133: /* order_by_attr: ID order_by_type  */
-#line 1244 "yacc_sql.y"
+#line 1236 "yacc_sql.y"
                          {	
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, (yyvsp[-1].string));
@@ -2683,7 +2683,7 @@ yyreduce:
     break;
 
   case 134: /* order_by_attr: ID DOT ID order_by_type  */
-#line 1249 "yacc_sql.y"
+#line 1241 "yacc_sql.y"
                                   {
 			RelAttr attr;
 			relation_attr_init(&attr, (yyvsp[-3].string), (yyvsp[-1].string));
@@ -2693,7 +2693,7 @@ yyreduce:
     break;
 
   case 135: /* order_by_type: %empty  */
-#line 1256 "yacc_sql.y"
+#line 1248 "yacc_sql.y"
                    {
 		CONTEXT->order_by_type = 0;
 	}
@@ -2701,7 +2701,7 @@ yyreduce:
     break;
 
   case 136: /* order_by_type: ASC  */
-#line 1259 "yacc_sql.y"
+#line 1251 "yacc_sql.y"
               {
 		CONTEXT->order_by_type = 0;
 	}
@@ -2709,7 +2709,7 @@ yyreduce:
     break;
 
   case 137: /* order_by_type: DESC  */
-#line 1262 "yacc_sql.y"
+#line 1254 "yacc_sql.y"
                {
 		CONTEXT->order_by_type = 1;
 	}
@@ -2717,7 +2717,7 @@ yyreduce:
     break;
 
   case 139: /* group_by: GROUPBY group_by_attr group_by_list  */
-#line 1269 "yacc_sql.y"
+#line 1261 "yacc_sql.y"
                                               {
 
 	}
@@ -2725,7 +2725,7 @@ yyreduce:
     break;
 
   case 141: /* group_by_list: COMMA group_by_attr group_by_list  */
-#line 1275 "yacc_sql.y"
+#line 1267 "yacc_sql.y"
                                             {
 			
 	}
@@ -2733,7 +2733,7 @@ yyreduce:
     break;
 
   case 142: /* group_by_attr: ID order_by_type  */
-#line 1281 "yacc_sql.y"
+#line 1273 "yacc_sql.y"
                          {	
 			RelAttr attr;
 			relation_attr_init(&attr, NULL, (yyvsp[-1].string));
@@ -2743,7 +2743,7 @@ yyreduce:
     break;
 
   case 143: /* group_by_attr: ID DOT ID order_by_type  */
-#line 1286 "yacc_sql.y"
+#line 1278 "yacc_sql.y"
                                   {
 			RelAttr attr;
 			relation_attr_init(&attr, (yyvsp[-3].string), (yyvsp[-1].string));
@@ -2753,7 +2753,7 @@ yyreduce:
     break;
 
   case 144: /* load_data: LOAD DATA INFILE SSS INTO TABLE ID SEMICOLON  */
-#line 1296 "yacc_sql.y"
+#line 1288 "yacc_sql.y"
                 {
 		  CONTEXT->ssql->flag = SCF_LOAD_DATA;
 			load_data_init(&CONTEXT->ssql->sstr.load_data, (yyvsp[-1].string), (yyvsp[-4].string));
@@ -2956,7 +2956,7 @@ yyreturn:
   return yyresult;
 }
 
-#line 1301 "yacc_sql.y"
+#line 1293 "yacc_sql.y"
 
 //_____________________________________________________________________
 extern void scan_string(const char *str, yyscan_t scanner);
