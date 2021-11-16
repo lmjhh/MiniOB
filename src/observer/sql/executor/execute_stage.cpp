@@ -324,6 +324,7 @@ std::vector<TupleSet> tuple_sets;
     if(is_need_sub_select){
       if(selects.poly_num > 0 && selects.attr_num == 0){ //给单张表做聚合
         rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, sub_result_tupleSet, result_tupleSet);
+        if(rc != SUCCESS) return rc;
       }else if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
         result_tupleSet = group_by_field(selects, sub_result_tupleSet);   
       }else{
@@ -333,6 +334,7 @@ std::vector<TupleSet> tuple_sets;
     }else{
       if(selects.poly_num > 0 && selects.attr_num == 0){ //给单张表做聚合
         rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, tuple_sets.front(), result_tupleSet);
+        if(rc != SUCCESS) return rc;
       }else if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
         LOG_ERROR("单表做Group by");
         result_tupleSet = group_by_field(selects, tuple_sets.front());       
