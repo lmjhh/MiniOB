@@ -421,7 +421,7 @@ select:				/*  select 语句的语法解析树*/
 			selects_append_conditions(&CONTEXT->selects[CONTEXT->select_length], CONTEXT->conditions,0, CONTEXT->condition_length);
 			CONTEXT->ssql->sstr.selection = CONTEXT->selects[CONTEXT->select_length];
 			CONTEXT->ssql->flag = SCF_SELECT;
-
+			
 			//临时变量清零
 			CONTEXT->condition_length=0;
 			CONTEXT->from_length=0;

@@ -419,6 +419,8 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
             return rc;
           }
         }
+      }else if(attr.relation_name != nullptr && 0 != strcmp(table_name, attr.relation_name) ){
+        return RC::SCHEMA_TABLE_NOT_EXIST;
       }
     }
     //校验 order by
