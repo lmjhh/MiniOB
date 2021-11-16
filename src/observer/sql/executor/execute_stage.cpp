@@ -267,6 +267,7 @@ std::vector<TupleSet> tuple_sets;
 
   std::stringstream ss;
   if (tuple_sets.size() > 1) { //这时候取到的数据是所有过滤掉单表限制的 tuple
+    result_tupleSet.set_is_need_print_multi_table(true);
     TupleSet join_result_tupleSet;
     // 本次查询了多张表，需要做join操作
     for(int i = tuple_sets.size() - 1; i >= 0; i--){
@@ -287,10 +288,9 @@ std::vector<TupleSet> tuple_sets;
     }else{
       result_tupleSet = get_final_result(selects, join_result_tupleSet);
     }
-    result_tupleSet.print(ss, true);
 
   } else { //单张表
-
+    result_tupleSet.set_is_need_print_multi_table(false);
     TupleSet sub_result_tupleSet;
     bool is_need_sub_select = false;
     LOG_ERROR("poly_num = %d, attr_num = %d, group_by_num = %d",selects.poly_num,selects.attr_num,selects.group_by.attr_num);
@@ -340,7 +340,7 @@ std::vector<TupleSet> tuple_sets;
         result_tupleSet = get_final_result(selects, tuple_sets.front());
       }
     }
-    result_tupleSet.print(ss, false);
+    result_tupleSet.print(ss);
     std::cout << ss.str() << std::endl;
   }
 
@@ -365,7 +365,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
     return rc;
   }
   std::stringstream ss;
-  result_tupleSet.print(ss, true);
+  result_tupleSet.print(ss);
   result_tupleSet.clear();
   session_event->set_response(ss.str());
   end_trx_if_need(session, trx, true);
@@ -863,7 +863,8 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
   }
 
   std::stringstream bb;
-  full_tupleSet.print(bb, false);
+  full_tupleSet.set_is_need_print_multi_table(false);
+  full_tupleSet.print(bb);
   std::cout << bb.str() << std::endl;
   
 
@@ -902,7 +903,8 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
     }
 
     std::stringstream aa;
-    new_tupleSet.print(aa, false);
+    new_tupleSet.set_is_need_print_multi_table(false);
+    new_tupleSet.print(aa);
     std::cout << aa.str() << std::endl;
 
 
@@ -911,7 +913,8 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
     if(rc != SUCCESS) return result_tupleSet;
 
     std::stringstream ss;
-    sub_tupleSet.print(ss, false);
+    sub_tupleSet.set_is_need_print_multi_table(false);
+    sub_tupleSet.print(ss);
     std::cout << ss.str() << std::endl;
 
     //初始化 resultSchem{
@@ -960,7 +963,8 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
 
   LOG_ERROR("resultTupleSet size = %d", result_tupleSet.size());
   std::stringstream cc;
-  result_tupleSet.print(cc, false);
+  result_tupleSet.set_is_need_print_multi_table(false);
+  result_tupleSet.print(cc);
   std::cout << cc.str() << std::endl;
 
   return result_tupleSet;

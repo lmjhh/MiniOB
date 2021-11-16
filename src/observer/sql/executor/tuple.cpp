@@ -212,12 +212,12 @@ void TupleSet::clear() {
   schema_.clear();
 }
 
-void TupleSet::print(std::ostream &os, bool isMoreTable) const {
+void TupleSet::print(std::ostream &os) const {
   if (schema_.fields().empty()) {
     LOG_WARN("Got empty schema");
     return;
   }
-  schema_.print(os, isMoreTable);
+  schema_.print(os, is_print_multi_table_);
 
   for (const Tuple &item : tuples_) {
     const std::vector<std::shared_ptr<TupleValue>> &values = item.values();
@@ -315,6 +315,10 @@ bool isChar(std::string s){
 
 void TupleSet::set_schema(const TupleSchema &schema) {
   schema_ = schema;
+}
+
+void TupleSet::set_is_need_print_multi_table(bool bool_value) {
+  is_print_multi_table_ = bool_value;
 }
 
 const TupleSchema &TupleSet::get_schema() const {
