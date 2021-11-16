@@ -434,6 +434,12 @@ select:				/*  select 语句的语法解析树*/
 	{
 			selects_append_relation(&CONTEXT->selects[CONTEXT->select_length], $5);
 			selects_append_conditions(&CONTEXT->selects[CONTEXT->select_length], CONTEXT->conditions, CONTEXT->condition_length_tmp[CONTEXT->select_length - 1], CONTEXT->condition_length);
+
+			//临时变量退栈
+			CONTEXT->select_length--;
+			CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+			CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+			CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 	}
 	;
 
@@ -1045,11 +1051,11 @@ condition:
 
 	| ID in_or_not_in select {
 
-		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+		// //临时变量退栈
+		// CONTEXT->select_length--;
+		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_is_attr = 1;
 		RelAttr left_attr;
@@ -1061,10 +1067,10 @@ condition:
 	| ID DOT ID in_or_not_in select{
 
 		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+		// CONTEXT->select_length--;
+		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_is_attr = 1;
 		RelAttr left_attr;
@@ -1076,10 +1082,10 @@ condition:
 	| ID comOp select{
 
 		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+		// CONTEXT->select_length--;
+		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
 		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length];
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_is_attr = 1;
@@ -1092,10 +1098,10 @@ condition:
 	| ID DOT ID comOp select{
 
 		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+		// CONTEXT->select_length--;
+		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
 		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length];
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_is_attr = 1;
@@ -1108,10 +1114,10 @@ condition:
 	| select comOp ID{		//放 condition 左边了 改一下符号
 
 		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+		// CONTEXT->select_length--;
+		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
 		switch(CONTEXT->comp_tmp[CONTEXT->select_length]){
 			case LESS_THAN:
@@ -1142,10 +1148,10 @@ condition:
 	| select comOp ID DOT ID {
 
 		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+		// CONTEXT->select_length--;
+		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
 		//放 condition 左边了 改一下符号
 		switch(CONTEXT->comp_tmp[CONTEXT->select_length]){
@@ -1177,10 +1183,10 @@ condition:
 
 		CONTEXT->conditions[CONTEXT->condition_length - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length];
 		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+		// CONTEXT->select_length--;
+		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
+		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
+		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
 		// CONTEXT->conditions[CONTEXT->condition_length - 1].left_sub_select = &CONTEXT->selects[CONTEXT->select_length];
 		//临时变量退栈
