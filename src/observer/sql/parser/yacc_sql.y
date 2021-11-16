@@ -1175,8 +1175,8 @@ condition:
 
 	| select comOp select{
 
-		printf("当前selects = %d \n", CONTEXT->select_length);
-		printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
+		// printf("当前selects = %d \n", CONTEXT->select_length);
+		// printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
 		CONTEXT->conditions[CONTEXT->condition_length - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length];
 		//临时变量退栈
 		CONTEXT->select_length--;
@@ -1184,8 +1184,8 @@ condition:
 		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
 		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
-		printf("当前selects = %d \n", CONTEXT->select_length);
-		printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
+		// printf("当前selects = %d \n", CONTEXT->select_length);
+		// printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_sub_select = &CONTEXT->selects[CONTEXT->select_length];
 		//临时变量退栈
 		CONTEXT->select_length--;
@@ -1193,8 +1193,8 @@ condition:
 		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
 		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
 
-		printf("当前selects = %d \n", CONTEXT->select_length);
-		printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
+		// printf("当前selects = %d \n", CONTEXT->select_length);
+		// printf("当前condition = %d, comp = %d \n", CONTEXT->condition_length_tmp[CONTEXT->select_length], CONTEXT->comp);
 
 		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length + 1];
 	}
@@ -1209,15 +1209,23 @@ in_or_not_in:
 	}
 	;
 
-
 comOp:
-  	  EQ { CONTEXT->comp = EQUAL_TO; printf("当前 select %d 最后一condition : = \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
-    | LT { CONTEXT->comp = LESS_THAN; printf("当前 select %d 最后一condition : < \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
-    | GT { CONTEXT->comp = GREAT_THAN; printf("当前 select %d 最后一condition : > \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
-    | LE { CONTEXT->comp = LESS_EQUAL; printf("当前 select %d 最后一condition : <= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
-    | GE { CONTEXT->comp = GREAT_EQUAL; printf("当前 select %d 最后一condition : >= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
-    | NE { CONTEXT->comp = NOT_EQUAL; printf("当前 select %d 最后一condition : != \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
+  	  EQ { CONTEXT->comp = EQUAL_TO;  CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
+    | LT { CONTEXT->comp = LESS_THAN;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
+    | GT { CONTEXT->comp = GREAT_THAN;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
+    | LE { CONTEXT->comp = LESS_EQUAL;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
+    | GE { CONTEXT->comp = GREAT_EQUAL;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
+    | NE { CONTEXT->comp = NOT_EQUAL; CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
     ;
+
+// comOp:
+//   	  EQ { CONTEXT->comp = EQUAL_TO; printf("当前 select %d 最后一condition : = \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
+//     | LT { CONTEXT->comp = LESS_THAN; printf("当前 select %d 最后一condition : < \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
+//     | GT { CONTEXT->comp = GREAT_THAN; printf("当前 select %d 最后一condition : > \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
+//     | LE { CONTEXT->comp = LESS_EQUAL; printf("当前 select %d 最后一condition : <= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
+//     | GE { CONTEXT->comp = GREAT_EQUAL; printf("当前 select %d 最后一condition : >= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
+//     | NE { CONTEXT->comp = NOT_EQUAL; printf("当前 select %d 最后一condition : != \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
+//     ;
 
 order_by :
 	/* empty */
