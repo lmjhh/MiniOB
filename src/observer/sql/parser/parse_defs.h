@@ -267,6 +267,7 @@ void selects_init(Selects *selects, ...);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t start, size_t end);
+void selects_copy_with_other(Selects *selects, Selects *other);
 void selects_destroy(Selects *selects);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);

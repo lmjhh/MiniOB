@@ -431,6 +431,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->select_length = 0;
 			CONTEXT->value_length = 0;
 			CONTEXT->order_by_type = 0;
+			CONTEXT->selects_tmp_pool_length=0;
 	}
 
 	| left_brace SELECT select_mix FROM ID rel_list inner_join where group_by order_by RBRACE
@@ -447,16 +448,20 @@ select:				/*  select 语句的语法解析树*/
 			if(CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub == 0){
 				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub = 1;
 
-				CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length] = CONTEXT->selects[CONTEXT->select_length + 1];
-				selects_destroy(CONTEXT->selects[CONTEXT->select_length + 1]);
+				selects_copy_with_other(&CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length], &CONTEXT->selects[CONTEXT->select_length + 1]);
 				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length];
 
 				CONTEXT->selects_tmp_pool_length++;
 			}else{
 				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_left_sub = 1;
 				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub = 1;
-				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].left_sub_select = &CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select;				
-				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];				
+
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].left_sub_select = &CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select;	
+
+				CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length] = CONTEXT->selects[CONTEXT->select_length + 1];
+				selects_destroy(&CONTEXT->selects[CONTEXT->select_length + 1]);
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length];			
+				CONTEXT->selects_tmp_pool_length++;
 			}
 	}
 	;
