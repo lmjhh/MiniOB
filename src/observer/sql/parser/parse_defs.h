@@ -73,7 +73,8 @@ typedef struct _Condition {
   RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value right_value;   // right-hand side value if right_is_attr = FALSE
 
-  Selects *sub_select;
+  Selects *left_sub_select;
+  Selects *right_sub_select;
 } Condition;
 
 
@@ -260,6 +261,7 @@ void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t
 void attr_info_destroy(AttrInfo *attr_info);
 
 void selects_init(Selects *selects, ...);
+void selects_copy_with_other(Selects *selects, Selects *other);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t start, size_t end);
