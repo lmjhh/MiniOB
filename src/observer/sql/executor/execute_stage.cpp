@@ -475,8 +475,8 @@ std::vector<TupleSet> tuple_sets;
         result_tupleSet = get_final_result(selects, tuple_sets.front());
       }
     }
-    result_tupleSet.print(ss);
-    std::cout << ss.str() << std::endl;
+    // result_tupleSet.print(ss);
+    // std::cout << ss.str() << std::endl;
   }
 
   for (SelectExeNode *& tmp_node: select_nodes) {
