@@ -1141,7 +1141,7 @@ void selects_print(const Selects &selects){
     for(int j = 0; j < po.attr_num; j++){
       RelAttr attr = po.attributes[j];
       if(attr.relation_name == nullptr){
-        LOG_ERROR("  poli attr list %d : %s", j ,attr.relation_name);
+        LOG_ERROR("  poli attr list %d : %s", j ,attr.attribute_name);
       }else{
         LOG_ERROR("  poli attr list %d : %s.%s", j ,attr.relation_name,attr.attribute_name);
       }

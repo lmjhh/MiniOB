@@ -73,8 +73,11 @@ typedef struct _Condition {
   RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value right_value;   // right-hand side value if right_is_attr = FALSE
 
-  // Selects *left_sub_select;
+  int is_left_sub;
+  Selects *left_sub_select;
+  int is_right_sub;
   Selects *right_sub_select;
+  
 } Condition;
 
 

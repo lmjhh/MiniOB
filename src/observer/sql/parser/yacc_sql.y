@@ -29,7 +29,10 @@ typedef struct ParserContext {
   char id[MAX_NUM];
   int order_by_type;
   int nullable;
-	Selects selects[MAX_NUM];
+	Selects selects[5];
+
+	int selects_tmp_pool_length;
+	Selects selects_tmp_pool[MAX_NUM];
 } ParserContext;
 
 //获取子串
@@ -434,12 +437,27 @@ select:				/*  select 语句的语法解析树*/
 	{
 			selects_append_relation(&CONTEXT->selects[CONTEXT->select_length], $5);
 			selects_append_conditions(&CONTEXT->selects[CONTEXT->select_length], CONTEXT->conditions, CONTEXT->condition_length_tmp[CONTEXT->select_length - 1], CONTEXT->condition_length);
-
+			
 			//临时变量退栈
 			CONTEXT->select_length--;
 			CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
 			CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
 			CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
+
+			if(CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub == 0){
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub = 1;
+
+				CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length] = CONTEXT->selects[CONTEXT->select_length + 1];
+				selects_destroy(CONTEXT->selects[CONTEXT->select_length + 1]);
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length];
+
+				CONTEXT->selects_tmp_pool_length++;
+			}else{
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_left_sub = 1;
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub = 1;
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].left_sub_select = &CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select;				
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];				
+			}
 	}
 	;
 
@@ -1061,7 +1079,6 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $1);	
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_attr = 	left_attr;
-		CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];
 	}
 
 	| ID DOT ID in_or_not_in select{
@@ -1076,7 +1093,6 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, $1, $3);	
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_attr = 	left_attr;
-		CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];
 	}
 
 	| ID comOp select{
@@ -1092,7 +1108,6 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $1);	
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_attr = left_attr;
-		CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];
 	}
 
 	| ID DOT ID comOp select{
@@ -1108,7 +1123,6 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, $1, $3);	
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_attr = left_attr;
-		CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];
 	}
 
 	| select comOp ID{		//放 condition 左边了 改一下符号
@@ -1141,7 +1155,6 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, NULL, $3);	
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_attr = left_attr;
-		CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];
 
 	}
 
@@ -1176,26 +1189,10 @@ condition:
 		RelAttr left_attr;
 		relation_attr_init(&left_attr, $3, $5);	
 		CONTEXT->conditions[CONTEXT->condition_length - 1].left_attr = left_attr;
-		CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length + 1];
 	}
 
 	| select comOp select{
-
-		CONTEXT->conditions[CONTEXT->condition_length - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length];
-		//临时变量退栈
-		// CONTEXT->select_length--;
-		// CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		// CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		// CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
-
-		// CONTEXT->conditions[CONTEXT->condition_length - 1].left_sub_select = &CONTEXT->selects[CONTEXT->select_length];
-		//临时变量退栈
-		CONTEXT->select_length--;
-		CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];
-		CONTEXT->from_length = CONTEXT->from_length_tmp[CONTEXT->select_length];
-		CONTEXT->value_length = CONTEXT->value_length_tmp[CONTEXT->select_length];
-
-		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length + 1];
+		CONTEXT->conditions[CONTEXT->condition_length - 1].comp = CONTEXT->comp_tmp[CONTEXT->select_length];
 	}
   ;
 
