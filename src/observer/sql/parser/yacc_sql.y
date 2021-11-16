@@ -434,7 +434,7 @@ select:				/*  select 语句的语法解析树*/
 	{
 			selects_append_relation(&CONTEXT->selects[CONTEXT->select_length], $5);
 			selects_append_conditions(&CONTEXT->selects[CONTEXT->select_length], CONTEXT->conditions, CONTEXT->condition_length_tmp[CONTEXT->select_length - 1], CONTEXT->condition_length);
-			CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length - 1] - 1].sub_select = &CONTEXT->selects[CONTEXT->select_length];
+			CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length - 1] - 1].right_sub_select = &CONTEXT->selects[CONTEXT->select_length];
 			//临时变量退栈
 			CONTEXT->select_length--;
 			CONTEXT->condition_length = CONTEXT->condition_length_tmp[CONTEXT->select_length];

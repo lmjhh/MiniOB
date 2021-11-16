@@ -303,10 +303,10 @@ RC do_sub_select(Trx *trx, const char *db, const Selects &selects, TupleSet &res
         LOG_ERROR("准备子查询");
         for(int condition_index = 0; condition_index < selects.condition_num; condition_index++){
           Condition condition = selects.conditions[condition_index];
-          if(condition.sub_select != nullptr){
+          if(condition.right_sub_select != nullptr){
             LOG_ERROR("开始做子查询");
             TupleSet sub_select_tupleSet;
-            rc = do_sub_select(trx, db, *condition.sub_select, sub_select_tupleSet);
+            rc = do_sub_select(trx, db, *condition.right_sub_select, sub_select_tupleSet);
             rc = filter_sub_selects(tuple_sets.front(),condition,sub_select_tupleSet,sub_result_tupleSet);
             if(rc != SUCCESS) return rc;
             is_need_sub_select = true;
@@ -416,10 +416,10 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
         LOG_ERROR("一共有 %d 个 condition",selects.condition_num);
         for(int condition_index = 0; condition_index < selects.condition_num; condition_index++){
           Condition condition = selects.conditions[condition_index];
-          if(condition.sub_select != nullptr){
+          if(condition.right_sub_select != nullptr){
             LOG_ERROR("开始做子查询");
             TupleSet sub_select_tupleSet;
-            rc = do_sub_select(trx, db, *condition.sub_select, sub_select_tupleSet);
+            rc = do_sub_select(trx, db, *condition.right_sub_select, sub_select_tupleSet);
             rc = filter_sub_selects(tuple_sets.front(),condition,sub_select_tupleSet,sub_result_tupleSet);
             if(rc != SUCCESS) return rc;
             is_need_sub_select = true;
@@ -647,7 +647,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   std::vector<DefaultConditionFilter *> condition_filters;
   for (size_t i = 0; i < selects.condition_num; i++) {
     const Condition &condition = selects.conditions[i];
-    if(condition.sub_select != nullptr ) continue;
+    if(condition.right_sub_select != nullptr ) continue;
 
     if ((condition.left_is_attr == 0 && condition.right_is_attr == 0) || // 两边都是值
         (condition.left_is_attr == 1 && condition.right_is_attr == 0 && match_table(selects, condition.left_attr.relation_name, table_name)) ||  // 左边是属性右边是值
