@@ -253,15 +253,10 @@ void condition_destroy(Condition *condition) {
   } else {
     value_destroy(&condition->right_value);
   }
-  
-  if (condition->left_sub_select != nullptr){
-    selects_destroy(condition->left_sub_select);
+  if (condition->sub_select != nullptr){
+    selects_destroy(condition->sub_select);
   }
-  condition->left_sub_select = nullptr;
-  if (condition->right_sub_select != nullptr){
-    selects_destroy(condition->right_sub_select);
-  }
-  condition->right_sub_select = nullptr;
+  condition->sub_select = nullptr;
 }
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able) {
@@ -277,7 +272,6 @@ void attr_info_destroy(AttrInfo *attr_info) {
 }
 
 void selects_init(Selects *selects, ...);
-
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
   if(rel_attr->relation_name != nullptr){
     LOG_ERROR("attr %s.%s",rel_attr->relation_name,rel_attr->attribute_name);
