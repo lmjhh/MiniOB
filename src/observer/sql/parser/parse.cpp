@@ -348,7 +348,8 @@ void selects_append_groupbyAttr(Selects *selects, RelAttr *attr, OrderType type)
 }
 
 void selects_copy_with_other(Selects *selects, Selects *other){
-  LOG_ERROR("开始拷贝，数据");
+  selects_destroy(selects);
+
   for(int i = 0; i < other->relation_num; i++){
     selects->relations[i] = strdup(other->relations[i]);
   }

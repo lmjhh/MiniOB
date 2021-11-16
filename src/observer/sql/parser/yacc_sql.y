@@ -464,7 +464,7 @@ select:				/*  select 语句的语法解析树*/
 				CONTEXT->selects_tmp_pool_length++;
 			}
 
-			CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % MAX_NUM;
+			CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % (MAX_NUM - 1);
 	}
 	;
 
