@@ -254,14 +254,14 @@ void condition_destroy(Condition *condition) {
     value_destroy(&condition->right_value);
   }
   
-  if (condition->left_sub_select != nullptr){
-    selects_destroy(condition->left_sub_select);
-  }
-  condition->left_sub_select = nullptr;
-  if (condition->right_sub_select != nullptr){
-    selects_destroy(condition->right_sub_select);
-  }
-  condition->right_sub_select = nullptr;
+  // if (condition->left_sub_select != nullptr){
+  //   selects_destroy(condition->left_sub_select);
+  // }
+  // condition->left_sub_select = nullptr;
+  // if (condition->right_sub_select != nullptr){
+  //   selects_destroy(condition->right_sub_select);
+  // }
+  // condition->right_sub_select = nullptr;
 }
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able) {
