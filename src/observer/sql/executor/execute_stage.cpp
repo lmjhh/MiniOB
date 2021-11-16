@@ -357,7 +357,7 @@ RC ExecuteStage::do_select(const char *db, Query *sql, SessionEvent *session_eve
   Session *session = session_event->get_client()->session;
   Trx *trx = session->current_trx();
   const Selects &selects = sql->sstr.selection;
-  selects_print(selects);
+  // selects_print(selects);
   TupleSet result_tupleSet;
   rc = do_sub_select(trx,db,selects,result_tupleSet);
   if(rc != SUCCESS){
