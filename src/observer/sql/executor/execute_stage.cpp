@@ -303,22 +303,22 @@ std::vector<TupleSet> tuple_sets;
         rc = do_sub_select(trx, db, *condition.right_sub_select, right_sub_select_tupleSet);
         if(rc != SUCCESS) return rc;
       }
-      // if(condition.left_sub_select != nullptr){
-      //     LOG_ERROR("开始做左子查询");
-      //     rc = do_sub_select(trx, db, *condition.left_sub_select, left_sub_select_tupleSet);
-      //     if(rc != SUCCESS) return rc;
-      // }
-      //condition.left_sub_select == nullptr && 
-      if(condition.right_sub_select != nullptr){
+      if(condition.is_left_sub){
+          LOG_ERROR("开始做左子查询");
+          rc = do_sub_select(trx, db, *condition.left_sub_select, left_sub_select_tupleSet);
+          if(rc != SUCCESS) return rc;
+      }
+
+      if(condition.is_left_sub == 0 && condition.is_right_sub ){
         rc = filter_sub_selects(tuple_sets.front(),condition,right_sub_select_tupleSet,sub_result_tupleSet);
         if(rc != SUCCESS) return rc;
         is_need_sub_select = true;
       }
-      // if(condition.left_sub_select != nullptr && condition.right_sub_select != nullptr){
-      //   rc = filter_sub_selects(tuple_sets.front(),condition,left_sub_select_tupleSet,right_sub_select_tupleSet,sub_result_tupleSet);
-      //   if(rc != SUCCESS) return rc;
-      //   is_need_sub_select = true;
-      // }
+      if(condition.is_left_sub && condition.is_right_sub){
+        rc = filter_sub_selects(tuple_sets.front(),condition,left_sub_select_tupleSet,right_sub_select_tupleSet,sub_result_tupleSet);
+        if(rc != SUCCESS) return rc;
+        is_need_sub_select = true;
+      }
     }
 
     if(is_need_sub_select){

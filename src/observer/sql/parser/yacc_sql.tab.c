@@ -1857,7 +1857,7 @@ yyreduce:
 				CONTEXT->selects_tmp_pool_length++;
 			}
 
-			CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % (MAX_NUM - 1);
+			CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % (5);
 	}
 #line 1863 "yacc_sql.tab.c"
     break;
