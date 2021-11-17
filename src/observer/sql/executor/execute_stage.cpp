@@ -1267,9 +1267,7 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
     if(tmp_result.size() == 0) continue;
     if(tmp_result.size() == 1 && (father_condition.comp != OP_IN || father_condition.comp != OP_NO_IN)){
       if(father_condition.is_right_sub){
-        if(father_condition.left_attr.relation_name != nullptr){
-          int father_condition_index = father_tupleSet.get_schema().index_of_field(father_condition.left_attr.relation_name, father_condition.left_attr.attribute_name);
-        }
+        int father_condition_index = father_tupleSet.get_schema().index_of_field(father_condition.left_attr.relation_name, father_condition.left_attr.attribute_name);
         const std::vector<std::shared_ptr<TupleValue>> &tmp_values = tmp_result.get(0).values();
         std::shared_ptr<TupleValue> value1_float = (std::shared_ptr<TupleValue>)new FloatValue(values[father_condition_index]->getValue());
         std::shared_ptr<TupleValue> value2_float = (std::shared_ptr<TupleValue>)new FloatValue(tmp_values[0]->getValue());
