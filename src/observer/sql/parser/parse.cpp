@@ -349,69 +349,71 @@ void selects_append_groupbyAttr(Selects *selects, RelAttr *attr, OrderType type)
 
 void selects_copy_with_other(Selects *selects, Selects *other){
   selects_destroy(selects);
+  Selects tmp = *other;
+  *other = *selects;
+  *selects = tmp;
+  // for(int i = 0; i < other->relation_num; i++){
+  //   selects->relations[i] = strdup(other->relations[i]);
+  // }
+  // selects->relation_num = other->relation_num;
 
-  for(int i = 0; i < other->relation_num; i++){
-    selects->relations[i] = strdup(other->relations[i]);
-  }
-  selects->relation_num = other->relation_num;
+  // for(int i = 0; i < other->attr_num; i++){
+  //   RelAttr attr = other->attributes[i];
+  //   selects->attributes[i].lsn = attr.lsn;
+  //   selects->attributes[i].attribute_name = strdup(attr.attribute_name);
+  //   selects->attributes[i].relation_name = strdup(attr.relation_name);
+  // }
+  // selects->attr_num = other->attr_num;
 
-  for(int i = 0; i < other->attr_num; i++){
-    RelAttr attr = other->attributes[i];
-    selects->attributes[i].lsn = attr.lsn;
-    selects->attributes[i].attribute_name = strdup(attr.attribute_name);
-    selects->attributes[i].relation_name = strdup(attr.relation_name);
-  }
-  selects->attr_num = other->attr_num;
+  // for(int i = 0; i < other->poly_num; i++){
+  //   Poly po = other->poly_list[i];
+  //   selects->poly_list[i].isAttr = po.isAttr;
+  //   selects->poly_list[i].poly_attr.poly_name = strdup(po.poly_attr.poly_name);
+  //   selects->poly_list[i].poly_attr.poly_type = po.poly_attr.poly_type;
+  //   selects->poly_list[i].lsn = po.lsn;
+  //   for(int j = 0; j < other->poly_list[i].attr_num; j++){
+  //     RelAttr attr = other->poly_list[i].attributes[j];
+  //     selects->poly_list[i].attributes[j].lsn = attr.lsn;
+  //     selects->poly_list[i].attributes[j].attribute_name = strdup(attr.attribute_name);
+  //     selects->poly_list[i].attributes[j].relation_name = strdup(attr.relation_name);
+  //   }
+  //   selects->poly_list[i].attr_num = po.attr_num;
+  // }
+  // selects->poly_num = other->poly_num;
 
-  for(int i = 0; i < other->poly_num; i++){
-    Poly po = other->poly_list[i];
-    selects->poly_list[i].isAttr = po.isAttr;
-    selects->poly_list[i].poly_attr.poly_name = strdup(po.poly_attr.poly_name);
-    selects->poly_list[i].poly_attr.poly_type = po.poly_attr.poly_type;
-    selects->poly_list[i].lsn = po.lsn;
-    for(int j = 0; j < other->poly_list[i].attr_num; j++){
-      RelAttr attr = other->poly_list[i].attributes[j];
-      selects->poly_list[i].attributes[j].lsn = attr.lsn;
-      selects->poly_list[i].attributes[j].attribute_name = strdup(attr.attribute_name);
-      selects->poly_list[i].attributes[j].relation_name = strdup(attr.relation_name);
-    }
-    selects->poly_list[i].attr_num = po.attr_num;
-  }
-  selects->poly_num = other->poly_num;
+  // for(int i = 0; i < other->condition_num; i++){
+  //   Condition condition = other->conditions[i];
+  //   selects->conditions[i].comp = condition.comp;
+  //   selects->conditions[i].is_left_sub = condition.is_left_sub;
+  //   selects->conditions[i].is_right_sub = condition.is_right_sub;
+  //   if(condition.left_is_attr){
+  //     selects->conditions[i].left_attr.lsn = condition.left_attr.lsn;
+  //     selects->conditions[i].left_attr.relation_name = strdup(condition.left_attr.relation_name);
+  //     selects->conditions[i].left_attr.attribute_name = strdup(condition.left_attr.attribute_name);
+  //   }else{
+  //     selects->conditions[i].left_value.data = condition.left_value.data;
+  //     selects->conditions[i].left_value.type = condition.left_value.type;
+  //   }
+  //   if(condition.right_is_attr){
+  //     selects->conditions[i].right_attr.lsn = condition.right_attr.lsn;
+  //     selects->conditions[i].right_attr.relation_name = strdup(condition.right_attr.relation_name);
+  //     selects->conditions[i].right_attr.attribute_name = strdup(condition.right_attr.attribute_name);
+  //   }else{
+  //     selects->conditions[i].right_value.data = condition.right_value.data;
+  //     selects->conditions[i].right_value.type = condition.right_value.type;
+  //   }
+  //   if(condition.is_left_sub){
+  //     selects->conditions[i].left_sub_select = condition.left_sub_select;
+  //     // selects_copy_with_other(selects->conditions[i].left_sub_select, condition.left_sub_select);
+  //   }
+  //   if(condition.is_right_sub){
+  //     selects->conditions[i].right_sub_select = condition.right_sub_select;
+  //     // selects_copy_with_other(selects->conditions[i].right_sub_select, condition.right_sub_select);
+  //   }
+  // }
+  // selects->condition_num = other->condition_num;
 
-  for(int i = 0; i < other->condition_num; i++){
-    Condition condition = other->conditions[i];
-    selects->conditions[i].comp = condition.comp;
-    selects->conditions[i].is_left_sub = condition.is_left_sub;
-    selects->conditions[i].is_right_sub = condition.is_right_sub;
-    if(condition.left_is_attr){
-      selects->conditions[i].left_attr.lsn = condition.left_attr.lsn;
-      selects->conditions[i].left_attr.relation_name = strdup(condition.left_attr.relation_name);
-      selects->conditions[i].left_attr.attribute_name = strdup(condition.left_attr.attribute_name);
-    }else{
-      selects->conditions[i].left_value.data = condition.left_value.data;
-      selects->conditions[i].left_value.type = condition.left_value.type;
-    }
-    if(condition.right_is_attr){
-      selects->conditions[i].right_attr.lsn = condition.right_attr.lsn;
-      selects->conditions[i].right_attr.relation_name = strdup(condition.right_attr.relation_name);
-      selects->conditions[i].right_attr.attribute_name = strdup(condition.right_attr.attribute_name);
-    }else{
-      selects->conditions[i].right_value.data = condition.right_value.data;
-      selects->conditions[i].right_value.type = condition.right_value.type;
-    }
-    if(condition.is_left_sub){
-      selects->conditions[i].left_sub_select = condition.left_sub_select;
-      // selects_copy_with_other(selects->conditions[i].left_sub_select, condition.left_sub_select);
-    }
-    if(condition.is_right_sub){
-      selects->conditions[i].right_sub_select = condition.right_sub_select;
-      // selects_copy_with_other(selects->conditions[i].right_sub_select, condition.right_sub_select);
-    }
-  }
-  selects->condition_num = other->condition_num;
-
-  selects_destroy(other);
+  // selects_destroy(other);
 }
 
 void selects_destroy(Selects *selects) {
