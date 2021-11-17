@@ -1209,10 +1209,10 @@ void selects_print(const Selects &selects){
         LOG_ERROR("Condition right attr  : %s.%s", attr.relation_name,attr.attribute_name);
       }
     }
-    if(condition.left_sub_select != nullptr){
-      LOG_ERROR("---------------------left_sub_selects---------------");
-      selects_print(*condition.left_sub_select);      
-    }
+    // if(condition.left_sub_select != nullptr){
+    //   LOG_ERROR("---------------------left_sub_selects---------------");
+    //   selects_print(*condition.left_sub_select);      
+    // }
     if(condition.right_sub_select != nullptr){
       LOG_ERROR("---------------------right_sub_selects---------------");
       selects_print(*condition.right_sub_select);
