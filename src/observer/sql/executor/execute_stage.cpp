@@ -285,7 +285,10 @@ std::vector<TupleSet> tuple_sets;
     rc = join_result_tupleSet.order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
     if(selects.poly_num > 0 && selects.attr_num > 0 && selects.group_by.attr_num == selects.attr_num){
       result_tupleSet = group_by_field(selects, join_result_tupleSet);
-    }else{
+    }else if(selects.poly_num > 0 && selects.attr_num == 0) { //多表做聚合
+      rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, join_result_tupleSet, result_tupleSet);
+      if(rc != RC::SUCCESS) return rc;
+    }else {
       result_tupleSet = get_final_result(selects, join_result_tupleSet);
     }
 
@@ -306,9 +309,9 @@ std::vector<TupleSet> tuple_sets;
         if(rc != SUCCESS) return rc;
       }
       if(condition.is_left_sub){
-          LOG_ERROR("开始做左子查询");
-          rc = do_sub_select(trx, db, *condition.left_sub_select, left_sub_select_tupleSet);
-          if(rc != SUCCESS) return rc;
+        LOG_ERROR("开始做左子查询");
+        rc = do_sub_select(trx, db, *condition.left_sub_select, left_sub_select_tupleSet);
+        if(rc != SUCCESS) return rc;
       }
 
       if(condition.is_left_sub == 0 && condition.is_right_sub ){
@@ -622,7 +625,7 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
   TupleSchema  schema = table1.get_schema();
   schema.append(table2.get_schema());
   result_tupleSet.set_schema(schema);
-
+  int need_change_comp = 0;
   for (size_t i = 0; i < selects.condition_num; i++) {
     const Condition &condition = selects.conditions[i];
     if((condition.left_is_attr == 1 && condition.right_is_attr == 1)){
@@ -634,6 +637,7 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
       if(tuple1_index < 0 || tuple2_index < 0){
         tuple2_index = table2.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
         tuple1_index = table1.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
+        need_change_comp = 1;
       }
       std::cout << tuple1_index << "+" << tuple2_index << std::endl;
       if(tuple1_index > -1 && tuple2_index > -1){
@@ -649,7 +653,28 @@ RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects
           for(size_t table2_ite = 0; table2_ite < table2_size; table2_ite++){
             const std::vector<std::shared_ptr<TupleValue>> &values1 = table1.get(table1_ite).values();
             const std::vector<std::shared_ptr<TupleValue>> &values2 = table2.get(table2_ite).values();
-            if(filter_tuple(values1[tuple1_index], values2[tuple2_index], condition.comp)){
+            CompOp op = condition.comp;
+            if(need_change_comp){
+              //需要交换符号
+              switch(condition.comp){
+                case LESS_THAN:
+                op = GREAT_THAN;
+                break;
+                case LESS_EQUAL:
+                op = GREAT_EQUAL;
+                break;
+                case GREAT_THAN:
+                op = LESS_THAN;
+                break;
+                case GREAT_EQUAL:
+                op = LESS_EQUAL;
+                break;
+                default:
+                break;
+              }
+            }
+
+            if(filter_tuple(values1[tuple1_index], values2[tuple2_index], op)){
                 Tuple new_tuple;
                 for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values1.begin(), end = values1.end();
                   iter != end; ++iter){
@@ -1209,14 +1234,6 @@ void selects_print(const Selects &selects){
       break;
     default:
       break;
-    }
-    if(condition.left_is_attr){
-      RelAttr attr = condition.left_attr;
-      if(attr.relation_name == nullptr){
-        LOG_ERROR("Condition left attr  : %s" , attr.attribute_name);
-      }else{
-        LOG_ERROR("Condition left attr  : %s.%s", attr.relation_name,attr.attribute_name);
-      }
     }
     if(condition.right_is_attr){
       RelAttr attr = condition.right_attr;
