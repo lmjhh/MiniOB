@@ -431,6 +431,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->select_length = 0;
 			CONTEXT->value_length = 0;
 			CONTEXT->order_by_type = 0;
+			CONTEXT->selects_tmp_pool_length=0;
 	}
 
 	| left_brace SELECT select_mix FROM ID rel_list inner_join where group_by order_by RBRACE
