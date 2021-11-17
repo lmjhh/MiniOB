@@ -305,11 +305,38 @@ std::vector<TupleSet> tuple_sets;
       LOG_ERROR("计算condition %d",condition_index);
       if(condition.right_sub_select != nullptr){
         LOG_ERROR("开始做右子查询");
+        //如果子查询用到了负查询，需要进行多表查询
+        for(int sub_select_condition_index = 0; sub_select_condition_index < condition.right_sub_select->condition_num; sub_select_condition_index++){
+          Condition sub_select_condition = condition.right_sub_select->conditions[sub_select_condition_index];
+          LOG_ERROR("右子查询的条件 left : %s.%s",sub_select_condition.left_attr.relation_name,sub_select_condition.left_attr.attribute_name);
+          if(sub_select_condition.left_is_attr && strcmp(sub_select_condition.left_attr.relation_name, selects.relations[0]) == 0){
+            condition.right_sub_select->relations[condition.right_sub_select->relation_num++] = strdup(selects.relations[0]);
+            break;
+          }
+          LOG_ERROR("右子查询的条件 right : %s.%s",sub_select_condition.right_attr.relation_name,sub_select_condition.right_attr.attribute_name);
+          if(sub_select_condition.right_is_attr && strcmp(sub_select_condition.right_attr.relation_name, selects.relations[0]) == 0){
+            LOG_ERROR("准备增加子查询表");
+            condition.right_sub_select->relations[condition.right_sub_select->relation_num++] = strdup(selects.relations[0]);
+            break;
+          }
+        }
         rc = do_sub_select(trx, db, *condition.right_sub_select, right_sub_select_tupleSet);
         if(rc != SUCCESS) return rc;
       }
       if(condition.is_left_sub){
         LOG_ERROR("开始做左子查询");
+        //如果子查询用到了负查询，需要进行多表查询
+        for(int sub_select_condition_index = 0; sub_select_condition_index < condition.left_sub_select->condition_num; sub_select_condition_index++){
+          Condition sub_select_condition = condition.left_sub_select->conditions[sub_select_condition_index];
+          if(sub_select_condition.left_is_attr && strcmp(sub_select_condition.left_attr.relation_name, selects.relations[0]) == 0){
+            condition.left_sub_select->relations[condition.left_sub_select->relation_num++] = strdup(selects.relations[0]);
+            break;
+          }
+          if(sub_select_condition.right_is_attr && strcmp(sub_select_condition.right_attr.relation_name, selects.relations[0]) == 0){
+            condition.left_sub_select->relations[condition.left_sub_select->relation_num++] = strdup(selects.relations[0]);
+            break;
+          }
+        }
         rc = do_sub_select(trx, db, *condition.left_sub_select, left_sub_select_tupleSet);
         if(rc != SUCCESS) return rc;
       }
