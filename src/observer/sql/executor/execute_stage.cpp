@@ -1054,6 +1054,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
 RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &left_tupleSet, TupleSet &right_tupleSet, TupleSet &result_tupleSet){
     result_tupleSet.clear();
     result_tupleSet.set_schema(full_tupleSet.get_schema());
+    LOG_ERROR("开始比较两个子查询");
     int tuple1_index = 0, tuple2_index = 0;
     if((left_tupleSet.size() > 1 || right_tupleSet.size() > 1) && condition.comp != OP_NO_IN && condition.comp != OP_IN) return RC::GENERIC_ERROR;
     if(left_tupleSet.get_schema().fields().size() > 1 || right_tupleSet.get_schema().fields().size() > 1) return RC::GENERIC_ERROR;
@@ -1076,9 +1077,10 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
         if(condition.comp != OP_IN && condition.comp != OP_NO_IN){
           std::shared_ptr<TupleValue> value1_float = (std::shared_ptr<TupleValue>)new FloatValue(values1[tuple1_index]->getValue());
           std::shared_ptr<TupleValue> value2_float = (std::shared_ptr<TupleValue>)new FloatValue(values2[tuple2_index]->getValue());
+          LOG_ERROR("left sub_select value = %f, right sub_select value = %f",value1_float->getValue(), value2_float->getValue());
           if(filter_tuple(value1_float, value2_float, condition.comp)){
             int full_tuple_size = full_tupleSet.size();
-            for(int full_index = 0; full_index < full_tuple_size; full_tuple_size++){
+            for(int full_index = 0; full_index < full_tuple_size; full_index++){
               Tuple new_tuple;
               const std::vector<std::shared_ptr<TupleValue>> &full_values = full_tupleSet.get(full_index).values();
               for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = full_values.begin(), end = full_values.end();
@@ -1091,32 +1093,6 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
             break;       
           }
         }
-
-      //   if(filter_tuple(values1[tuple1_index], values2[tuple2_index], EQUAL_TO)){
-      //     if(condition.comp == OP_IN){
-      //       Tuple new_tuple;
-      //       for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values1.begin(), end = values1.end();
-      //         iter != end; ++iter){
-      //           new_tuple.add(*iter);
-      //       }
-      //       //合并插入新的 tupleset
-      //       result_tupleSet.add(std::move(new_tuple));
-      //       break;
-      //     }
-      //     if(condition.comp == OP_NO_IN){
-      //       flag = 0;
-      //       break;
-      //     }
-      //   }
-      // }
-      // if(flag && condition.comp == OP_NO_IN){
-      //   Tuple new_tuple;
-      //   for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values1.begin(), end = values1.end();
-      //     iter != end; ++iter){
-      //       new_tuple.add(*iter);
-      //   }
-      //   //合并插入新的 tupleset
-      //   result_tupleSet.add(std::move(new_tuple));
       }
     }
     return RC::SUCCESS;
