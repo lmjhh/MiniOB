@@ -304,10 +304,25 @@ std::vector<TupleSet> tuple_sets;
       Condition condition = selects.conditions[condition_index];
       TupleSet left_sub_select_tupleSet, right_sub_select_tupleSet;
       LOG_ERROR("计算condition %d",condition_index);
+      //单子查询带级联
       if(condition.is_right_sub && condition.is_left_sub == 0){
-          rc = sub_select_from_father(trx, db, tuple_sets.front(), condition, condition.right_sub_select, sub_result_tupleSet);
+        TupleSet tmp_tuple_set;
+          rc = sub_select_from_father(trx, db, tuple_sets.front(), condition, condition.right_sub_select, tmp_tuple_set);
           if(rc == SUCCESS){
             is_need_sub_select = true;
+            sub_result_tupleSet.clear();
+            sub_result_tupleSet.set_schema(tmp_tuple_set.get_schema());
+            int result_size = tmp_tuple_set.size();
+            for(size_t result_ite = 0; result_ite < result_size; result_ite++){
+              const std::vector<std::shared_ptr<TupleValue>> &values = tmp_tuple_set.get(result_ite).values();
+              Tuple new_tuple;
+              for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+                  iter != end; ++iter){
+                    new_tuple.add(*iter);
+                }
+              sub_result_tupleSet.add(std::move(new_tuple));
+            }
+            tmp_tuple_set.clear();
             break;
           }
       }
