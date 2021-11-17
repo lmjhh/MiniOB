@@ -295,9 +295,11 @@ std::vector<TupleSet> tuple_sets;
     bool is_need_sub_select = false;
     LOG_ERROR("poly_num = %d, attr_num = %d, group_by_num = %d",selects.poly_num,selects.attr_num,selects.group_by.attr_num);
     LOG_ERROR("一共有 %d 个 condition",selects.condition_num);
+    int sub_selcect_times = 0;
     for(int condition_index = 0; condition_index < selects.condition_num; condition_index++){
       Condition condition = selects.conditions[condition_index];
       TupleSet left_sub_select_tupleSet, right_sub_select_tupleSet;
+      LOG_ERROR("计算condition %d",condition_index);
       if(condition.right_sub_select != nullptr){
         LOG_ERROR("开始做右子查询");
         rc = do_sub_select(trx, db, *condition.right_sub_select, right_sub_select_tupleSet);
@@ -310,12 +312,22 @@ std::vector<TupleSet> tuple_sets;
       }
 
       if(condition.is_left_sub == 0 && condition.is_right_sub ){
-        rc = filter_sub_selects(tuple_sets.front(),condition,right_sub_select_tupleSet,sub_result_tupleSet);
+        if(sub_selcect_times == 0){
+          rc = filter_sub_selects(tuple_sets.front(),condition,right_sub_select_tupleSet,sub_result_tupleSet);
+          sub_selcect_times++;
+        }else{
+          rc = filter_sub_selects(sub_result_tupleSet,condition,right_sub_select_tupleSet,sub_result_tupleSet);
+        }
         if(rc != SUCCESS) return rc;
         is_need_sub_select = true;
       }
       if(condition.is_left_sub && condition.is_right_sub){
-        rc = filter_sub_selects(tuple_sets.front(),condition,left_sub_select_tupleSet,right_sub_select_tupleSet,sub_result_tupleSet);
+        if(sub_selcect_times == 0){
+          rc = filter_sub_selects(tuple_sets.front(),condition,left_sub_select_tupleSet,right_sub_select_tupleSet,sub_result_tupleSet);
+          sub_selcect_times++;
+        }else{
+          rc = filter_sub_selects(sub_result_tupleSet,condition,left_sub_select_tupleSet,right_sub_select_tupleSet,sub_result_tupleSet);
+        }
         if(rc != SUCCESS) return rc;
         is_need_sub_select = true;
       }
@@ -577,8 +589,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   std::vector<DefaultConditionFilter *> condition_filters;
   for (size_t i = 0; i < selects.condition_num; i++) {
     const Condition &condition = selects.conditions[i];
-    if(condition.right_sub_select != nullptr) continue;
-    // if(condition.right_sub_select != nullptr || condition.left_sub_select != nullptr) continue;
+    if(condition.is_right_sub) continue;
 
     if ((condition.left_is_attr == 0 && condition.right_is_attr == 0) || // 两边都是值
         (condition.left_is_attr == 1 && condition.right_is_attr == 0 && match_table(selects, condition.left_attr.relation_name, table_name)) ||  // 左边是属性右边是值
@@ -976,7 +987,8 @@ TupleSet group_by_field(const Selects &selects, TupleSet &full_tupleSet){
   return result_tupleSet;
 }
 
-RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &sub_tupleSet, TupleSet &result_tupleSet){
+RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &sub_tupleSet, TupleSet &sub_result_tupleSet){
+    TupleSet result_tupleSet;
     result_tupleSet.clear();
     result_tupleSet.set_schema(full_tupleSet.get_schema());
     int tuple1_index, tuple2_index = 0;
@@ -1048,10 +1060,26 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
         result_tupleSet.add(std::move(new_tuple));
       }
     }
-    return RC::SUCCESS;
+
+  sub_result_tupleSet.clear();
+  sub_result_tupleSet.set_schema(result_tupleSet.get_schema());
+  int result_size = result_tupleSet.size();
+  for(size_t result_ite = 0; result_ite < result_size; result_ite++){
+    const std::vector<std::shared_ptr<TupleValue>> &values = result_tupleSet.get(result_ite).values();
+    Tuple new_tuple;
+    for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+        iter != end; ++iter){
+          new_tuple.add(*iter);
+      }
+    sub_result_tupleSet.add(std::move(new_tuple));
+  }
+  result_tupleSet.clear();
+
+  return RC::SUCCESS;
 }
 
-RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &left_tupleSet, TupleSet &right_tupleSet, TupleSet &result_tupleSet){
+RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &left_tupleSet, TupleSet &right_tupleSet, TupleSet &sub_result_tupleSet){
+    TupleSet result_tupleSet;
     result_tupleSet.clear();
     result_tupleSet.set_schema(full_tupleSet.get_schema());
     LOG_ERROR("开始比较两个子查询");
@@ -1070,7 +1098,6 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
     int table1_size = left_tupleSet.size();
     int table2_size = right_tupleSet.size();
     for(size_t table1_ite = 0; table1_ite < table1_size; table1_ite++){
-      int flag = 1;
       const std::vector<std::shared_ptr<TupleValue>> &values1 = left_tupleSet.get(table1_ite).values();
       for(size_t table2_ite = 0; table2_ite < table2_size; table2_ite++){
         const std::vector<std::shared_ptr<TupleValue>> &values2 = right_tupleSet.get(table2_ite).values();
@@ -1095,7 +1122,21 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
         }
       }
     }
-    return RC::SUCCESS;
+
+  sub_result_tupleSet.clear();
+  sub_result_tupleSet.set_schema(result_tupleSet.get_schema());
+  int result_size = result_tupleSet.size();
+  for(size_t result_ite = 0; result_ite < result_size; result_ite++){
+    const std::vector<std::shared_ptr<TupleValue>> &values = result_tupleSet.get(result_ite).values();
+    Tuple new_tuple;
+    for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+        iter != end; ++iter){
+          new_tuple.add(*iter);
+      }
+    sub_result_tupleSet.add(std::move(new_tuple));
+  }
+  result_tupleSet.clear();
+  return RC::SUCCESS;
 }
 
 
