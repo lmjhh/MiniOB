@@ -87,10 +87,10 @@ typedef struct ParserContext {
   size_t value_length;
 
 	//做一个快照
-  size_t condition_length_tmp[MAX_NUM];
-  size_t from_length_tmp[MAX_NUM];
-  size_t value_length_tmp[MAX_NUM];
-	CompOp comp_tmp[MAX_NUM];
+  size_t condition_length_tmp[5];
+  size_t from_length_tmp[5];
+  size_t value_length_tmp[5];
+	CompOp comp_tmp[5];
 
   Value values[MAX_NUM];
   Condition conditions[MAX_NUM];
@@ -100,8 +100,8 @@ typedef struct ParserContext {
   int nullable;
 	Selects selects[5];
 
-	// int selects_tmp_pool_length;
-	// Selects selects_tmp_pool[MAX_NUM];
+	int selects_tmp_pool_length;
+	Selects selects_tmp_pool[5];
 } ParserContext;
 
 //获取子串
@@ -1842,22 +1842,22 @@ yyreduce:
 				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub = 1;
 
 
-				// selects_copy_with_other(&CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length], &CONTEXT->selects[CONTEXT->select_length + 1]);
-				// CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length];
+				selects_copy_with_other(&CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length], &CONTEXT->selects[CONTEXT->select_length + 1]);
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length];
 
-				// CONTEXT->selects_tmp_pool_length++;
+				CONTEXT->selects_tmp_pool_length++;
 			}else{
 				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_left_sub = 1;
 				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].is_right_sub = 1;
 
-				// CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].left_sub_select = CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select;	
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].left_sub_select = CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select;	
 
-				// selects_copy_with_other(&CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length], &CONTEXT->selects[CONTEXT->select_length + 1]);
-				// CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length];			
-				// CONTEXT->selects_tmp_pool_length++;
+				selects_copy_with_other(&CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length], &CONTEXT->selects[CONTEXT->select_length + 1]);
+				CONTEXT->conditions[CONTEXT->condition_length_tmp[CONTEXT->select_length] - 1].right_sub_select = &CONTEXT->selects_tmp_pool[CONTEXT->selects_tmp_pool_length];			
+				CONTEXT->selects_tmp_pool_length++;
 			}
 
-			// CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % (MAX_NUM - 1);
+			CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % (MAX_NUM - 1);
 	}
 #line 1863 "yacc_sql.tab.c"
     break;

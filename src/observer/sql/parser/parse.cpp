@@ -400,9 +400,9 @@ void selects_copy_with_other(Selects *selects, Selects *other){
       selects->conditions[i].right_value.data = condition.right_value.data;
       selects->conditions[i].right_value.type = condition.right_value.type;
     }
-    // if(condition.is_left_sub){
-    //   selects_copy_with_other(selects->conditions[i].left_sub_select, condition.left_sub_select);
-    // }
+    if(condition.is_left_sub){
+      selects_copy_with_other(selects->conditions[i].left_sub_select, condition.left_sub_select);
+    }
     if(condition.is_right_sub){
       selects_copy_with_other(selects->conditions[i].right_sub_select, condition.right_sub_select);
     }
