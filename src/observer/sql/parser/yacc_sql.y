@@ -30,6 +30,9 @@ typedef struct ParserContext {
   int order_by_type;
   int nullable;
 	Selects selects[MAX_NUM];
+
+  Exp exp[2];
+  int exp_length;
 } ParserContext;
 
 //获取子串
@@ -53,6 +56,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
+  context->exp_length = 0;
   context->ssql->sstr.insertion.tuple_num = 0;
   printf(". error=%s", str);
 }
@@ -152,6 +156,10 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> STRING_V
 %token <string> POLYKEY
 //非终结符
+
+%left  '+' '-'
+%left  '*' '/'
+%nonassoc UMINUS
 
 %type <number> type;
 %type <condition1> condition;
@@ -846,6 +854,74 @@ and_key:
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		}
 		;
+
+expression:
+	expression "+" expression{ 
+		ExpNode expnode;
+		expnode_init(&expnode, 2, NULL, NULL, "+");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=$1+$3; 
+		}
+    | expression "-" expression  { 
+		ExpNode expnode;
+		expnode_init(&expnode, 2, NULL, NULL, "-");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		//$$=$1-$3; 
+		}
+    | expression "*" expression  { 
+		ExpNode expnode;
+		expnode_init(&expnode, 2, NULL, NULL, "*");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		//$$=$1*$3; 
+		}
+    | expression "/" expression {
+		ExpNode expnode;
+		expnode_init(&expnode, 2, NULL, NULL, "/");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+        }
+    | "-" expression  %prec UMINUS{ 
+		ExpNode expnode;
+		expnode_init(&expnode, 2, NULL, NULL, "-");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=-$2; 
+		}
+    | LBRACE expression RBRACE {
+		//$$=$2; 
+		}
+    | value { 
+		ExpNode expnode;
+		expnode_init(&expnode, 0, $1, NULL, NULL);
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=$1; 
+		}
+	| ID {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $1);
+		ExpNode expnode;
+		expnode_init(&expnode,1, NULL, &attr, NULL);
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+	}
+	| ID DOT ID {
+		RelAttr attr;
+		relation_attr_init(&attr, $1, $3);
+		ExpNode expnode;
+		expnode_init(&expnode,1, NULL, &attr, NULL);
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+	}
+    ;
+
+
 condition:
     ID comOp value 
 		{
@@ -971,6 +1047,14 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+	| expression comOp expression {
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &CONTEXT->exp[0], 1, &CONTEXT->exp[1]);
+
+		// 将临时变量清空
+		exp_destroy(&CONTEXT->exp[0]);
+		exp_destroy(&CONTEXT->exp[1]);
+		CONTEXT->exp_length = 0;
+	}
 	| value IS NULL_T {
 		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 		Value right_value;
@@ -1211,12 +1295,12 @@ in_or_not_in:
 
 
 comOp:
-  	  EQ { CONTEXT->comp = EQUAL_TO; printf("当前 select %d 最后一condition : = \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
-    | LT { CONTEXT->comp = LESS_THAN; printf("当前 select %d 最后一condition : < \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
-    | GT { CONTEXT->comp = GREAT_THAN; printf("当前 select %d 最后一condition : > \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
-    | LE { CONTEXT->comp = LESS_EQUAL; printf("当前 select %d 最后一condition : <= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
-    | GE { CONTEXT->comp = GREAT_EQUAL; printf("当前 select %d 最后一condition : >= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
-    | NE { CONTEXT->comp = NOT_EQUAL; printf("当前 select %d 最后一condition : != \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
+  	  EQ { CONTEXT->comp = EQUAL_TO; CONTEXT->exp_length++; printf("当前 select %d 最后一condition : = \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
+    | LT { CONTEXT->comp = LESS_THAN; CONTEXT->exp_length++; printf("当前 select %d 最后一condition : < \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
+    | GT { CONTEXT->comp = GREAT_THAN; CONTEXT->exp_length++; printf("当前 select %d 最后一condition : > \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
+    | LE { CONTEXT->comp = LESS_EQUAL; CONTEXT->exp_length++; printf("当前 select %d 最后一condition : <= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
+    | GE { CONTEXT->comp = GREAT_EQUAL; CONTEXT->exp_length++; printf("当前 select %d 最后一condition : >= \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
+    | NE { CONTEXT->comp = NOT_EQUAL; CONTEXT->exp_length++; printf("当前 select %d 最后一condition : != \n", CONTEXT->select_length); CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
     ;
 
 order_by :

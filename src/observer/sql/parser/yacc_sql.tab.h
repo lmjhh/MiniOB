@@ -119,7 +119,8 @@ extern int yydebug;
     SSS = 320,                     /* SSS  */
     STAR = 321,                    /* STAR  */
     STRING_V = 322,                /* STRING_V  */
-    POLYKEY = 323                  /* POLYKEY  */
+    POLYKEY = 323,                 /* POLYKEY  */
+    UMINUS = 324                   /* UMINUS  */
   };
   typedef enum yytokentype yytoken_kind_t;
 #endif
@@ -128,7 +129,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 132 "yacc_sql.y"
+#line 136 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
@@ -140,7 +141,7 @@ union YYSTYPE
   int isNULL;
 	char *position;
 
-#line 144 "yacc_sql.tab.h"
+#line 145 "yacc_sql.tab.h"
 
 };
 typedef union YYSTYPE YYSTYPE;
