@@ -1188,92 +1188,111 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
   return RC::SUCCESS;
 }
 
+bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int current_tuple_index){
+  bool is_need = false;
+  const char *father_name = father_tupleSet.get_schema().field(0).table_name();
+  const std::vector<std::shared_ptr<TupleValue>> &values = father_tupleSet.get(current_tuple_index).values();
+  for(int cond_index = 0; cond_index < selects->condition_num; cond_index++){
+    Condition condition = selects->conditions[cond_index];
+    //发现使用父查询的属性，进行替换
+    if(condition.left_is_attr && strcmp(condition.left_attr.relation_name, father_name) == 0){
+      int father_index = father_tupleSet.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
+      TupleField tuple_field = father_tupleSet.get_schema().field(father_index);
+      Value newValue;
+      switch (tuple_field.type())
+      {
+      case INTS:
+        value_init_integer(&newValue,(int)values[father_index]->getValue());
+        break;
+      case CHARS:{
+        std::stringstream ss;
+        values[father_index]->to_string(ss);
+        value_init_string(&newValue, ss.str().c_str());
+      }
+        break;
+      case DATES:
+        value_init_integer(&newValue,(int)values[father_index]->getValue());
+        break;
+      case FLOATS:
+        value_init_float(&newValue, values[father_index]->getValue());
+        break;
+      default:
+        break;
+      }
+      selects->conditions[cond_index].left_is_attr = 0;
+      selects->conditions[cond_index].left_value = newValue;
+      is_need = true;
+    }
+
+    if(condition.right_is_attr && strcmp(condition.right_attr.relation_name, father_name) == 0){
+      int father_index = father_tupleSet.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
+      TupleField tuple_field = father_tupleSet.get_schema().field(father_index);
+      Value newValue;
+      switch (tuple_field.type())
+      {
+      case INTS:
+        value_init_integer(&newValue,(int)values[father_index]->getValue());
+        break;
+      case CHARS:{
+        std::stringstream ss;
+        values[father_index]->to_string(ss);
+        value_init_string(&newValue, ss.str().c_str());
+      }
+        break;
+      case DATES:
+        value_init_integer(&newValue,(int)values[father_index]->getValue());
+        break;
+      case FLOATS:
+        value_init_float(&newValue, values[father_index]->getValue());
+        break;
+      default:
+        break;
+      }
+      selects->conditions[cond_index].right_is_attr = 0;
+      selects->conditions[cond_index].right_value = newValue;
+      is_need = true;
+    }
+    if(condition.is_left_sub) {
+      bool sub_is_need = is_need_change_condition(father_tupleSet, selects->conditions[cond_index].left_sub_select, current_tuple_index);
+      if(sub_is_need) is_need = sub_is_need;
+    }
+    if(condition.is_right_sub) {
+      bool sub_is_need = is_need_change_condition(father_tupleSet, selects->conditions[cond_index].right_sub_select, current_tuple_index);
+      if(sub_is_need) is_need = sub_is_need;
+    }
+  }
+  return is_need;
+}
+
 RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, Condition father_condition, Selects *selects, TupleSet &sub_result_tupleSet){
   RC rc;
   // TupleSet result_tupleSet;
   sub_result_tupleSet.clear();
   sub_result_tupleSet.set_schema(father_tupleSet.get_schema());
   bool is_need = false;
-  const char *father_name = father_tupleSet.get_schema().field(0).table_name();
   //如果子查询用到了父查询，
   for(int i = 0; i < father_tupleSet.size(); i++){
     const std::vector<std::shared_ptr<TupleValue>> &values = father_tupleSet.get(i).values();
     Selects new_selects = *selects;
     TupleSet tmp_result;
-    for(int cond_index = 0; cond_index < new_selects.condition_num; cond_index++){
-       Condition condition = new_selects.conditions[cond_index];
-       //发现使用父查询的属性，进行替换
-       if(condition.left_is_attr && strcmp(condition.left_attr.relation_name, father_name) == 0){
-         int father_index = father_tupleSet.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
-         TupleField tuple_field = father_tupleSet.get_schema().field(father_index);
-         Value newValue;
-         switch (tuple_field.type())
-         {
-         case INTS:
-           value_init_integer(&newValue,(int)values[father_index]->getValue());
-           break;
-         case CHARS:{
-           std::stringstream ss;
-           values[father_index]->to_string(ss);
-           value_init_string(&newValue, ss.str().c_str());
-          }
-           break;
-         case DATES:
-           value_init_integer(&newValue,(int)values[father_index]->getValue());
-           break;
-         case FLOATS:
-           value_init_float(&newValue, values[father_index]->getValue());
-           break;
-         default:
-           break;
-         }
-         new_selects.conditions[cond_index].left_is_attr = 0;
-         new_selects.conditions[cond_index].left_value = newValue;
-         is_need = true;
-       }
-    
-       if(condition.right_is_attr && strcmp(condition.right_attr.relation_name, father_name) == 0){
-         int father_index = father_tupleSet.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
-         TupleField tuple_field = father_tupleSet.get_schema().field(father_index);
-         Value newValue;
-         switch (tuple_field.type())
-         {
-         case INTS:
-           value_init_integer(&newValue,(int)values[father_index]->getValue());
-           break;
-         case CHARS:{
-           std::stringstream ss;
-           values[father_index]->to_string(ss);
-           value_init_string(&newValue, ss.str().c_str());
-          }
-           break;
-         case DATES:
-           value_init_integer(&newValue,(int)values[father_index]->getValue());
-           break;
-         case FLOATS:
-           value_init_float(&newValue, values[father_index]->getValue());
-           break;
-         default:
-           break;
-         }
-         new_selects.conditions[cond_index].right_is_attr = 0;
-         new_selects.conditions[cond_index].right_value = newValue;
-         is_need = true;
-       }
-    }
+    is_need = is_need_change_condition(father_tupleSet,&new_selects,i);
     if(is_need == false) return RC::GENERIC_ERROR;
-
+    selects_print(new_selects);
     rc = do_sub_select(trx,db,new_selects,tmp_result);
+
     if(tmp_result.size() == 0) continue;
-    if(tmp_result.size() == 1 && (father_condition.comp != OP_IN || father_condition.comp != OP_NO_IN)){
-      if(father_condition.is_right_sub){
-        int father_condition_index;
-        if(father_condition.left_attr.relation_name != nullptr){
-          father_condition_index = father_tupleSet.get_schema().index_of_field(father_condition.left_attr.relation_name, father_condition.left_attr.attribute_name);
-        }else{
-          father_condition_index = father_tupleSet.get_schema().index_of_field(father_tupleSet.get_schema().field(0).table_name(), father_condition.left_attr.attribute_name);
-        }
-        const std::vector<std::shared_ptr<TupleValue>> &tmp_values = tmp_result.get(0).values();
+    int table2_size = tmp_result.size();
+    int flag = 1;
+
+    int father_condition_index;
+    if(father_condition.left_attr.relation_name != nullptr){
+      father_condition_index = father_tupleSet.get_schema().index_of_field(father_condition.left_attr.relation_name, father_condition.left_attr.attribute_name);
+    }else{
+      father_condition_index = father_tupleSet.get_schema().index_of_field(father_tupleSet.get_schema().field(0).table_name(), father_condition.left_attr.attribute_name);
+    }
+    for(size_t table2_ite = 0; table2_ite < table2_size; table2_ite++){
+      const std::vector<std::shared_ptr<TupleValue>> &tmp_values = tmp_result.get(0).values();
+      if(father_condition.comp != OP_IN && father_condition.comp != OP_NO_IN){
         std::shared_ptr<TupleValue> value1_float = (std::shared_ptr<TupleValue>)new FloatValue(values[father_condition_index]->getValue());
         std::shared_ptr<TupleValue> value2_float = (std::shared_ptr<TupleValue>)new FloatValue(tmp_values[0]->getValue());
         if(filter_tuple(value1_float,value2_float, father_condition.comp)){
@@ -1286,8 +1305,35 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
             sub_result_tupleSet.add(std::move(new_tuple)); 
         }
       }
+
+      if(filter_tuple(values[father_condition_index], tmp_values[0], EQUAL_TO)){
+        if(father_condition.comp == OP_IN){
+          Tuple new_tuple;
+          for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+            iter != end; ++iter){
+              new_tuple.add(*iter);
+          }
+          //合并插入新的 tupleset
+          sub_result_tupleSet.add(std::move(new_tuple));
+          break;
+        }
+        if(father_condition.comp == OP_NO_IN){
+          flag = 0;
+          break;
+        }
+      }
+    }
+    if(flag && father_condition.comp == OP_NO_IN){
+      Tuple new_tuple;
+      for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+        iter != end; ++iter){
+          new_tuple.add(*iter);
+      }
+      //合并插入新的 tupleset
+      sub_result_tupleSet.add(std::move(new_tuple));
     }
   }
+
   return RC::SUCCESS;
 }
 
