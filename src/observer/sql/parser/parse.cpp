@@ -241,42 +241,40 @@ void condition_init_exp(Condition *condition, CompOp comp,
                     int left_is_exp, Exp *exp1,
                     int right_is_exp, Exp *exp2) {
   condition->comp = comp;
-  condition->left_is_attr = 0;
-  condition->left_is_exp = left_is_exp;
+  condition->left_is_attr = 2;
   if (left_is_exp) {
-    condition->left_exp = *exp1;
+    condition->left_exp = exp1;
   } 
 
-  condition->right_is_attr = 0;
-  condition->right_is_exp = right_is_exp;
+  condition->right_is_attr = 2;
 
   if (right_is_exp) {
-    condition->right_exp = *exp2;
+    condition->right_exp = exp2;
   }
   // 打印出后缀表达式
   std::cout<< "left : 后缀表达式" << std::endl;
-  for (int i=0; i < condition->left_exp.exp_num; i++){
-    if (condition->left_exp.expnodes->type == 0){
-      std::cout<< condition->left_exp.expnodes->value.data << std::endl;
+  for (int i=0; i <  condition->left_exp->exp_num; i++){
+    if (condition->left_exp->expnodes[i].type == 1){
+      std::cout<< *(int *)condition->left_exp->expnodes[i].v.value.data << std::endl;
     }
-    if (condition->left_exp.expnodes->type == 1){
-      std::cout<< condition->left_exp.expnodes->attr.attribute_name << std::endl;
+    if (condition->left_exp->expnodes[i].type == 2){
+      std::cout<< condition->left_exp->expnodes[i].v.attr.attribute_name << std::endl;
     }
-    if (condition->left_exp.expnodes->type == 2){
-      std::cout<< condition->left_exp.expnodes->op << std::endl;
+    if (condition->left_exp->expnodes[i].type == 3){
+      std::cout<< condition->left_exp->expnodes[i].v.op << std::endl;
     }
   }
   
   std::cout<< "right : 后缀表达式" << std::endl;
-  for (int i=0; i < condition->right_exp.exp_num; i++){
-    if (condition->right_exp.expnodes->type == 0){
-      std::cout<< condition->right_exp.expnodes->value.data << std::endl;
+  for (int i=0; i < condition->right_exp->exp_num; i++){
+    if (condition->right_exp->expnodes[i].type == 1){
+      std::cout<< *(int *)condition->right_exp->expnodes[i].v.value.data << std::endl;
     }
-    if (condition->right_exp.expnodes->type == 1){
-      std::cout<< condition->right_exp.expnodes->attr.attribute_name << std::endl;
+    if (condition->right_exp->expnodes[i].type == 2){
+      std::cout<< condition->right_exp->expnodes[i].v.attr.attribute_name << std::endl;
     }
-    if (condition->right_exp.expnodes->type == 2){
-      std::cout<< condition->right_exp.expnodes->op << std::endl;
+    if (condition->right_exp->expnodes[i].type == 3){
+      std::cout<< condition->right_exp->expnodes[i].v.op << std::endl;
     }
   }
 }
@@ -288,32 +286,32 @@ void condition_init_with_comp(Condition *condition, CompOp comp){
 
 void exp_destroy(Exp *exp){
   for (int i=0; i< exp->exp_num; i++){
-    if (exp->expnodes[i].type == 0){
-      value_destroy(&exp->expnodes[i].value);
+    if (exp->expnodes[i].type == 1){
+      value_destroy(&exp->expnodes[i].v.value);
     }
-    else if(exp->expnodes[i].type == 1){
-      relation_attr_destroy(&exp->expnodes[i].attr);
+    else if(exp->expnodes[i].type == 2){
+      relation_attr_destroy(&exp->expnodes[i].v.attr);
     }
-    else{
-      free(exp->expnodes[i].op);
-      exp->expnodes[i].op = nullptr;
+    else if(exp->expnodes[i].type == 3){
+      free(exp->expnodes[i].v.op);
+      exp->expnodes[i].v.op = nullptr;
     }
   }
   exp->exp_num = 0;
 }
 
 void condition_destroy(Condition *condition) {
-  if (condition->left_is_attr) {
+  if (condition->left_is_attr ==1) {
     relation_attr_destroy(&condition->left_attr);
-  } else if(condition->left_is_exp) {
-    exp_destroy(&condition->left_exp);
+  } else if(condition->left_is_attr == 2) {
+    exp_destroy(condition->left_exp);
   } else{
     value_destroy(&condition->left_value);
   }
-  if (condition->right_is_attr) {
+  if (condition->right_is_attr == 1) {
     relation_attr_destroy(&condition->right_attr);
-  } else if(condition->right_is_exp) {
-    exp_destroy(&condition->right_exp);
+  } else if(condition->right_is_attr == 2) {
+    exp_destroy(condition->right_exp);
   } else {
     value_destroy(&condition->right_value);
   }
@@ -358,19 +356,23 @@ void selects_append_relation(Selects *selects, const char *relation_name) {
 }
 
 void push_to_exp(Exp *exp, ExpNode *expnode){
+  std::cout << "push_to_exp:" << std::endl;
+  if (exp->exp_num < 0 || exp->exp_num > MAX_NUM) exp->exp_num=0;
   exp->expnodes[exp->exp_num++] = *expnode;
+  std::cout << "now exp->exp_num: " << exp->exp_num << std::endl;
 }
 
 void expnode_init(ExpNode *expnode, int type, Value *value, RelAttr *attr, char *op){
   expnode->type = type;
-  if (type == 0){
-    expnode->value = *value;
-  }
+  std::cout << "expnode->type: " << expnode->type << std::endl;
   if (type == 1){
-    expnode->attr = *attr;
+    expnode->v.value = *value;
   }
   if (type == 2){
-    expnode->op = op;
+    expnode->v.attr = *attr;
+  }
+  if (type == 3){
+    expnode->v.op = strdup(op);
   }
 }
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t start, size_t end) {
@@ -432,6 +434,12 @@ void selects_swap_with_other(Selects *selects, Selects *other){
   Selects tmp = *other;
   *other = *selects;
   *selects = tmp;
+}
+void exp_swap_with_other(Exp *exp, Exp *other){
+  exp_destroy(exp);
+  Exp tmp = *other;
+  *other = *exp;
+  *exp = tmp;
 }
 
 void selects_destroy(Selects *selects) {
