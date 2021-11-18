@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include <sstream>
+#include <stack>
 
 #include "execute_stage.h"
 
@@ -678,7 +679,7 @@ bool operate(float a, char theta, float b, float &r) { //计算二元表达式�
 	else if (theta == '*')
 		r = a * b;
 	else {
-		if (fabs(b - 0.0) < 1e-8)  //如果除数为0，返回错误信息
+		if (b - 0.0 < 1e-8 || 0.0 - b < 1e-8)  //如果除数为0，返回错误信息
 			return false;
 		else
 			r = a / b;
@@ -1343,6 +1344,8 @@ bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int c
       selects->conditions[cond_index].right_sub_select = &new_select;
     }
   }
+  if(father_name != nullptr)
+    LOG_ERROR("is_need_change_condition father = %s, is_need = %s",father_name, is_need ? "true" : "false");
   return is_need;
 }
 

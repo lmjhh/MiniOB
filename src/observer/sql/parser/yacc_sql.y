@@ -31,11 +31,11 @@ typedef struct ParserContext {
   int nullable;
   Exp exp[2];
   int exp_length;
-	Selects selects[5];
+	Selects selects[3];
 
 	int selects_tmp_pool_length;
 	Selects selects_tmp_pool[5];
-	Exp exp_pool[MAX_NUM];
+	Exp exp_pool[6];
 	int exp_pool_length;
 } ParserContext;
 
@@ -1387,7 +1387,7 @@ extern void scan_string(const char *str, yyscan_t scanner);
 int sql_parse(const char *s, Query *sqls){
 	ParserContext context;
 	memset(&context, 0, sizeof(context));
-
+	printf("context size = %d B\n",sizeof(context));
 	yyscan_t scanner;
 	yylex_init_extra(&context, &scanner);
 	context.ssql = sqls;
