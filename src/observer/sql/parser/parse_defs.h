@@ -48,7 +48,7 @@ typedef enum {
 } CompOp;
 
 //属性值类型
-typedef enum { UNDEFINED, CHARS, INTS, DATES, FLOATS, NULLS} AttrType;
+typedef enum { UNDEFINED, CHARS, INTS, DATES, TEXTS, FLOATS, NULLS} AttrType;
 
 typedef enum { BYASC, BYDESC } OrderType;
 
