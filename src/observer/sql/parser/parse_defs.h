@@ -25,7 +25,7 @@ See the Mulan PSL v2 for more details. */
 #define MAX_DATA 50
 #define OB_FLT_MIN 1.17549435e-38F
 #define OB_INT_MIN -2147483648
-#define MAX_EXP_NODE_NUM 50
+#define MAX_EXP_NODE_NUM 20
 //属性结构体
 typedef struct {
   char *relation_name;   // relation name (may be NULL) 表名
@@ -63,15 +63,19 @@ typedef struct _Value {
 typedef struct _Selects Selects;
 
 // 不知道咋存储expression，还没定义出来......
-typedef struct {
-  int type; //0是value, 1是attr, 2是符号
+typedef union {
   Value value;
   RelAttr attr;
   char* op;
+} NodeType;
+
+typedef struct {
+  int type; //1是value, 2是attr, 3是符号
+  NodeType v;
 } ExpNode;
 
 typedef struct {
-  ExpNode expnodes[MAX_EXP_NODE_NUM];
+  ExpNode expnodes[MAX_EXP_NODE_NUM]; // 算数表达式的后缀表达式
   int exp_num;
 } Exp;
 
@@ -82,20 +86,20 @@ typedef struct _Condition {
   Value left_value;    // left-hand side value if left_is_attr = FALSE
   RelAttr left_attr;   // left-hand side attribute
   CompOp comp;         // comparison operator
-  int left_is_exp;     // 1是 0否
-  Exp left_exp;
+  Exp *left_exp;
 
   int right_is_attr;   // TRUE if right-hand side is an attribute
                        // 1时，操作符右边是属性名，0时，是属性值
   RelAttr right_attr;  // right-hand side attribute if right_is_attr = TRUE 右边的属性
   Value right_value;   // right-hand side value if right_is_attr = FALSE
 
-  int right_is_exp;     // 1是 0否
-  Exp right_exp;
-
-
+  int is_left_sub;
   Selects *left_sub_select;
+  int is_right_sub;
   Selects *right_sub_select;
+
+  Exp *right_exp;
+  
 } Condition;
 
 
@@ -285,13 +289,14 @@ void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t
 void attr_info_destroy(AttrInfo *attr_info);
 
 void selects_init(Selects *selects, ...);
-void selects_copy_with_other(Selects *selects, Selects *other);
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr);
 void selects_append_relation(Selects *selects, const char *relation_name);
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t start, size_t end);
+void selects_swap_with_other(Selects *selects, Selects *other);
 void selects_destroy(Selects *selects);
 void push_to_exp(Exp *exp, ExpNode *expnode);
 void expnode_init(ExpNode *expnode, int type, Value *value, RelAttr *attr, char *op);
+void exp_swap_with_other(Exp *exp, Exp *other);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);
 void poly_destroy(Poly *poly_tmp);

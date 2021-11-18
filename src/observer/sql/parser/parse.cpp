@@ -317,10 +317,11 @@ void condition_destroy(Condition *condition) {
   } else {
     value_destroy(&condition->right_value);
   }
-  if (condition->left_sub_select != nullptr){
-    selects_destroy(condition->left_sub_select);
-  }
-  condition->left_sub_select = nullptr;
+  
+  // if (condition->left_sub_select != nullptr){
+  //   selects_destroy(condition->left_sub_select);
+  // }
+  // condition->left_sub_select = nullptr;
   if (condition->right_sub_select != nullptr){
     selects_destroy(condition->right_sub_select);
   }
@@ -340,30 +341,6 @@ void attr_info_destroy(AttrInfo *attr_info) {
 }
 
 void selects_init(Selects *selects, ...);
-
-void selects_copy_with_other(Selects *selects, Selects *other){
-  for(int i = 0; i < other->relation_num; i++){
-    selects->relations[i] = strdup(other->relations[i]);
-  }
-  selects->relation_num = other->relation_num;
-
-  for(int i = 0; i < other->attr_num; i++){
-    selects->attributes[i] = other->attributes[i];
-  }
-  selects->attr_num = other->attr_num;
-
-  for(int i = 0; i < other->poly_num; i++){
-    selects->poly_list[i] = other->poly_list[i];
-  }
-  selects->poly_num = other->poly_num;
-
-  for(int i = 0; i < other->condition_num; i++){
-    selects->conditions[i] = other->conditions[i];
-  }
-  selects->condition_num = other->condition_num;
-
-  selects_destroy(other);
-}
 
 void selects_append_attribute(Selects *selects, RelAttr *rel_attr) {
   if(rel_attr->relation_name != nullptr){
@@ -448,6 +425,13 @@ void selects_append_groupbyAttr(Selects *selects, RelAttr *attr, OrderType type)
   selects->group_by.attributes[selects->group_by.attr_num] = *attr;
   selects->group_by.order_type[selects->group_by.attr_num] = type;
   selects->group_by.attr_num++;
+}
+
+void selects_swap_with_other(Selects *selects, Selects *other){
+  selects_destroy(selects);
+  Selects tmp = *other;
+  *other = *selects;
+  *selects = tmp;
 }
 
 void selects_destroy(Selects *selects) {

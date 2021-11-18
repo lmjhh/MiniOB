@@ -138,6 +138,8 @@ public:
 
   const TupleSchema &get_schema() const;
 
+  void set_is_need_print_multi_table(bool bool_value);
+
   void add(Tuple && tuple);
 
   void clear();
@@ -146,8 +148,8 @@ public:
   int size() const;
   const Tuple &get(int index) const;
   const std::vector<Tuple> &tuples() const;
-
-  void print(std::ostream &os, bool isMoreTable) const;
+  
+  void print(std::ostream &os) const;
   
 public:
   const TupleSchema &schema() const {
@@ -156,6 +158,7 @@ public:
 private:
   std::vector<Tuple> tuples_;
   TupleSchema schema_;
+  bool is_print_multi_table_;
   void buble_sort(int index, OrderType type);
   bool compareTupleWithIndex(const Tuple &tuple1, const Tuple &tuple2, int index, OrderType type);
 };
