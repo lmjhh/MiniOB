@@ -1343,6 +1343,8 @@ bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int c
       selects->conditions[cond_index].right_sub_select = &new_select;
     }
   }
+  if(father_name != nullptr)
+    LOG_ERROR("is_need_change_condition father = %s, is_need = %s",father_name, is_need ? "true" : "false");
   return is_need;
 }
 
