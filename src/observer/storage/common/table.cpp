@@ -396,7 +396,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       std::cerr<<"---memcpy suc1"<<std::endl;
       //把得到的page_id+offset填入属性框
       int page_id = page_handle.frame->page.page_num;
-      int addr = (page_id<<12) + len;
+      int addr = (file_id_<<22) + (page_id<<12) + len;
       memcpy(record + field->offset(), &addr, field->len());
       std::cerr<<"---memcpy suc2"<<std::endl;
     }
