@@ -29,10 +29,14 @@ typedef struct ParserContext {
   char id[MAX_NUM];
   int order_by_type;
   int nullable;
+  Exp exp[2];
+  int exp_length;
 	Selects selects[5];
 
 	int selects_tmp_pool_length;
 	Selects selects_tmp_pool[5];
+	Exp exp_pool[MAX_NUM];
+	int exp_pool_length;
 } ParserContext;
 
 //获取子串
@@ -56,6 +60,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
+  context->exp_length = 0;
   context->ssql->sstr.insertion.tuple_num = 0;
   printf(". error=%s", str);
 }
@@ -132,6 +137,9 @@ ParserContext *get_context(yyscan_t scanner)
 		GROUPBY
 		IN
 		NOTIN
+		PLUS
+		MINUS
+		DIVE
 
 %union {
   struct _Attr *attr;
@@ -156,6 +164,10 @@ ParserContext *get_context(yyscan_t scanner)
 %token <string> STRING_V
 %token <string> POLYKEY
 //非终结符
+
+%left  PLUS MINUS
+%left  STAR DIVE
+%nonassoc UMINUS
 
 %type <number> type;
 %type <condition1> condition;
@@ -878,6 +890,68 @@ and_key:
 			CONTEXT->conditions[CONTEXT->condition_length++] = condition;
 		}
 		;
+
+expression:
+	expression PLUS expression{ 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "+");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=$1+$3; 
+		}
+    | expression MINUS expression  { 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "-");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		//$$=$1-$3; 
+		}
+    | expression STAR expression  { 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "*");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		//$$=$1*$3; 
+		}
+    | expression DIVE expression {
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "/");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+        }
+    | LBRACE expression RBRACE {
+		//$$=$2; 
+		}
+    | value { 
+		Value *value = &CONTEXT->values[CONTEXT->value_length - 1];
+		ExpNode expnode;
+		expnode_init(&expnode, 1, value, NULL, NULL);
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=$1; 
+		}
+	| ID {
+		RelAttr attr;
+		relation_attr_init(&attr, NULL, $1);
+		ExpNode expnode;
+		expnode_init(&expnode,2, NULL, &attr, NULL);
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+	}
+	| ID DOT ID {
+		RelAttr attr;
+		relation_attr_init(&attr, $1, $3);
+		ExpNode expnode;
+		expnode_init(&expnode,2, NULL, &attr, NULL);
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+	}
+    ;
+
+
 condition:
     ID comOp value 
 		{
@@ -1003,6 +1077,18 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+	| expression comOp expression {
+		exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[0]);
+		CONTEXT->exp_pool_length++ ;
+		exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[1]);
+
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &CONTEXT->exp_pool[CONTEXT->exp_pool_length-1], 1, &CONTEXT->exp_pool[CONTEXT->exp_pool_length]);
+		CONTEXT->exp_pool_length = CONTEXT->exp_pool_length % MAX_NUM;
+		// 将临时变量清空
+		 exp_destroy(&CONTEXT->exp[0]);
+		 exp_destroy(&CONTEXT->exp[1]);
+		CONTEXT->exp_length = 0;
+	}
 	| value IS NULL_T {
 		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
 		Value right_value;
@@ -1214,12 +1300,12 @@ in_or_not_in:
 	;
 
 comOp:
-  	  EQ { CONTEXT->comp = EQUAL_TO;  CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
-    | LT { CONTEXT->comp = LESS_THAN;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
-    | GT { CONTEXT->comp = GREAT_THAN;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
-    | LE { CONTEXT->comp = LESS_EQUAL;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
-    | GE { CONTEXT->comp = GREAT_EQUAL;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
-    | NE { CONTEXT->comp = NOT_EQUAL; CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
+  	  EQ { CONTEXT->comp = EQUAL_TO; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
+    | LT { CONTEXT->comp = LESS_THAN; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
+    | GT { CONTEXT->comp = GREAT_THAN; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
+    | LE { CONTEXT->comp = LESS_EQUAL; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
+    | GE { CONTEXT->comp = GREAT_EQUAL; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
+    | NE { CONTEXT->comp = NOT_EQUAL; CONTEXT->exp_length++; CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
     ;
 
 

@@ -382,8 +382,8 @@ std::vector<TupleSet> tuple_sets;
         result_tupleSet = get_final_result(selects, tuple_sets.front());
       }
     }
-    result_tupleSet.print(ss);
-    std::cout << ss.str() << std::endl;
+    // result_tupleSet.print(ss);
+    // std::cout << ss.str() << std::endl;
   }
 
   for (SelectExeNode *& tmp_node: select_nodes) {
@@ -432,6 +432,20 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
 
   schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name());
   return RC::SUCCESS;
+}
+
+int only_one_table(Exp * exp, const char * table_name){
+  for (int i=0; i<exp->exp_num; i++){
+    if (exp->expnodes[i].type == 2){
+      if (exp->expnodes[i].v.attr.relation_name != nullptr){
+        if (strcmp(exp->expnodes[i].v.attr.relation_name, table_name) != 0){
+          // 如果表格不符合，就返回0
+          return 0;
+        }
+      }
+    }
+  }
+  return 1;
 }
 
 // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
@@ -635,10 +649,74 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       }
       condition_filters.push_back(condition_filter);
     }
+    if(condition.left_is_attr == 2 && condition.right_is_attr==2){
+      if(only_one_table(condition.left_exp, table_name) && only_one_table(condition.right_exp, table_name)){
+        DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
+        RC rc = condition_filter->init(*table, condition);
+        if (rc != RC::SUCCESS) {
+          delete condition_filter;
+          for (DefaultConditionFilter * &filter : condition_filters) {
+            delete filter;
+          }
+          return rc;
+        }
+        condition_filters.push_back(condition_filter);
+        std::cout << "add one table exp condition" << std::endl;
+        }
+    }
+
   }
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
+
+bool operate(float a, char theta, float b, float &r) { //计算二元表达式的值
+	if (theta == '+')
+		r = a + b;
+	else if (theta == '-')
+		r = a - b;
+	else if (theta == '*')
+		r = a * b;
+	else {
+		if (fabs(b - 0.0) < 1e-8)  //如果除数为0，返回错误信息
+			return false;
+		else
+			r = a / b;
+	}
+	return true;
+}
+
+// 传入表达式，返回结果到result
+bool compute_exp(Exp* exp, float &result){
+  // 此表达式只会有两种节点，value&&op
+  float a, b, r;
+  std::stack<float> OPND;
+
+  for(int i=0; i< exp->exp_num; i++){
+    if (exp->expnodes[i].type == 1){
+      // 压入数字栈
+      float v = *(float *)exp->expnodes[i].v.value.data;
+      OPND.push(v);
+    }
+    if (exp->expnodes[i].type == 3){
+      //是运算符，则取两个数字出来计算
+      b = OPND.top();
+      OPND.pop();
+      a = OPND.top();
+      OPND.pop();
+      if(operate(a, *exp->expnodes[i].v.op, b, r)){
+        OPND.push(r);
+      }
+      else{
+        //计算错误，按照null处理
+        return false;
+      }
+    }
+  }
+  result = OPND.top();
+  return true;
+}
+
 
 RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &return_tupleSet){
   std::cout << "ready join table 1, size = " << table1.size() << " table 2, size = " << table2.size() << std::endl;
@@ -1195,7 +1273,7 @@ bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int c
   for(int cond_index = 0; cond_index < selects->condition_num; cond_index++){
     Condition condition = selects->conditions[cond_index];
     //发现使用父查询的属性，进行替换
-    if(condition.left_is_attr && strcmp(condition.left_attr.relation_name, father_name) == 0){
+    if(condition.left_is_attr == 1 && strcmp(condition.left_attr.relation_name, father_name) == 0){
       int father_index = father_tupleSet.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
       TupleField tuple_field = father_tupleSet.get_schema().field(father_index);
       Value newValue;
@@ -1224,7 +1302,7 @@ bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int c
       is_need = true;
     }
 
-    if(condition.right_is_attr && strcmp(condition.right_attr.relation_name, father_name) == 0){
+    if(condition.right_is_attr == 1 && strcmp(condition.right_attr.relation_name, father_name) == 0){
       int father_index = father_tupleSet.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
       TupleField tuple_field = father_tupleSet.get_schema().field(father_index);
       Value newValue;
@@ -1253,12 +1331,16 @@ bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int c
       is_need = true;
     }
     if(condition.is_left_sub) {
-      bool sub_is_need = is_need_change_condition(father_tupleSet, selects->conditions[cond_index].left_sub_select, current_tuple_index);
+      Selects new_select = *selects->conditions[cond_index].left_sub_select;
+      bool sub_is_need = is_need_change_condition(father_tupleSet, &new_select, current_tuple_index);
       if(sub_is_need) is_need = sub_is_need;
+      selects->conditions[cond_index].left_sub_select = &new_select;
     }
     if(condition.is_right_sub) {
-      bool sub_is_need = is_need_change_condition(father_tupleSet, selects->conditions[cond_index].right_sub_select, current_tuple_index);
+      Selects new_select = *selects->conditions[cond_index].right_sub_select;
+      bool sub_is_need = is_need_change_condition(father_tupleSet, &new_select, current_tuple_index);
       if(sub_is_need) is_need = sub_is_need;
+      selects->conditions[cond_index].right_sub_select = &new_select;
     }
   }
   return is_need;
@@ -1275,12 +1357,23 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
     const std::vector<std::shared_ptr<TupleValue>> &values = father_tupleSet.get(i).values();
     Selects new_selects = *selects;
     TupleSet tmp_result;
-    is_need = is_need_change_condition(father_tupleSet,&new_selects,i);
-    if(is_need == false) return RC::GENERIC_ERROR;
+    LOG_ERROR("级联查询未修改的 condition");
     selects_print(new_selects);
+    is_need = is_need_change_condition(father_tupleSet,&new_selects,i);
+    LOG_ERROR("级联查询修改完 condition");
+    selects_print(new_selects);
+    if(is_need == false) return RC::GENERIC_ERROR;
     rc = do_sub_select(trx,db,new_selects,tmp_result);
 
-    if(tmp_result.size() == 0) continue;
+    LOG_ERROR("级联查询中间结果");
+    std::stringstream aa;
+    tmp_result.set_is_need_print_multi_table(false);
+    tmp_result.print(aa);
+    std::cout << aa.str() << std::endl;
+
+
+    if(tmp_result.size() == 0 && (father_condition.comp != OP_IN || father_condition.comp != OP_NO_IN)) continue;
+    LOG_ERROR("级联查询跳过了");
     int table2_size = tmp_result.size();
     int flag = 1;
 
@@ -1291,7 +1384,7 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
       father_condition_index = father_tupleSet.get_schema().index_of_field(father_tupleSet.get_schema().field(0).table_name(), father_condition.left_attr.attribute_name);
     }
     for(size_t table2_ite = 0; table2_ite < table2_size; table2_ite++){
-      const std::vector<std::shared_ptr<TupleValue>> &tmp_values = tmp_result.get(0).values();
+      const std::vector<std::shared_ptr<TupleValue>> &tmp_values = tmp_result.get(table2_ite).values();
       if(father_condition.comp != OP_IN && father_condition.comp != OP_NO_IN){
         std::shared_ptr<TupleValue> value1_float = (std::shared_ptr<TupleValue>)new FloatValue(values[father_condition_index]->getValue());
         std::shared_ptr<TupleValue> value2_float = (std::shared_ptr<TupleValue>)new FloatValue(tmp_values[0]->getValue());
@@ -1333,6 +1426,12 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
       sub_result_tupleSet.add(std::move(new_tuple));
     }
   }
+
+  LOG_ERROR("级联查询最终结果");
+  std::stringstream cc;
+  sub_result_tupleSet.set_is_need_print_multi_table(false);
+  sub_result_tupleSet.print(cc);
+  std::cout << cc.str() << std::endl;
 
   return RC::SUCCESS;
 }

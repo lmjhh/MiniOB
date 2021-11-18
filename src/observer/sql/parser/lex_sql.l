@@ -104,6 +104,9 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 "<"                                      RETURN_TOKEN(LT);
 ">="                                     RETURN_TOKEN(GE);
 ">"                                      RETURN_TOKEN(GT);
+"+"								                       RETURN_TOKEN(PLUS);
+"-"								                       RETURN_TOKEN(MINUS);
+"/"								                       RETURN_TOKEN(DIVE);
 
 {QUOTE}[\40\42\47A-Za-z0-9_/\.\-]*{QUOTE}	     yylval->string=strdup(yytext); RETURN_TOKEN(SSS);
 
