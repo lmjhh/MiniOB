@@ -218,12 +218,12 @@ public:
   void to_string(std::ostream &os) const override {
     if(value_ == 0) os<<"NULL";
     else{
-      int a = 1, b=1;
-      a = a << 12;
-      b = b << 22;
-      int offset = value_ % a;
-      int page_num = (value_ % b) / a;
-      int file_id = value_ >> 22;
+      // int a = 1, b=1;
+      // a = a << 12;
+      // b = b << 22;
+      // int offset = value_ % a;
+      // int page_num = (value_ % b) / a;
+      // int file_id = value_ >> 22;
 
       // DiskBufferPool *disk_buffer_pool = theGlobalDiskBufferPool();
       // RC ret = RC::SUCCESS;

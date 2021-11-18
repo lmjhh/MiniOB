@@ -362,6 +362,7 @@ void TupleRecordConverter::add_record(const char *record) {
         int value = *(int*)(record + field_meta->offset());
         tuple.addDate(value);
       }
+      break;
       case TEXTS: {
         int value = *(int*)(record + field_meta->offset());
         tuple.addText(value);
