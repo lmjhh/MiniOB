@@ -62,10 +62,6 @@ void Tuple::addDate(int value) {
   add(new DateValue(value));
 }
 
-void Tuple::addText(int value) {
-  add(new TextValue(value));
-}
-
 void Tuple::add(const char *s, int len) {
   add(new StringValue(s, len));
 }
@@ -361,10 +357,6 @@ void TupleRecordConverter::add_record(const char *record) {
       case DATES: {
         int value = *(int*)(record + field_meta->offset());
         tuple.addDate(value);
-      }
-      case TEXTS: {
-        int value = *(int*)(record + field_meta->offset());
-        tuple.addText(value);
       }
       break;
       case INTS: {

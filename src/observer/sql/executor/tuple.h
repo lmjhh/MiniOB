@@ -42,7 +42,6 @@ public:
   void add(int value);
   void add(float value);
   void addDate(int value);
-  void addText(int value);
   void add(const char *s, int len);
   void clear();
   static void swapTuple(Tuple *A, Tuple *B);

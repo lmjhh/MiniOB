@@ -19,7 +19,6 @@ See the Mulan PSL v2 for more details. */
 #include <stdlib.h>
 #include <string>
 #include <ostream>
-#include "storage/default/disk_buffer_pool.h"
 
 class TupleValue {
 public:
@@ -208,57 +207,5 @@ public:
     int value_;
 };
 
-
-class TextValue : public TupleValue {
-
-public:
-  explicit TextValue(int value) : value_(value) {
-  }
-
-  void to_string(std::ostream &os) const override {
-    if(value_ == 0) os<<"NULL";
-    else{
-      int a = 1, b=1;
-      a = a << 12;
-      b = b << 22;
-      int offset = value_ % a;
-      int page_num = (value_ % b) / a;
-      int file_id = value_ >> 22;
-
-      DiskBufferPool *disk_buffer_pool = theGlobalDiskBufferPool();
-      RC ret = RC::SUCCESS;
-      BPPageHandle page_handle;
-      if ((ret = disk_buffer_pool->get_this_page(file_id, page_num, &page_handle)) != RC::SUCCESS) {
-        return;
-      }
-      char *data;
-      ret = disk_buffer_pool->get_data(&page_handle, &data);
-      if (ret != RC::SUCCESS) {
-        return;
-      }
-
-      char text[4096];
-      memcpy(text, data, offset);
-      os << text;
-      
-    }
-  }
-
-  int compare(const TupleValue &other) const override {
-    return 0;
-  }
-
-  bool isNull() const override{
-    if(value_ == 0) return true;
-    return false; 
-  }
-
-  float getValue() const override{
-    return value_*1.0;
-  }
-
-  private:
-    int value_;
-};
 
 #endif //__OBSERVER_SQL_EXECUTOR_VALUE_H_
