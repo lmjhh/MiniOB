@@ -46,6 +46,10 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &su
 RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &left_tupleSet, TupleSet &right_tupleSet, TupleSet &result_tupleSet);
 RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, Condition father_condition, Selects *selects, TupleSet &sub_result_tupleSet);
 void selects_print(const Selects &selects);
+bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects);
+static Selects selects_pool[3];
+static int selects_pool_length;
+
 //! Constructor
 ExecuteStage::ExecuteStage(const char *tag) : Stage(tag) {}
 
@@ -250,6 +254,7 @@ RC do_sub_select(Trx *trx, const char *db, const Selects &selects, TupleSet &res
 
   if (select_nodes.empty()) {
     LOG_ERROR("No table given");
+    selects_print(selects);
     return RC::SQL_SYNTAX;
   }
 
@@ -306,7 +311,8 @@ std::vector<TupleSet> tuple_sets;
       TupleSet left_sub_select_tupleSet, right_sub_select_tupleSet;
       LOG_ERROR("计算condition %d",condition_index);
       //单子查询带级联
-      if(condition.is_right_sub && condition.is_left_sub == 0){
+      if(condition.right_sub_select != nullptr && is_need_change_condition(tuple_sets.front(),condition.right_sub_select)){
+        LOG_ERROR("开始级联查询");
         TupleSet tmp_tuple_set;
           rc = sub_select_from_father(trx, db, tuple_sets.front(), condition, condition.right_sub_select, tmp_tuple_set);
           if(rc == SUCCESS){
@@ -1267,7 +1273,40 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
   return RC::SUCCESS;
 }
 
-bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int current_tuple_index){
+Selects * get_Selects(){
+  selects_destroy(&selects_pool[selects_pool_length]);
+  Selects * return_selects = &selects_pool[selects_pool_length++];
+  selects_pool_length = selects_pool_length %3 ;
+  return return_selects;
+}
+
+bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects){
+  bool is_need = false;
+  const char *father_name = father_tupleSet.get_schema().field(0).table_name();
+  const std::vector<std::shared_ptr<TupleValue>> &values = father_tupleSet.get(0).values();
+  for(int cond_index = 0; cond_index < selects->condition_num; cond_index++){
+    Condition condition = selects->conditions[cond_index];
+    //发现使用父查询的属性，进行替换
+    if(condition.left_is_attr == 1 && strcmp(condition.left_attr.relation_name, father_name) == 0){
+      is_need = true;
+    }
+
+    if(condition.right_is_attr == 1 && strcmp(condition.right_attr.relation_name, father_name) == 0){
+      is_need = true;
+    }
+    if(condition.is_left_sub && condition.left_sub_select != nullptr) {
+      bool sub_is_need = is_need_change_condition(father_tupleSet, condition.left_sub_select);
+      if(sub_is_need) is_need = sub_is_need;
+    }
+    if(condition.is_right_sub && condition.right_sub_select != nullptr) {
+      bool sub_is_need = is_need_change_condition(father_tupleSet, condition.right_sub_select);
+      if(sub_is_need) is_need = sub_is_need;
+    }
+  }
+  return is_need;  
+}
+
+bool is_need_and_change_condition(TupleSet &father_tupleSet, Selects *selects, int current_tuple_index){
   bool is_need = false;
   const char *father_name = father_tupleSet.get_schema().field(0).table_name();
   const std::vector<std::shared_ptr<TupleValue>> &values = father_tupleSet.get(current_tuple_index).values();
@@ -1332,20 +1371,20 @@ bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects, int c
       is_need = true;
     }
     if(condition.is_left_sub) {
-      Selects new_select = *selects->conditions[cond_index].left_sub_select;
-      bool sub_is_need = is_need_change_condition(father_tupleSet, &new_select, current_tuple_index);
+      Selects *new_select = get_Selects();
+      *new_select = *selects->conditions[cond_index].left_sub_select;
+      bool sub_is_need = is_need_and_change_condition(father_tupleSet, new_select, current_tuple_index);
       if(sub_is_need) is_need = sub_is_need;
-      selects->conditions[cond_index].left_sub_select = &new_select;
+      selects->conditions[cond_index].left_sub_select = new_select;
     }
     if(condition.is_right_sub) {
-      Selects new_select = *selects->conditions[cond_index].right_sub_select;
-      bool sub_is_need = is_need_change_condition(father_tupleSet, &new_select, current_tuple_index);
+      Selects *new_select = get_Selects();
+      *new_select = *selects->conditions[cond_index].right_sub_select;
+      bool sub_is_need = is_need_and_change_condition(father_tupleSet, new_select, current_tuple_index);
       if(sub_is_need) is_need = sub_is_need;
-      selects->conditions[cond_index].right_sub_select = &new_select;
+      selects->conditions[cond_index].right_sub_select = new_select;
     }
   }
-  if(father_name != nullptr)
-    LOG_ERROR("is_need_change_condition father = %s, is_need = %s",father_name, is_need ? "true" : "false");
   return is_need;
 }
 
@@ -1362,7 +1401,7 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
     TupleSet tmp_result;
     LOG_ERROR("级联查询未修改的 condition");
     selects_print(new_selects);
-    is_need = is_need_change_condition(father_tupleSet,&new_selects,i);
+    is_need = is_need_and_change_condition(father_tupleSet,&new_selects,i);
     LOG_ERROR("级联查询修改完 condition");
     selects_print(new_selects);
     if(is_need == false) return RC::GENERIC_ERROR;
@@ -1374,9 +1413,7 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
     tmp_result.print(aa);
     std::cout << aa.str() << std::endl;
 
-
-    if(tmp_result.size() == 0 && (father_condition.comp != OP_IN || father_condition.comp != OP_NO_IN)) continue;
-    LOG_ERROR("级联查询跳过了");
+    if(tmp_result.size() == 0 && (father_condition.comp != OP_IN && father_condition.comp != OP_NO_IN)) continue;
     int table2_size = tmp_result.size();
     int flag = 1;
 
