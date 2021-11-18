@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include <string>
 #include <sstream>
+#include <stack>
 
 #include "execute_stage.h"
 
@@ -678,7 +679,7 @@ bool operate(float a, char theta, float b, float &r) { //计算二元表达式�
 	else if (theta == '*')
 		r = a * b;
 	else {
-		if (fabs(b - 0.0) < 1e-8)  //如果除数为0，返回错误信息
+		if (b - 0.0 < 1e-8 || 0.0 - b < 1e-8)  //如果除数为0，返回错误信息
 			return false;
 		else
 			r = a / b;
