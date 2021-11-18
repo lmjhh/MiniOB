@@ -434,6 +434,20 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
   return RC::SUCCESS;
 }
 
+int only_one_table(Exp * exp, const char * table_name){
+  for (int i=0; i<exp->exp_num; i++){
+    if (exp->expnodes[i].type == 2){
+      if (exp->expnodes[i].v.attr.relation_name != nullptr){
+        if (strcmp(exp->expnodes[i].v.attr.relation_name, table_name) != 0){
+          // 如果表格不符合，就返回0
+          return 0;
+        }
+      }
+    }
+  }
+  return 1;
+}
+
 // 把所有的表和只跟这张表关联的condition都拿出来，生成最底层的select 执行节点
 RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, const char *table_name, SelectExeNode &select_node) {
   // 列出跟这张表关联的Attr
@@ -635,10 +649,74 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       }
       condition_filters.push_back(condition_filter);
     }
+    if(condition.left_is_attr == 2 && condition.right_is_attr==2){
+      if(only_one_table(condition.left_exp, table_name) && only_one_table(condition.right_exp, table_name)){
+        DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
+        RC rc = condition_filter->init(*table, condition);
+        if (rc != RC::SUCCESS) {
+          delete condition_filter;
+          for (DefaultConditionFilter * &filter : condition_filters) {
+            delete filter;
+          }
+          return rc;
+        }
+        condition_filters.push_back(condition_filter);
+        std::cout << "add one table exp condition" << std::endl;
+        }
+    }
+
   }
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
+
+bool operate(float a, char theta, float b, float &r) { //计算二元表达式的值
+	if (theta == '+')
+		r = a + b;
+	else if (theta == '-')
+		r = a - b;
+	else if (theta == '*')
+		r = a * b;
+	else {
+		if (fabs(b - 0.0) < 1e-8)  //如果除数为0，返回错误信息
+			return false;
+		else
+			r = a / b;
+	}
+	return true;
+}
+
+// 传入表达式，返回结果到result
+bool compute_exp(Exp* exp, float &result){
+  // 此表达式只会有两种节点，value&&op
+  float a, b, r;
+  std::stack<float> OPND;
+
+  for(int i=0; i< exp->exp_num; i++){
+    if (exp->expnodes[i].type == 1){
+      // 压入数字栈
+      float v = *(float *)exp->expnodes[i].v.value.data;
+      OPND.push(v);
+    }
+    if (exp->expnodes[i].type == 3){
+      //是运算符，则取两个数字出来计算
+      b = OPND.top();
+      OPND.pop();
+      a = OPND.top();
+      OPND.pop();
+      if(operate(a, *exp->expnodes[i].v.op, b, r)){
+        OPND.push(r);
+      }
+      else{
+        //计算错误，按照null处理
+        return false;
+      }
+    }
+  }
+  result = OPND.top();
+  return true;
+}
+
 
 RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &return_tupleSet){
   std::cout << "ready join table 1, size = " << table1.size() << " table 2, size = " << table2.size() << std::endl;
