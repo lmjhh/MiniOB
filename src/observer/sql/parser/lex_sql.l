@@ -86,11 +86,13 @@ DATES 			 [0-9]{4}\-[0-9]{1,2}\-[0-9]{1,2}
 [Ff][Ll][Oo][Aa][Tt]			               RETURN_TOKEN(FLOAT_T);
 [Dd][Aa][Tt][Ee]							RETURN_TOKEN(DATE_T);
 [Nn][Uu][Ll][Ll]						RETURN_TOKEN(NULL_T);
+[Tt][Ee][Xx][Tt]							RETURN_TOKEN(TEXT_T);
 [Ll][Oo][Aa][Dd]			                   RETURN_TOKEN(LOAD);
 [Dd][Aa][Tt][Aa]	                       RETURN_TOKEN(DATA);
 [Ii][Nn][Ff][Ii][Ll][Ee]                 RETURN_TOKEN(INFILE);
 [Ii][Nn]				 													RETURN_TOKEN(IN);
 [Nn][Oo][Tt][ ][Ii][Nn]										RETURN_TOKEN(NOTIN);
+
 
 {ID}							                       yylval->string=strdup(yytext); RETURN_TOKEN(ID);
 "("								                       RETURN_TOKEN(LBRACE);

@@ -101,6 +101,7 @@ ParserContext *get_context(yyscan_t scanner)
         TRX_ROLLBACK
         INT_T
 		DATE_T
+		TEXT_T
         STRING_T
         FLOAT_T
 		NULL_T
@@ -343,6 +344,7 @@ type:
        | STRING_T { $$=CHARS; }
        | FLOAT_T { $$=FLOATS; }
 	   | NULL_T {$$=NULLS;}
+	   | TEXT_T { $$=TEXTS; }
        ;
 ID_get:
 	ID 
@@ -405,7 +407,7 @@ value:
 		}
 	|NULL_T {
 		value_init_null(&CONTEXT->values[CONTEXT->value_length++], 0);
-	}
+		}
     ;
     
 delete:		/*  delete 语句的语法解析树*/

@@ -313,6 +313,8 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
     std::cerr<<"---field->type():"<<field->type()<<std::endl;
     std::cerr<<"---value.type:"<<value.type<<std::endl;
     if ( field->type() != value.type && field->is_nullable() == false ) {
+      if(field->type() == TEXTS && value.type == CHARS)
+        continue;
       LOG_ERROR("Invalid value type. field name=%s, type=%d, but given=%d",
         field->name(), field->type(), value.type);
       return RC::SCHEMA_FIELD_TYPE_MISMATCH;
@@ -346,6 +348,12 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
           memcpy(record + field->offset(), vdata, field->len()); 
       }
         break;
+      case AttrType::TEXTS:{
+          int null_int = OB_INT_MIN;
+          int *vdata = &null_int;
+          memcpy(record + field->offset(), vdata, field->len()); 
+      }
+        break;
       case AttrType::DATES:{
           int null_date = 0;
           int *vdata = &null_date;
@@ -362,7 +370,37 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       int *vdata = (int *)value.data;
       float i2fdata = (float)(*vdata * 1.0);
       memcpy(record + field->offset(), &i2fdata, field->len());
-    }else{
+    }
+    else if(field->type() == AttrType::TEXTS){
+      //分配一个页
+      RC ret = RC::SUCCESS;
+      BPPageHandle page_handle;
+      if ((ret = data_buffer_pool_->allocate_page(file_id_, &page_handle)) != RC::SUCCESS) {
+        LOG_ERROR("Failed to allocate page while inserting record. file_it:%d, ret:%d",
+                file_id_, ret);
+        return ret;
+      }
+      //把text内容复制进去
+      char *data;
+      ret = data_buffer_pool_->get_data(&page_handle, &data);
+      if (ret != RC::SUCCESS) {
+        LOG_ERROR("Failed to get page data. ret=%d:%s", ret, strrc(ret));
+        return ret;
+      }
+      int len = strlen((char *)value.data);
+      std::cerr<<"---len:"<<len<<std::endl;
+      if(len > 4096) 
+        len = 4096;  
+      memcpy(data, value.data, len);
+
+      std::cerr<<"---memcpy suc1"<<std::endl;
+      //把得到的page_id+offset填入属性框
+      int page_id = page_handle.frame->page.page_num;
+      int addr = (file_id_<<22) + (page_id<<12) + len;
+      memcpy(record + field->offset(), &addr, field->len());
+      std::cerr<<"---memcpy suc2"<<std::endl;
+    }
+    else{
       memcpy(record + field->offset(), value.data, field->len());
     }
   }
