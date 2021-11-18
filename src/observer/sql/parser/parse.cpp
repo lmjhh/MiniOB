@@ -384,6 +384,26 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
   selects->condition_num = end - start;
 }
 
+void selects_append_exp(Selects *selects, Exp *exp){
+  if(selects->lsn < 0 or selects->lsn > MAX_NUM) selects->lsn = 0;
+  exp->lsn = selects->lsn++;
+  selects->exp_list[selects->exp_num++] = *exp;
+  std::cout << "append exp->lsn--- " << exp->lsn << std::endl;
+  std::cout<< "here print attri exp : 后缀表达式" << std::endl;
+  for (int i=0; i < exp->exp_num; i++){
+    if (exp->expnodes[i].type == 1){
+      std::cout<< *(int *)exp->expnodes[i].v.value.data << std::endl;
+    }
+    if (exp->expnodes[i].type == 2){
+      std::cout<< exp->expnodes[i].v.attr.attribute_name << std::endl;
+    }
+    if (exp->expnodes[i].type == 3){
+      std::cout<< exp->expnodes[i].v.op << std::endl;
+    }
+  }
+
+}
+
 void selects_append_poly(Selects *selects, Poly *rel_po) {
   if(selects->lsn < 0 or selects->lsn > MAX_NUM) selects->lsn = 0;
   rel_po->lsn = selects->lsn++;

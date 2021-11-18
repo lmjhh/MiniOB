@@ -29,14 +29,15 @@ typedef struct ParserContext {
   char id[MAX_NUM];
   int order_by_type;
   int nullable;
-  Exp exp[2];
+  Exp exp[MAX_EXP_TMP_NUM];
   int exp_length;
+  
 	Selects selects[3];
 
 	int selects_tmp_pool_length;
 	Selects selects_tmp_pool[5];
-	Exp exp_pool[6];
-	int exp_pool_length;
+	// Exp exp_pool[6];
+	// int exp_pool_length;
 } ParserContext;
 
 //获取子串
@@ -553,6 +554,12 @@ select_mix:
 			relation_attr_init(&attr, $3, "*");
 			selects_append_poly_attribute(&CONTEXT->selects[CONTEXT->select_length], &attr, 1);
 	}
+	| expression_attr mix_list{
+		selects_append_exp(&CONTEXT->selects[CONTEXT->select_length],&CONTEXT->exp[CONTEXT->exp_length-1]);
+		exp_destroy( &CONTEXT->exp[CONTEXT->exp_length-1] );
+		CONTEXT->exp_length = 0 ;
+
+	}
   ;
 
 
@@ -617,8 +624,19 @@ mix_list:
 			selects_append_poly_attribute(&CONTEXT->selects[CONTEXT->select_length], &attr, 1);
 
 	}
+	| COMMA expression_attr mix_list{
+		selects_append_exp(&CONTEXT->selects[CONTEXT->select_length],&CONTEXT->exp[CONTEXT->exp_length-1]);
+		exp_destroy( &CONTEXT->exp[CONTEXT->exp_length-1] );
+		CONTEXT->exp_length-- ;
+
+	}
   ;
 
+expression_attr:
+	expression{
+		CONTEXT->exp_length++ ;
+	}
+	;
 
 select_attr:
     STAR {  
@@ -1075,17 +1093,18 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
-	| expression comOp expression {
-		exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[0]);
-		CONTEXT->exp_pool_length++ ;
-		exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[1]);
+	| expression_attr comOp expression_attr {
+		// exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[0]);
+		// CONTEXT->exp_pool_length++ ;
+		// exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[1]);
 
-		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &CONTEXT->exp_pool[CONTEXT->exp_pool_length-1], 1, &CONTEXT->exp_pool[CONTEXT->exp_pool_length]);
-		CONTEXT->exp_pool_length = CONTEXT->exp_pool_length % MAX_NUM;
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &CONTEXT->exp[CONTEXT->exp_length-2], 1, &CONTEXT->exp[CONTEXT->exp_length-1]);
+		// CONTEXT->exp_length++;
+		CONTEXT->exp_length = CONTEXT->exp_length % MAX_EXP_TMP_NUM;
 		// 将临时变量清空
-		 exp_destroy(&CONTEXT->exp[0]);
-		 exp_destroy(&CONTEXT->exp[1]);
-		CONTEXT->exp_length = 0;
+		//  exp_destroy(&CONTEXT->exp[0]);
+		//  exp_destroy(&CONTEXT->exp[1]);
+		
 	}
 	| value IS NULL_T {
 		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
@@ -1298,12 +1317,12 @@ in_or_not_in:
 	;
 
 comOp:
-  	  EQ { CONTEXT->comp = EQUAL_TO; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
-    | LT { CONTEXT->comp = LESS_THAN; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
-    | GT { CONTEXT->comp = GREAT_THAN; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
-    | LE { CONTEXT->comp = LESS_EQUAL; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
-    | GE { CONTEXT->comp = GREAT_EQUAL; CONTEXT->exp_length++;  CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
-    | NE { CONTEXT->comp = NOT_EQUAL; CONTEXT->exp_length++; CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
+  	  EQ { CONTEXT->comp = EQUAL_TO;   CONTEXT->comp_tmp[CONTEXT->select_length] = EQUAL_TO; }
+    | LT { CONTEXT->comp = LESS_THAN;   CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_THAN; }
+    | GT { CONTEXT->comp = GREAT_THAN;   CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_THAN; }
+    | LE { CONTEXT->comp = LESS_EQUAL;   CONTEXT->comp_tmp[CONTEXT->select_length] = LESS_EQUAL; }
+    | GE { CONTEXT->comp = GREAT_EQUAL;   CONTEXT->comp_tmp[CONTEXT->select_length] = GREAT_EQUAL; }
+    | NE { CONTEXT->comp = NOT_EQUAL;  CONTEXT->comp_tmp[CONTEXT->select_length] = NOT_EQUAL; }
     ;
 
 
