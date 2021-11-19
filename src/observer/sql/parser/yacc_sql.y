@@ -1095,12 +1095,30 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+	| ID comOp expression_attr{
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, NULL, $1);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, NULL, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
+
+	}
+	| ID DOT ID comOp expression_attr{
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, NULL, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
+
+	}
+	| value comOp expression_attr{
+		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 0, NULL, left_value, NULL, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
+
+
+	}
 	| expression_attr comOp expression_attr {
 		// exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[0]);
 		// CONTEXT->exp_pool_length++ ;
 		// exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[1]);
 
-		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &CONTEXT->exp[CONTEXT->exp_length-2], 1, &CONTEXT->exp[CONTEXT->exp_length-1]);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-2], 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
 		// CONTEXT->exp_length++;
 		CONTEXT->exp_length = CONTEXT->exp_length % MAX_EXP_TMP_NUM;
 		// 将临时变量清空
