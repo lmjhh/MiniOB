@@ -26,6 +26,7 @@ See the Mulan PSL v2 for more details. */
 #define OB_FLT_MIN 1.17549435e-38F
 #define OB_INT_MIN -2147483648
 #define MAX_EXP_NODE_NUM 20
+#define MAX_EXP_TMP_NUM 6
 //属性结构体
 typedef struct {
   char *relation_name;   // relation name (may be NULL) 表名
@@ -77,6 +78,7 @@ typedef struct {
 typedef struct {
   ExpNode expnodes[MAX_EXP_NODE_NUM]; // 算数表达式的后缀表达式
   int exp_num;
+  size_t lsn;
 } Exp;
 
 
@@ -147,6 +149,8 @@ struct _Selects{
   OrderBy   order_by;               // 需要排序的列集合
   GroupBy   group_by;
   size_t    lsn;                    //用来排序 group by poly 和 attr
+  Exp       exp_list[5];
+  size_t    exp_num; 
 };
 
 typedef struct {
@@ -279,11 +283,11 @@ void value_destroy(Value *value);
 
 void condition_init(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value,
     int right_is_attr, RelAttr *right_attr, Value *right_value);
-void condition_init_exp(Condition *condition, CompOp comp,int left_is_exp, Exp *exp1,
-                    int right_is_exp, Exp *exp2);
 void condition_init_with_comp(Condition *condition, CompOp comp);
 void condition_destroy(Condition *condition);
 void exp_destroy(Exp *exp);
+void condition_init_exp(Condition *condition, CompOp comp, int left_is_attr, RelAttr *left_attr, Value *left_value, Exp *left_exp,
+    int right_is_attr, RelAttr *right_attr, Value *right_value, Exp *right_exp);
 
 void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t length, int is_null_able);
 void attr_info_destroy(AttrInfo *attr_info);
@@ -297,6 +301,7 @@ void selects_destroy(Selects *selects);
 void push_to_exp(Exp *exp, ExpNode *expnode);
 void expnode_init(ExpNode *expnode, int type, Value *value, RelAttr *attr, char *op);
 void exp_swap_with_other(Exp *exp, Exp *other);
+void selects_append_exp(Selects *selects, Exp *exp);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);
 void poly_destroy(Poly *poly_tmp);

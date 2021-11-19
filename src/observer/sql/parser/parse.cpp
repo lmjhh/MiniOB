@@ -237,47 +237,61 @@ void condition_init(Condition *condition, CompOp comp,
     condition->right_value = *right_value;
   }
 }
+
+
 void condition_init_exp(Condition *condition, CompOp comp, 
-                    int left_is_exp, Exp *exp1,
-                    int right_is_exp, Exp *exp2) {
+                    int left_is_attr, RelAttr *left_attr, Value *left_value, Exp *left_exp,
+                    int right_is_attr, RelAttr *right_attr, Value *right_value, Exp *right_exp) {
   condition->comp = comp;
-  condition->left_is_attr = 2;
-  if (left_is_exp) {
-    condition->left_exp = exp1;
-  } 
-
-  condition->right_is_attr = 2;
-
-  if (right_is_exp) {
-    condition->right_exp = exp2;
+  condition->left_is_attr = left_is_attr;
+  if (left_is_attr == 1) {
+    condition->left_attr = *left_attr;
+  } else if (left_is_attr == 2){
+    condition->left_exp = left_exp;
+  }else {
+    condition->left_value = *left_value;
   }
-  // 打印出后缀表达式
-  std::cout<< "left : 后缀表达式" << std::endl;
-  for (int i=0; i <  condition->left_exp->exp_num; i++){
-    if (condition->left_exp->expnodes[i].type == 1){
-      std::cout<< *(int *)condition->left_exp->expnodes[i].v.value.data << std::endl;
-    }
-    if (condition->left_exp->expnodes[i].type == 2){
-      std::cout<< condition->left_exp->expnodes[i].v.attr.attribute_name << std::endl;
-    }
-    if (condition->left_exp->expnodes[i].type == 3){
-      std::cout<< condition->left_exp->expnodes[i].v.op << std::endl;
+
+  condition->right_is_attr = right_is_attr;
+  if (right_is_attr == 1) {
+    condition->right_attr = *right_attr;
+  } else if (right_is_attr == 2){
+    condition->right_exp = right_exp;
+  }else {
+    condition->right_value = *right_value;
+  }
+
+  if (left_is_attr == 2){
+    // 打印出后缀表达式
+    std::cout<< "left : 后缀表达式" << std::endl;
+    for (int i=0; i <  condition->left_exp->exp_num; i++){
+      if (condition->left_exp->expnodes[i].type == 1){
+        std::cout<< *(int *)condition->left_exp->expnodes[i].v.value.data << std::endl;
+      }
+      if (condition->left_exp->expnodes[i].type == 2){
+        std::cout<< condition->left_exp->expnodes[i].v.attr.attribute_name << std::endl;
+      }
+      if (condition->left_exp->expnodes[i].type == 3){
+        std::cout<< condition->left_exp->expnodes[i].v.op << std::endl;
+      }
     }
   }
-  
-  std::cout<< "right : 后缀表达式" << std::endl;
-  for (int i=0; i < condition->right_exp->exp_num; i++){
-    if (condition->right_exp->expnodes[i].type == 1){
-      std::cout<< *(int *)condition->right_exp->expnodes[i].v.value.data << std::endl;
-    }
-    if (condition->right_exp->expnodes[i].type == 2){
-      std::cout<< condition->right_exp->expnodes[i].v.attr.attribute_name << std::endl;
-    }
-    if (condition->right_exp->expnodes[i].type == 3){
-      std::cout<< condition->right_exp->expnodes[i].v.op << std::endl;
+  if(right_is_attr == 2){
+    std::cout<< "right : 后缀表达式" << std::endl;
+    for (int i=0; i < condition->right_exp->exp_num; i++){
+      if (condition->right_exp->expnodes[i].type == 1){
+        std::cout<< *(int *)condition->right_exp->expnodes[i].v.value.data << std::endl;
+      }
+      if (condition->right_exp->expnodes[i].type == 2){
+        std::cout<< condition->right_exp->expnodes[i].v.attr.attribute_name << std::endl;
+      }
+      if (condition->right_exp->expnodes[i].type == 3){
+        std::cout<< condition->right_exp->expnodes[i].v.op << std::endl;
+      }
     }
   }
 }
+
 
 
 void condition_init_with_comp(Condition *condition, CompOp comp){
@@ -382,6 +396,26 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
     selects->conditions[index++] = conditions[i];
   }
   selects->condition_num = end - start;
+}
+
+void selects_append_exp(Selects *selects, Exp *exp){
+  if(selects->lsn < 0 or selects->lsn > MAX_NUM) selects->lsn = 0;
+  exp->lsn = selects->lsn++;
+  selects->exp_list[selects->exp_num++] = *exp;
+  std::cout << "append exp->lsn--- " << exp->lsn << std::endl;
+  std::cout<< "here print attri exp : 后缀表达式" << std::endl;
+  for (int i=0; i < exp->exp_num; i++){
+    if (exp->expnodes[i].type == 1){
+      std::cout<< *(int *)exp->expnodes[i].v.value.data << std::endl;
+    }
+    if (exp->expnodes[i].type == 2){
+      std::cout<< exp->expnodes[i].v.attr.attribute_name << std::endl;
+    }
+    if (exp->expnodes[i].type == 3){
+      std::cout<< exp->expnodes[i].v.op << std::endl;
+    }
+  }
+
 }
 
 void selects_append_poly(Selects *selects, Poly *rel_po) {
