@@ -47,7 +47,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
 RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, Condition father_condition, Selects *selects, TupleSet &sub_result_tupleSet);
 void selects_print(const Selects &selects);
 bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects);
-static Selects selects_pool[3];
+static Selects selects_pool[2];
 static int selects_pool_length;
 
 //! Constructor
@@ -254,7 +254,6 @@ RC do_sub_select(Trx *trx, const char *db, const Selects &selects, TupleSet &res
 
   if (select_nodes.empty()) {
     LOG_ERROR("No table given");
-    selects_print(selects);
     return RC::SQL_SYNTAX;
   }
 
@@ -1234,7 +1233,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
 Selects * get_Selects(){
   selects_destroy(&selects_pool[selects_pool_length]);
   Selects * return_selects = &selects_pool[selects_pool_length++];
-  selects_pool_length = selects_pool_length %3 ;
+  selects_pool_length = selects_pool_length % 2;
   return return_selects;
 }
 
@@ -1300,7 +1299,8 @@ bool is_need_and_change_condition(TupleSet &father_tupleSet, Selects *selects, i
       is_need = true;
     }
 
-    if(condition.right_is_attr == 1 && strcmp(condition.right_attr.relation_name, father_name) == 0){
+    LOG_ERROR("%s, condition right attr relation name %s",father_name,selects->conditions[cond_index].right_attr.relation_name);
+    if(condition.right_is_attr == 1 && strcmp(selects->conditions[cond_index].right_attr.relation_name, father_name) == 0){
       int father_index = father_tupleSet.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
       TupleField tuple_field = father_tupleSet.get_schema().field(father_index);
       Value newValue;
@@ -1329,18 +1329,24 @@ bool is_need_and_change_condition(TupleSet &father_tupleSet, Selects *selects, i
       is_need = true;
     }
     if(condition.is_left_sub) {
-      Selects *new_select = get_Selects();
-      *new_select = *selects->conditions[cond_index].left_sub_select;
-      bool sub_is_need = is_need_and_change_condition(father_tupleSet, new_select, current_tuple_index);
-      if(sub_is_need) is_need = sub_is_need;
-      selects->conditions[cond_index].left_sub_select = new_select;
+      Selects new_select = *selects->conditions[cond_index].left_sub_select;
+      bool sub_is_need = is_need_and_change_condition(father_tupleSet, &new_select, current_tuple_index);
+      if(sub_is_need) {
+        is_need = sub_is_need;
+        Selects *new_need_select = get_Selects();
+        *new_need_select = new_select;
+        selects->conditions[cond_index].left_sub_select = new_need_select;
+      }
     }
     if(condition.is_right_sub) {
-      Selects *new_select = get_Selects();
-      *new_select = *selects->conditions[cond_index].right_sub_select;
-      bool sub_is_need = is_need_and_change_condition(father_tupleSet, new_select, current_tuple_index);
-      if(sub_is_need) is_need = sub_is_need;
-      selects->conditions[cond_index].right_sub_select = new_select;
+      Selects new_select = *selects->conditions[cond_index].right_sub_select;
+      bool sub_is_need = is_need_and_change_condition(father_tupleSet, &new_select, current_tuple_index);
+      if(sub_is_need) {
+        is_need = sub_is_need;
+        Selects *new_need_select = get_Selects();
+        *new_need_select = new_select;
+        selects->conditions[cond_index].right_sub_select = new_need_select;
+      }
     }
   }
   return is_need;
@@ -1358,11 +1364,12 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
     Selects new_selects = *selects;
     TupleSet tmp_result;
     LOG_ERROR("级联查询未修改的 condition");
-    selects_print(new_selects);
+    // selects_print(new_selects);
     is_need = is_need_and_change_condition(father_tupleSet,&new_selects,i);
     LOG_ERROR("级联查询修改完 condition");
     selects_print(new_selects);
     if(is_need == false) return RC::GENERIC_ERROR;
+
     rc = do_sub_select(trx,db,new_selects,tmp_result);
 
     LOG_ERROR("级联查询中间结果");
