@@ -279,6 +279,13 @@ bool DefaultConditionFilter::filter(const Record &rec) const
         else if(result != 0 && comp_op_ == OP_NO_IS) return true;
         else return false;
       }
+      case TEXTS:{
+        LOG_ERROR("左边是属性：%s 右边是NULL", left_value);
+        int result = strcmp(left_value, "NUL");
+        if(result == 0 && comp_op_ == OP_IS) return true;
+        else if(result != 0 && comp_op_ == OP_NO_IS) return true;
+        else return false;
+      }
       case DATES:{
         LOG_ERROR("左边是属性：%d 右边是NULL", *(int *)left_value);
         int left = *(int *)left_value;
@@ -313,6 +320,12 @@ bool DefaultConditionFilter::filter(const Record &rec) const
         else if(result != 0 && comp_op_ == OP_NO_IS) return true;
         else return false;
       }
+      case TEXTS:{
+        int result = strcmp(right_value, "NUL");
+        if(result == 0 && comp_op_ == OP_IS) return true;
+        else if(result != 0 && comp_op_ == OP_NO_IS) return true;
+        else return false;
+      }
       case DATES:{
         int right = *(int *)right_value;
         if(right == 0 && comp_op_ == OP_IS) return true;
@@ -341,6 +354,10 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   int cmp_result = 0;
   switch (left_attr_type_) {
     case CHARS: {  // 字符串都是定长的，直接比较
+      // 按照C字符串风格来定
+      cmp_result = strcmp(left_value, right_value);
+    } break;
+    case TEXTS: {  // 字符串都是定长的，直接比较
       // 按照C字符串风格来定
       cmp_result = strcmp(left_value, right_value);
     } break;

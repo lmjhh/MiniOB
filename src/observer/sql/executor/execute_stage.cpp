@@ -1285,6 +1285,12 @@ bool is_need_and_change_condition(TupleSet &father_tupleSet, Selects *selects, i
         value_init_string(&newValue, ss.str().c_str());
       }
         break;
+      case TEXTS:{
+        std::stringstream ss;
+        values[father_index]->to_string(ss);
+        value_init_string(&newValue, ss.str().c_str());
+      }
+        break;
       case DATES:
         value_init_integer(&newValue,(int)values[father_index]->getValue());
         break;
@@ -1310,6 +1316,12 @@ bool is_need_and_change_condition(TupleSet &father_tupleSet, Selects *selects, i
         value_init_integer(&newValue,(int)values[father_index]->getValue());
         break;
       case CHARS:{
+        std::stringstream ss;
+        values[father_index]->to_string(ss);
+        value_init_string(&newValue, ss.str().c_str());
+      }
+        break;
+      case TEXTS:{
         std::stringstream ss;
         values[father_index]->to_string(ss);
         value_init_string(&newValue, ss.str().c_str());
