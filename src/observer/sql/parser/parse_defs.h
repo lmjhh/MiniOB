@@ -113,7 +113,7 @@ typedef struct {
 
 // 聚合函数
 typedef struct {
-  RelAttr   attributes[MAX_NUM];    // attrs in Select clause
+  RelAttr   attributes[10];    // attrs in Select clause
   size_t    attr_num;
   PolyAttr  poly_attr;              // 标志聚合函数的名字
   int       isAttr;                  // 值还是类型
