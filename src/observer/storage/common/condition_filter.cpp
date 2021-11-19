@@ -92,6 +92,43 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     type_left = condition.left_value.type;
 
     left.attr_index = 0;
+  } else if(2 == condition.left_is_attr) { //是个表达式
+    if(exp_is_only_value(condition.left_exp)){
+      left.is_attr = 0;
+      float result;
+      bool is_compute = compute_exp(condition.left_exp, &result);
+      LOG_ERROR("左边计算结果 %f",result);
+      if(is_compute == false) return RC::GENERIC_ERROR;
+      Value value;
+      value_init_float(&value, result);
+      left.value = value.data;
+      type_left = value.type;
+      left.attr_index = 0;
+    }else {
+      left.is_attr = 2;
+      for(int i = 0; i < condition.left_exp -> exp_num; i++){
+        left.exp = condition.left_exp;
+        if(condition.right_exp->expnodes[i].type == 2){
+          const FieldMeta *field_left = table_meta.field(condition.left_exp->expnodes[i].v.attr.attribute_name);
+          if (nullptr == field_left) {
+            LOG_WARN("No such field in condition. %s.%s", table.name(), condition.left_exp->expnodes[i].v.attr.attribute_name);
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+          left.attr_lengths[left.attr_index] = field_left->len();
+          left.attr_offsets[left.attr_index] = field_left->offset();
+          left.attr_types[left.attr_index] = field_left->type();
+          left.value = nullptr;
+
+          type_left = field_left->type();
+          left.attr_index++;
+        }
+      }
+      if(left.exp->exp_num == 1){
+        left.is_attr = 1;
+      }else{
+        type_left = FLOATS;
+      }
+    }
   }
 
   if (1 == condition.right_is_attr) {
@@ -103,6 +140,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     }
     right.attr_lengths[right.attr_index] = field_right->len();
     right.attr_offsets[right.attr_index] = field_right->offset();
+
     type_right = field_right->type();
 
     right.value = nullptr;
@@ -113,6 +151,44 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
     type_right = condition.right_value.type;
 
     right.attr_index=0;
+  } else if(2 == condition.right_is_attr) { //是个表达式
+    if(exp_is_only_value(condition.right_exp)){
+      right.is_attr = 0;
+      float result;
+      bool is_compute = compute_exp(condition.right_exp, &result);
+      LOG_ERROR("右边计算结果 %f",result);
+      if(is_compute == false) return RC::GENERIC_ERROR;
+      Value value;
+      value_init_float(&value, result);
+      right.value = value.data;
+      type_right = value.type;
+      right.attr_index = 0;
+    }else {
+      for(int i = 0; i < condition.right_exp -> exp_num; i++){
+        right.is_attr = 2;
+        right.exp = condition.right_exp;
+        if(condition.right_exp->expnodes[i].type == 2){
+          const FieldMeta *field_left = table_meta.field(condition.right_exp->expnodes[i].v.attr.attribute_name);
+          if (nullptr == field_left) {
+            LOG_WARN("No such field in condition. %s.%s", table.name(), condition.right_exp->expnodes[i].v.attr.attribute_name);
+            return RC::SCHEMA_FIELD_MISSING;
+          }
+          right.attr_lengths[right.attr_index] = field_left->len();
+          right.attr_offsets[right.attr_index] = field_left->offset();
+          right.attr_types[left.attr_index] = field_left->type();
+
+          right.value = nullptr;
+
+          type_right = field_left->type();
+          right.attr_index++;
+        }
+      }
+      if(right.exp->exp_num == 1){
+        right.is_attr = 1;
+      }else{
+        type_right = FLOATS;
+      }
+    }
   }
 
   if(type_left != type_right 
@@ -134,7 +210,31 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     left_value = (char *)(rec.data + left_.attr_offsets[left_.attr_index - 1]);
   } else if(left_.is_attr == 0){
     left_value = (char *)left_.value;
+  } else if (left_.is_attr == 2){
+    for(int i = 0; i < left_.exp->exp_num; i++){
+      int current_index = 0;
+      if(left_.exp->expnodes[i].type == 2){
+        if(left_.attr_types[current_index] == FLOATS){
+          float record_value = *(float *)(rec.data + left_.attr_offsets[current_index++]);
+          Value value;
+          value_init_float(&value, record_value);
+          left_.exp->expnodes[i].type = 1;
+          left_.exp->expnodes[i].v.value = value;    
+        }  
+        if(left_.attr_types[current_index] == INTS){
+          int record_value = *(int *)(rec.data + left_.attr_offsets[current_index++]);
+          Value value;
+          value_init_float(&value, record_value);
+          left_.exp->expnodes[i].v.value = value;   
+        }     
+      }
+    }
+    float result;
+    bool is_compute = compute_exp(left_.exp, &result);
+    LOG_ERROR("左边计算结果 %f",result);
+    if(is_compute == false) return RC::GENERIC_ERROR;
   }
+  
 
   if (right_.is_attr == 1) {
     right_value = (char *)(rec.data + right_.attr_offsets[left_.attr_index - 1]);
@@ -385,17 +485,18 @@ bool operate(float a, char theta, float b, float &r) { //计算二元表达式�
 	else if (theta == '*')
 		r = a * b;
 	else {
-		if (b - 0.0 < 1e-8 || 0.0 - b < 1e-8)  //如果除数为0，返回错误信息
+		if ((b - 0.0 < 1e-8 && b > 0.0) || (0.0 - b < 1e-8 && b < 0))  //如果除数为0，返回错误信息
 			return false;
-		else
+		else {
 			r = a / b;
+    }
 	}
 	return true;
 }
 
 
 // 传入表达式，返回结果到result
-bool compute_exp(Exp* exp, float &result){
+bool compute_exp(Exp* exp, float *result){
   // 此表达式只会有两种节点，value&&op
   std::cerr << "开始表达式计算 一共 " << exp->exp_num << "个表达式" << std::endl;
   float a, b, r;
@@ -414,6 +515,19 @@ bool compute_exp(Exp* exp, float &result){
       OPND.push(v);
     }
     if (exp->expnodes[i].type == 3){
+      if (strcmp(exp->expnodes[i].v.op, "u")==0){
+        // 单目运算符，只取出一个操作数
+        b = OPND.top();
+        OPND.pop();
+        if(operate(0.0, '-', b, r)){
+          OPND.push(r);
+        }
+        else{
+          //计算错误，按照null处理
+          return false;
+        }
+        continue;
+      }
       //是运算符，则取两个数字出来计算
       b = OPND.top();
       OPND.pop();
@@ -428,6 +542,6 @@ bool compute_exp(Exp* exp, float &result){
       }
     }
   }
-  result = OPND.top();
+  *result = OPND.top();
   return true;
 }
