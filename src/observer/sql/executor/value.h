@@ -18,12 +18,16 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 #include <stdlib.h>
 #include <string>
+
 #include <iostream>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>    
 #include <fcntl.h>
 #include "storage/default/disk_buffer_pool.h"
+
+
+
 
 class TupleValue {
 public:
@@ -235,6 +239,7 @@ public:
       std::cerr<<"-----text"<<text<<std::endl;
       close(fd);
       os << text;
+
       
     }
   }

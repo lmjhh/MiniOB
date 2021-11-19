@@ -871,10 +871,10 @@ IndexScanner *Table::find_index_for_scan(const DefaultConditionFilter &filter) {
     return nullptr;
   }
 
-  const FieldMeta *field_meta = table_meta_.find_field_by_offset(field_cond_desc->attr_offset);
+  const FieldMeta *field_meta = table_meta_.find_field_by_offset(field_cond_desc->attr_offsets[0]);
   if (nullptr == field_meta) {
     LOG_PANIC("Cannot find field by offset %d. table=%s",
-              field_cond_desc->attr_offset, name());
+              field_cond_desc->attr_offsets[0], name());
     return nullptr;
   }
   char * fields[1];
