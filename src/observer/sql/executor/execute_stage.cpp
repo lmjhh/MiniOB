@@ -441,7 +441,7 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
   return RC::SUCCESS;
 }
 
-int only_one_table(Exp * exp, const char * table_name){
+int only_one_table(Exp * exp, const char * table_name, Table *table){
   for (int i=0; i<exp->exp_num; i++){
     if (exp->expnodes[i].type == 2){
       if (exp->expnodes[i].v.attr.relation_name != nullptr){
@@ -449,6 +449,10 @@ int only_one_table(Exp * exp, const char * table_name){
           // 如果表格不符合，就返回0
           return 0;
         }
+      }else{
+        TupleSchema tmpschema;
+        RC rc = schema_add_field(table, exp->expnodes[i].v.attr.relation_name, tmpschema);
+        if(rc != SUCCESS) return 0;
       }
     }
   }
@@ -571,6 +575,7 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
           } 
         } 
       }
+      // if(attr.left_is_attr == 2 && attr.right_is_attr == 2)
     }
   }
 
@@ -635,8 +640,8 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
 
   // 找出仅与此表相关的过滤条件, 或者都是值的过滤条件
   std::vector<DefaultConditionFilter *> condition_filters;
-  for (size_t i = 0; i < selects.condition_num; i++) {
-    const Condition &condition = selects.conditions[i];
+  for (size_t i = 0; i < selects.condition_num; i++) {  
+    Condition condition = selects.conditions[i];
     if(condition.is_right_sub) continue;
 
     if ((condition.left_is_attr == 0 && condition.right_is_attr == 0) || // 两边都是值
@@ -657,9 +662,9 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       condition_filters.push_back(condition_filter);
     }
     if(condition.left_is_attr == 2 && condition.right_is_attr==2){
-      if(only_one_table(condition.left_exp, table_name) && only_one_table(condition.right_exp, table_name)){
+      if(only_one_table(selects.conditions[i].left_exp, table_name, table) && only_one_table(selects.conditions[i].right_exp, table_name, table)){
         DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
-        RC rc = condition_filter->init(*table, condition);
+        RC rc = condition_filter->init(*table, selects.conditions[i]);
         if (rc != RC::SUCCESS) {
           delete condition_filter;
           for (DefaultConditionFilter * &filter : condition_filters) {
@@ -669,59 +674,12 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         }
         condition_filters.push_back(condition_filter);
         std::cout << "add one table exp condition" << std::endl;
-        }
+      }
     }
 
   }
 
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
-}
-
-bool operate(float a, char theta, float b, float &r) { //计算二元表达式的值
-	if (theta == '+')
-		r = a + b;
-	else if (theta == '-')
-		r = a - b;
-	else if (theta == '*')
-		r = a * b;
-	else {
-		if (b - 0.0 < 1e-8 || 0.0 - b < 1e-8)  //如果除数为0，返回错误信息
-			return false;
-		else
-			r = a / b;
-	}
-	return true;
-}
-
-// 传入表达式，返回结果到result
-bool compute_exp(Exp* exp, float &result){
-  // 此表达式只会有两种节点，value&&op
-  float a, b, r;
-  std::stack<float> OPND;
-
-  for(int i=0; i< exp->exp_num; i++){
-    if (exp->expnodes[i].type == 1){
-      // 压入数字栈
-      float v = *(float *)exp->expnodes[i].v.value.data;
-      OPND.push(v);
-    }
-    if (exp->expnodes[i].type == 3){
-      //是运算符，则取两个数字出来计算
-      b = OPND.top();
-      OPND.pop();
-      a = OPND.top();
-      OPND.pop();
-      if(operate(a, *exp->expnodes[i].v.op, b, r)){
-        OPND.push(r);
-      }
-      else{
-        //计算错误，按照null处理
-        return false;
-      }
-    }
-  }
-  result = OPND.top();
-  return true;
 }
 
 
@@ -1504,17 +1462,32 @@ void selects_print(const Selects &selects){
 
   for (size_t i = 0; i < selects.condition_num; i++){
     Condition condition = selects.conditions[i];
-    if(condition.left_is_attr){
+    if(condition.left_is_attr == 1){
       RelAttr attr = condition.left_attr;
       if(attr.relation_name == nullptr){
         LOG_ERROR("Condition left attr : %s", attr.attribute_name);
       }else{
         LOG_ERROR("Condition left attr : %s.%s", attr.relation_name,attr.attribute_name);
       }
-    }else if(condition.is_left_sub == 0){
+    }else if(condition.left_is_attr == 0){
       Value value = condition.left_value;
       LOG_ERROR("Condition left value %d", *(int *)value.data);
+    }else if(condition.left_is_attr == 2){
+      // 打印出后缀表达式
+      std::cout<< "left : 后缀表达式" << std::endl;
+      for (int i=0; i <  condition.left_exp->exp_num; i++){
+        if (condition.left_exp->expnodes[i].type == 1){
+          std::cout<< *(int *)condition.left_exp->expnodes[i].v.value.data << std::endl;
+        }
+        if (condition.left_exp->expnodes[i].type == 2){
+          std::cout<< condition.left_exp->expnodes[i].v.attr.attribute_name << std::endl;
+        }
+        if (condition.left_exp->expnodes[i].type == 3){
+          std::cout<< condition.left_exp->expnodes[i].v.op << std::endl;
+        }
+      }
     }
+
     switch (condition.comp)
     {
     case EQUAL_TO:
@@ -1550,17 +1523,32 @@ void selects_print(const Selects &selects){
     default:
       break;
     }
-    if(condition.right_is_attr){
+    if(condition.right_is_attr == 1){
       RelAttr attr = condition.right_attr;
       if(attr.relation_name == nullptr){
         LOG_ERROR("Condition right attr  : %s" , attr.attribute_name);
       }else{
         LOG_ERROR("Condition right attr  : %s.%s", attr.relation_name,attr.attribute_name);
       }
-    }else if(condition.is_right_sub == 0){
+    }else if(condition.right_is_attr == 0){
       Value value = condition.right_value;
       LOG_ERROR("Condition right value %d", *(int *)value.data);
+    }else if(condition.right_is_attr == 2){
+      // 打印出后缀表达式
+      std::cout<< "right : 后缀表达式" << std::endl;
+      for (int i=0; i < condition.right_exp->exp_num; i++){
+        if (condition.right_exp->expnodes[i].type == 1){
+          std::cout<< *(int *)condition.right_exp->expnodes[i].v.value.data << std::endl;
+        }
+        if (condition.right_exp->expnodes[i].type == 2){
+          std::cout<< condition.right_exp->expnodes[i].v.attr.attribute_name << std::endl;
+        }
+        if (condition.right_exp->expnodes[i].type == 3){
+          std::cout<< condition.right_exp->expnodes[i].v.op << std::endl;
+        }
+      }
     }
+  
 
     if(condition.left_sub_select != nullptr){
       LOG_ERROR("---------------------left_sub_selects---------------");

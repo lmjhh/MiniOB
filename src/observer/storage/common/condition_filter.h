@@ -17,15 +17,16 @@ See the Mulan PSL v2 for more details. */
 
 #include "rc.h"
 #include "sql/parser/parse.h"
-
+#include <stack>
 struct Record;
 class Table;
 
 struct ConDesc {
-  bool   is_attr;     // 是否属性，false 表示是值
+  int    is_attr;     // 0 表示值， 1表示 attr 2表示表达式
   int    attr_length; // 如果是属性，表示属性值长度
   int    attr_offset; // 如果是属性，表示在记录中的偏移量
   void * value;       // 如果是值类型，这里记录值的数据
+  Exp * exp;  
 };
 
 class ConditionFilter {
@@ -95,5 +96,13 @@ private:
   int                           filter_num_ = 0;
   bool                          memory_owner_ = false; // filters_的内存是否由自己来控制
 };
+
+/* 表达式相关函数 */
+bool exp_is_only_value(Exp * exp);
+
+bool operate(float a, char theta, float b, float &r);
+
+// 传入表达式，返回结果到result
+bool compute_exp(Exp* exp, float &result);
 
 #endif // __OBSERVER_STORAGE_COMMON_CONDITION_FILTER_H_
