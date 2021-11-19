@@ -30,6 +30,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/bplus_tree_index.h"
 #include "storage/trx/trx.h"
 
+static int text_id = 0;
+
 Table::Table() : 
     data_buffer_pool_(nullptr),
     file_id_(-1),
@@ -377,7 +379,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       std::cerr<<"-----table_meta_.name():"<<table_meta_.name()<<std::endl;
       const char *filed_name = field->name();
       std::cerr<<"-----field->name():"<<field->name()<<std::endl;
-      std::string text_file = base_dir_ + "/" + table_name + filed_name;
+      std::string text_file = base_dir_ + "/" + table_name + filed_name + std::to_string(++text_id);
       std::cerr<<"-----text_file:"<<text_file<<std::endl;
       int fd = ::open(text_file.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
       int len = strlen((char *)value.data);
