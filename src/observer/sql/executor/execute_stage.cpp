@@ -451,7 +451,7 @@ int only_one_table(Exp * exp, const char * table_name, Table *table){
         }
       }else{
         TupleSchema tmpschema;
-        RC rc = schema_add_field(table, exp->expnodes[i].v.attr.relation_name, tmpschema);
+        RC rc = schema_add_field(table, exp->expnodes[i].v.attr.attribute_name, tmpschema);
         if(rc != SUCCESS) return 0;
       }
     }
@@ -661,9 +661,10 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       }
       condition_filters.push_back(condition_filter);
     }
-    if(condition.left_is_attr == 2 && condition.right_is_attr==2){
-      if(only_one_table(selects.conditions[i].left_exp, table_name, table) && only_one_table(selects.conditions[i].right_exp, table_name, table)){
+    if((condition.left_is_attr == 2 || condition.right_is_attr == 2)){
+      if(only_one_table(selects.conditions[i].left_exp, table_name, table)){
         DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
+        LOG_ERROR("准备构建表达式 condition");
         RC rc = condition_filter->init(*table, selects.conditions[i]);
         if (rc != RC::SUCCESS) {
           delete condition_filter;

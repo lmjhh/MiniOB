@@ -68,6 +68,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
   ConDesc left;
   ConDesc right;
 
+  left.attr_index = 0;
+  right.attr_index = 0;
+
   AttrType type_left = UNDEFINED;
   AttrType type_right = UNDEFINED;
 
@@ -105,10 +108,11 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       type_left = value.type;
       left.attr_index = 0;
     }else {
+      LOG_ERROR("输入带属性的表达式");
       left.is_attr = 2;
       for(int i = 0; i < condition.left_exp -> exp_num; i++){
         left.exp = condition.left_exp;
-        if(condition.right_exp->expnodes[i].type == 2){
+        if(condition.left_exp->expnodes[i].type == 2){
           const FieldMeta *field_left = table_meta.field(condition.left_exp->expnodes[i].v.attr.attribute_name);
           if (nullptr == field_left) {
             LOG_WARN("No such field in condition. %s.%s", table.name(), condition.left_exp->expnodes[i].v.attr.attribute_name);
@@ -117,6 +121,9 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
           left.attr_lengths[left.attr_index] = field_left->len();
           left.attr_offsets[left.attr_index] = field_left->offset();
           left.attr_types[left.attr_index] = field_left->type();
+
+          LOG_ERROR("左边表达式属性名 %s",condition.left_exp->expnodes[i].v.attr.attribute_name);
+          LOG_ERROR("左边表达式属性类型 %d", field_left->type());
           left.value = nullptr;
 
           type_left = field_left->type();
@@ -129,6 +136,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
         type_left = FLOATS;
       }
     }
+    LOG_ERROR("左边表达式Condition构建成功");
   }
 
   if (1 == condition.right_is_attr) {
@@ -211,28 +219,35 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   } else if(left_.is_attr == 0){
     left_value = (char *)left_.value;
   } else if (left_.is_attr == 2){
-    for(int i = 0; i < left_.exp->exp_num; i++){
+    LOG_ERROR("开始生成左边表达式Filter");
+    Exp tmpExp = *left_.exp;
+    for(int i = 0; i < tmpExp.exp_num; i++){
       int current_index = 0;
-      if(left_.exp->expnodes[i].type == 2){
+      if(tmpExp.expnodes[i].type == 2){
+        LOG_ERROR("当前属性类型 %d", left_.attr_types[current_index]);
         if(left_.attr_types[current_index] == FLOATS){
           float record_value = *(float *)(rec.data + left_.attr_offsets[current_index++]);
+          LOG_ERROR("从record中读到value = %f",record_value);
           Value value;
           value_init_float(&value, record_value);
-          left_.exp->expnodes[i].type = 1;
-          left_.exp->expnodes[i].v.value = value;    
+          tmpExp.expnodes[i].type = 1;
+          tmpExp.expnodes[i].v.value = value;    
         }  
         if(left_.attr_types[current_index] == INTS){
           int record_value = *(int *)(rec.data + left_.attr_offsets[current_index++]);
+          LOG_ERROR("从record中读到value = %d",record_value);
           Value value;
-          value_init_float(&value, record_value);
-          left_.exp->expnodes[i].v.value = value;   
+          value_init_integer(&value, record_value);
+          tmpExp.expnodes[i].type = 1;
+          tmpExp.expnodes[i].v.value = value;   
         }     
       }
     }
     float result;
-    bool is_compute = compute_exp(left_.exp, &result);
+    bool is_compute = compute_exp(&tmpExp, &result);
     LOG_ERROR("左边计算结果 %f",result);
-    if(is_compute == false) return RC::GENERIC_ERROR;
+    if(is_compute == false) return false;
+    left_value = (char *)&result;
   }
   
 
