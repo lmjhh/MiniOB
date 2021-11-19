@@ -682,7 +682,6 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
   return select_node.init(trx, table, std::move(schema), std::move(condition_filters));
 }
 
-
 RC table_Join_execute(TupleSet &table1, TupleSet &table2, const Selects &selects, TupleSet &return_tupleSet){
   std::cout << "ready join table 1, size = " << table1.size() << " table 2, size = " << table2.size() << std::endl;
   TupleSet result_tupleSet;
