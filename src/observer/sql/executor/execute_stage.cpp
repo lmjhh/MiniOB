@@ -1469,9 +1469,6 @@ void selects_print(const Selects &selects){
       }else{
         LOG_ERROR("Condition left attr : %s.%s", attr.relation_name,attr.attribute_name);
       }
-    }else if(condition.left_is_attr == 0){
-      Value value = condition.left_value;
-      LOG_ERROR("Condition left value %d", *(int *)value.data);
     }else if(condition.left_is_attr == 2){
       // 打印出后缀表达式
       std::cout<< "left : 后缀表达式" << std::endl;
@@ -1530,9 +1527,6 @@ void selects_print(const Selects &selects){
       }else{
         LOG_ERROR("Condition right attr  : %s.%s", attr.relation_name,attr.attribute_name);
       }
-    }else if(condition.right_is_attr == 0){
-      Value value = condition.right_value;
-      LOG_ERROR("Condition right value %d", *(int *)value.data);
     }else if(condition.right_is_attr == 2){
       // 打印出后缀表达式
       std::cout<< "right : 后缀表达式" << std::endl;

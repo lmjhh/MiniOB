@@ -36,8 +36,7 @@ typedef struct ParserContext {
 
 	int selects_tmp_pool_length;
 	Selects selects_tmp_pool[5];
-	// Exp exp_pool[6];
-	// int exp_pool_length;
+
 } ParserContext;
 
 //获取子串
