@@ -706,6 +706,19 @@ bool compute_exp(Exp* exp, float &result){
       OPND.push(v);
     }
     if (exp->expnodes[i].type == 3){
+      if (strcmp(exp->expnodes[i].v.op, "u")==0){
+        // 单目运算符，只取出一个操作数
+        b = OPND.top();
+        OPND.pop();
+        if(operate(0.0, '-', b, r)){
+          OPND.push(r);
+        }
+        else{
+          //计算错误，按照null处理
+          return false;
+        }
+        continue;
+      }
       //是运算符，则取两个数字出来计算
       b = OPND.top();
       OPND.pop();

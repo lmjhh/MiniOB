@@ -939,6 +939,13 @@ expression:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
         }
+	| MINUS expression  %prec UMINUS{ 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "u");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=-$2; 
+		}
     | LBRACE expression RBRACE {
 		//$$=$2; 
 		}
