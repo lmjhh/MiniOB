@@ -389,8 +389,12 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       write(fd, (char *)value.data, len);
       close(fd);
 
-      int filed_len = strlen(text_file.c_str());
-      memcpy(record + field->offset(), text_file.c_str(), filed_len);
+      char filed_context[64];
+      strcpy(filed_context, text_file.c_str());
+      int filed_len = strlen(filed_context);
+      std::cerr<<"---filed_len"<<filed_len<<std::endl;
+      filed_context[filed_len] = '\0';
+      memcpy(record + field->offset(), filed_context, filed_len+1);   //长度加1
     }
     else{
       memcpy(record + field->offset(), value.data, field->len());
