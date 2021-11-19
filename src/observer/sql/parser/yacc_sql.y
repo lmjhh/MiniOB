@@ -174,7 +174,8 @@ ParserContext *get_context(yyscan_t scanner)
 %type <condition1> condition;
 %type <value1> value;
 %type <number> number;
-
+%type <string> expression;
+%type <string> expression_with_op;
 %%
 
 commands:		//commands or sqls. parser starts here.
@@ -636,7 +637,10 @@ mix_list:
 
 expression_attr:
 	expression_with_op{
+		//记录当前exp的名称
+		set_exp_name(&CONTEXT->exp[CONTEXT->exp_length], $1);
 		CONTEXT->exp_length++ ;
+		
 	}
 	;
 
@@ -916,6 +920,10 @@ expression_with_op:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 		//$$=$1+$3; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"+");
+		strcat($$,$3);
 		}
     | expression MINUS expression  { 
 		ExpNode expnode;
@@ -924,6 +932,10 @@ expression_with_op:
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 
 		//$$=$1-$3; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"-");
+		strcat($$,$3);
 		}
     | expression STAR expression  { 
 		ExpNode expnode;
@@ -932,12 +944,20 @@ expression_with_op:
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 
 		//$$=$1*$3; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"*");
+		strcat($$,$3);
 		}
     | expression DIVE expression {
 		ExpNode expnode;
 		expnode_init(&expnode, 3, NULL, NULL, "/");
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"/");
+		strcat($$,$3);
         }
 	| MINUS expression  %prec UMINUS{ 
 		ExpNode expnode;
@@ -945,9 +965,16 @@ expression_with_op:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 		//$$=-$2; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,"-");
+		strcat($$,$2);
 		}
     | LBRACE expression RBRACE {
 		//$$=$2; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,"(");
+		strcat($$,$2);
+		strcat($$,")");
 	}
 	;
 
@@ -958,6 +985,10 @@ expression:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 		//$$=$1+$3; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"+");
+		strcat($$,$3);
 		}
     | expression MINUS expression  { 
 		ExpNode expnode;
@@ -966,6 +997,10 @@ expression:
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 
 		//$$=$1-$3; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"-");
+		strcat($$,$3);
 		}
     | expression STAR expression  { 
 		ExpNode expnode;
@@ -974,12 +1009,21 @@ expression:
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 
 		//$$=$1*$3; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"*");
+		strcat($$,$3);
 		}
     | expression DIVE expression {
 		ExpNode expnode;
 		expnode_init(&expnode, 3, NULL, NULL, "/");
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,"/");
+		strcat($$,$3);
         }
 	| MINUS expression  %prec UMINUS{ 
 		ExpNode expnode;
@@ -987,9 +1031,16 @@ expression:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 		//$$=-$2; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,"-");
+		strcat($$,$2);
 		}
     | LBRACE expression RBRACE {
 		//$$=$2; 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,"(");
+		strcat($$,$2);
+		strcat($$,")");
 		}
     | value { 
 		Value *value = &CONTEXT->values[CONTEXT->value_length - 1];
@@ -998,6 +1049,32 @@ expression:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 		//$$=$1; 
+		
+		$$=(char*)malloc(50*sizeof(char)); 
+		if(value->type == INTS){sprintf($$, "%d", *(int *)value->data);}
+
+		if(value->type == FLOATS){
+			char fomatValueStr[10];
+			sprintf(fomatValueStr, "%.2f", *(float *)value->data);
+			if (NULL != strchr(fomatValueStr, '.')){
+				int length = strlen(fomatValueStr);
+				for (int i = length - 1; i > 0; i--) {
+					if ('\0' == fomatValueStr[i]) {
+						continue;
+					}else if ('0' == fomatValueStr[i]) {
+						fomatValueStr[i] = '\0';
+					}else if ('.' == fomatValueStr[i]) {
+						fomatValueStr[i] = '\0';
+						break;
+					}else{
+						break;
+					}
+				}
+      		}
+			strcpy($$,fomatValueStr);
+		}
+		// strcpy($$,*(int *)value->data);
+		// strcat($$," ");
 		}
 	| ID {
 		RelAttr attr;
@@ -1006,6 +1083,10 @@ expression:
 		expnode_init(&expnode,2, NULL, &attr, NULL);
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		// strcat($$," ");
 	}
 	| ID DOT ID {
 		RelAttr attr;
@@ -1015,6 +1096,11 @@ expression:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
 
+		$$=(char*)malloc(50*sizeof(char)); 
+		strcpy($$,$1);
+		strcat($$,".");
+		strcat($$,$3);
+		// strcat($$," ");
 	}
     ;
 

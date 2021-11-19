@@ -79,6 +79,7 @@ typedef struct {
   ExpNode expnodes[MAX_EXP_NODE_NUM]; // 算数表达式的后缀表达式
   int exp_num;
   size_t lsn;
+  char* exp_name;
 } Exp;
 
 
@@ -302,6 +303,7 @@ void push_to_exp(Exp *exp, ExpNode *expnode);
 void expnode_init(ExpNode *expnode, int type, Value *value, RelAttr *attr, char *op);
 void exp_swap_with_other(Exp *exp, Exp *other);
 void selects_append_exp(Selects *selects, Exp *exp);
+void set_exp_name(Exp *exp, const char *name);
 
 void poly_init(Poly *poly_tmp, const char *poly_name);
 void poly_destroy(Poly *poly_tmp);

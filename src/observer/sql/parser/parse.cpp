@@ -266,7 +266,12 @@ void condition_init_exp(Condition *condition, CompOp comp,
     std::cout<< "left : 后缀表达式" << std::endl;
     for (int i=0; i <  condition->left_exp->exp_num; i++){
       if (condition->left_exp->expnodes[i].type == 1){
-        std::cout<< *(int *)condition->left_exp->expnodes[i].v.value.data << std::endl;
+        if (left_exp->expnodes[i].v.value.type == INTS){
+          std::cout<< *(int *)left_exp->expnodes[i].v.value.data << std::endl;
+        }
+        if (left_exp->expnodes[i].v.value.type == FLOATS){
+          std::cout<< *(float *)left_exp->expnodes[i].v.value.data << std::endl;
+        }      
       }
       if (condition->left_exp->expnodes[i].type == 2){
         std::cout<< condition->left_exp->expnodes[i].v.attr.attribute_name << std::endl;
@@ -280,7 +285,12 @@ void condition_init_exp(Condition *condition, CompOp comp,
     std::cout<< "right : 后缀表达式" << std::endl;
     for (int i=0; i < condition->right_exp->exp_num; i++){
       if (condition->right_exp->expnodes[i].type == 1){
-        std::cout<< *(int *)condition->right_exp->expnodes[i].v.value.data << std::endl;
+        if (right_exp->expnodes[i].v.value.type == INTS){
+          std::cout<< *(int *)right_exp->expnodes[i].v.value.data << std::endl;
+        }
+        if (right_exp->expnodes[i].v.value.type == FLOATS){
+          std::cout<< *(float *)right_exp->expnodes[i].v.value.data << std::endl;
+
       }
       if (condition->right_exp->expnodes[i].type == 2){
         std::cout<< condition->right_exp->expnodes[i].v.attr.attribute_name << std::endl;
@@ -290,7 +300,9 @@ void condition_init_exp(Condition *condition, CompOp comp,
       }
     }
   }
+  }
 }
+                 
 
 
 
@@ -389,6 +401,10 @@ void expnode_init(ExpNode *expnode, int type, Value *value, RelAttr *attr, char 
     expnode->v.op = strdup(op);
   }
 }
+void set_exp_name(Exp *exp,const char *name){
+  exp->exp_name = strdup(name);
+}
+
 void selects_append_conditions(Selects *selects, Condition conditions[], size_t start, size_t end) {
   // assert((end - start)) <= sizeof(selects->conditions)/sizeof(selects->conditions[0]));
   int index = 0;
@@ -403,10 +419,15 @@ void selects_append_exp(Selects *selects, Exp *exp){
   exp->lsn = selects->lsn++;
   selects->exp_list[selects->exp_num++] = *exp;
   std::cout << "append exp->lsn--- " << exp->lsn << std::endl;
-  std::cout<< "here print attri exp : 后缀表达式" << std::endl;
+  std::cout<< "here print attri exp : 后缀表达式" << exp->exp_name << std::endl;
   for (int i=0; i < exp->exp_num; i++){
     if (exp->expnodes[i].type == 1){
-      std::cout<< *(int *)exp->expnodes[i].v.value.data << std::endl;
+      if (exp->expnodes[i].v.value.type == INTS){
+        std::cout<< *(int *)exp->expnodes[i].v.value.data << std::endl;
+      }
+      if (exp->expnodes[i].v.value.type == FLOATS){
+        std::cout<< *(float *)exp->expnodes[i].v.value.data << std::endl;
+      }
     }
     if (exp->expnodes[i].type == 2){
       std::cout<< exp->expnodes[i].v.attr.attribute_name << std::endl;
