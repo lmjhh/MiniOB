@@ -36,8 +36,7 @@ typedef struct ParserContext {
 
 	int selects_tmp_pool_length;
 	Selects selects_tmp_pool[5];
-	// Exp exp_pool[6];
-	// int exp_pool_length;
+
 } ParserContext;
 
 //获取子串
@@ -635,7 +634,7 @@ mix_list:
   ;
 
 expression_attr:
-	expression{
+	expression_with_op{
 		CONTEXT->exp_length++ ;
 	}
 	;
@@ -909,6 +908,48 @@ and_key:
 		}
 		;
 
+expression_with_op:
+	expression PLUS expression{ 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "+");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=$1+$3; 
+		}
+    | expression MINUS expression  { 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "-");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		//$$=$1-$3; 
+		}
+    | expression STAR expression  { 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "*");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+
+		//$$=$1*$3; 
+		}
+    | expression DIVE expression {
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "/");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+        }
+	| MINUS expression  %prec UMINUS{ 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "u");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=-$2; 
+		}
+    | LBRACE expression RBRACE {
+		//$$=$2; 
+	}
+	;
+
 expression:
 	expression PLUS expression{ 
 		ExpNode expnode;
@@ -939,6 +980,13 @@ expression:
 		// 入当前栈
 		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
         }
+	| MINUS expression  %prec UMINUS{ 
+		ExpNode expnode;
+		expnode_init(&expnode, 3, NULL, NULL, "u");
+		// 入当前栈
+		push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+		//$$=-$2; 
+		}
     | LBRACE expression RBRACE {
 		//$$=$2; 
 		}
@@ -968,6 +1016,8 @@ expression:
 
 	}
     ;
+
+
 
 
 condition:
@@ -1095,14 +1145,48 @@ condition:
 			// $$->right_attr.relation_name=$5;
 			// $$->right_attr.attribute_name=$7;
     }
+	| ID comOp expression_attr{
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, NULL, $1);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, NULL, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
+
+	}
+	| expression_attr comOp ID{
+		RelAttr right_attr;
+		relation_attr_init(&right_attr, NULL, $3);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1], 1, &right_attr, NULL, NULL);
+	}	
+	| ID DOT ID comOp expression_attr{
+		RelAttr left_attr;
+		relation_attr_init(&left_attr, $1, $3);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &left_attr, NULL, NULL, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
+
+	}
+	| expression_attr comOp ID DOT ID {
+		RelAttr right_attr;
+		relation_attr_init(&right_attr, $3, $5);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1], 1, &right_attr, NULL, NULL);
+
+	}
+	| value comOp expression_attr{
+		Value *left_value = &CONTEXT->values[CONTEXT->value_length - 1];
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 0, NULL, left_value, NULL, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
+
+
+	}
+	| expression_attr comOp value{
+		Value *right_value = &CONTEXT->values[CONTEXT->value_length - 1];
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1], 0, NULL, right_value, NULL);
+
+	}
 	| expression_attr comOp expression_attr {
 		// exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[0]);
 		// CONTEXT->exp_pool_length++ ;
 		// exp_swap_with_other(&CONTEXT->exp_pool[CONTEXT->exp_pool_length], &CONTEXT->exp[1]);
 
-		// condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 1, &CONTEXT->exp[CONTEXT->exp_length-2], 1, &CONTEXT->exp[CONTEXT->exp_length-1]);
+		condition_init_exp(&CONTEXT->conditions[CONTEXT->condition_length - 1], CONTEXT->comp, 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-2], 2, NULL, NULL, &CONTEXT->exp[CONTEXT->exp_length-1]);
 		// CONTEXT->exp_length++;
-		// CONTEXT->exp_length = CONTEXT->exp_length % MAX_EXP_TMP_NUM;
+		CONTEXT->exp_length = CONTEXT->exp_length % MAX_EXP_TMP_NUM;
 		// 将临时变量清空
 		//  exp_destroy(&CONTEXT->exp[0]);
 		//  exp_destroy(&CONTEXT->exp[1]);
