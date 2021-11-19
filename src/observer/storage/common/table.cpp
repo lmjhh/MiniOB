@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 #include <algorithm>
 
+
+
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
 #include "common/log/log.h"
@@ -349,8 +351,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       }
         break;
       case AttrType::TEXTS:{
-          int null_int = OB_INT_MIN;
-          int *vdata = &null_int;
+          char vdata[4] = "NUL";
           memcpy(record + field->offset(), vdata, field->len()); 
       }
         break;
@@ -372,33 +373,22 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       memcpy(record + field->offset(), &i2fdata, field->len());
     }
     else if(field->type() == AttrType::TEXTS){
-      //分配一个页
-      RC ret = RC::SUCCESS;
-      BPPageHandle page_handle;
-      if ((ret = data_buffer_pool_->allocate_page(file_id_, &page_handle)) != RC::SUCCESS) {
-        LOG_ERROR("Failed to allocate page while inserting record. file_it:%d, ret:%d",
-                file_id_, ret);
-        return ret;
-      }
-      //把text内容复制进去
-      char *data;
-      ret = data_buffer_pool_->get_data(&page_handle, &data);
-      if (ret != RC::SUCCESS) {
-        LOG_ERROR("Failed to get page data. ret=%d:%s", ret, strrc(ret));
-        return ret;
-      }
+      const char *table_name = table_meta_.name();
+      std::cerr<<"-----table_meta_.name():"<<table_meta_.name()<<std::endl;
+      const char *filed_name = field->name();
+      std::cerr<<"-----field->name():"<<field->name()<<std::endl;
+      std::string text_file = base_dir_ + "/" + table_name + filed_name;
+      std::cerr<<"-----text_file:"<<text_file<<std::endl;
+      int fd = ::open(text_file.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
       int len = strlen((char *)value.data);
       std::cerr<<"---len:"<<len<<std::endl;
       if(len > 4096) 
-        len = 4096;  
-      memcpy(data, value.data, len);
+        len = 4096;
+      write(fd, (char *)value.data, len);
+      close(fd);
 
-      std::cerr<<"---memcpy suc1"<<std::endl;
-      //把得到的page_id+offset填入属性框
-      int page_id = page_handle.frame->page.page_num;
-      int addr = (file_id_<<22) + (page_id<<12) + len;
-      memcpy(record + field->offset(), &addr, field->len());
-      std::cerr<<"---memcpy suc2"<<std::endl;
+      int filed_len = strlen(text_file.c_str());
+      memcpy(record + field->offset(), text_file.c_str(), filed_len);
     }
     else{
       memcpy(record + field->offset(), value.data, field->len());

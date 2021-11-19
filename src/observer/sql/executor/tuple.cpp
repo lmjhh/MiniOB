@@ -62,8 +62,8 @@ void Tuple::addDate(int value) {
   add(new DateValue(value));
 }
 
-void Tuple::addText(int value) {
-  add(new TextValue(value));
+void Tuple::addText(const char *s, int len) {
+  add(new TextValue(s, len));
 }
 
 void Tuple::add(const char *s, int len) {
@@ -362,9 +362,10 @@ void TupleRecordConverter::add_record(const char *record) {
         int value = *(int*)(record + field_meta->offset());
         tuple.addDate(value);
       }
+      break;
       case TEXTS: {
-        int value = *(int*)(record + field_meta->offset());
-        tuple.addText(value);
+        const char *s = record + field_meta->offset();   // 现在当做Cstring来处理
+        tuple.addText(s, strlen(s));
       }
       break;
       case INTS: {
