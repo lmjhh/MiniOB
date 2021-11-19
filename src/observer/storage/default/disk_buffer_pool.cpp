@@ -35,6 +35,7 @@ DiskBufferPool *theGlobalDiskBufferPool()
 
 RC DiskBufferPool::create_file(const char *file_name)
 {
+  std::cerr<<"---filepath:"<<file_name<<std::endl;
   int fd = open(file_name, O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
   if (fd < 0) {
     LOG_ERROR("Failed to create %s, due to %s.", file_name, strerror(errno));

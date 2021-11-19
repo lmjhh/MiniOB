@@ -25,8 +25,8 @@ See the Mulan PSL v2 for more details. */
 #define MAX_DATA 50
 #define OB_FLT_MIN 1.17549435e-38F
 #define OB_INT_MIN -2147483648
-#define MAX_EXP_NODE_NUM 20
-#define MAX_EXP_TMP_NUM 6
+#define MAX_EXP_NODE_NUM 13
+#define MAX_EXP_TMP_NUM 5
 //属性结构体
 typedef struct {
   char *relation_name;   // relation name (may be NULL) 表名
@@ -114,7 +114,7 @@ typedef struct {
 
 // 聚合函数
 typedef struct {
-  RelAttr   attributes[MAX_NUM];    // attrs in Select clause
+  RelAttr   attributes[10];    // attrs in Select clause
   size_t    attr_num;
   PolyAttr  poly_attr;              // 标志聚合函数的名字
   int       isAttr;                  // 值还是类型
@@ -125,16 +125,16 @@ typedef struct {
 
 // Order By
 typedef struct {
-  RelAttr   attributes[MAX_NUM];    //保存所有要排序的列
+  RelAttr   attributes[5];    //保存所有要排序的列
   size_t    attr_num;               //列的个数
-  OrderType order_type[MAX_NUM];    //对应升序还是降序
+  OrderType order_type[5];    //对应升序还是降序
 } OrderBy;
 
 // GropuBy
 typedef struct {
-  RelAttr   attributes[MAX_NUM];    //保存所有要排序的列
+  RelAttr   attributes[5];    //保存所有要排序的列
   size_t    attr_num;               //列的个数
-  OrderType order_type[MAX_NUM];    //对应升序还是降序
+  OrderType order_type[5];    //对应升序还是降序
 } GroupBy;
 
 // struct of select

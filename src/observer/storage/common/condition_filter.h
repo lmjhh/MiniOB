@@ -25,6 +25,7 @@ struct ConDesc {
   int    is_attr;     // 0 表示值， 1表示 attr 2表示表达式
   int    attr_lengths[10]; // 如果是属性，表示属性值长度
   int    attr_offsets[10]; // 如果是属性，表示在记录中的偏移量
+  int    attr_types[10];   // 如果是数学，记录属性类型 int/float
   int    attr_index;
   void * value;       // 如果是值类型，这里记录值的数据
   Exp * exp;  
@@ -104,6 +105,6 @@ bool exp_is_only_value(Exp * exp);
 bool operate(float a, char theta, float b, float &r);
 
 // 传入表达式，返回结果到result
-bool compute_exp(Exp* exp, float &result);
+bool compute_exp(Exp* exp, float *result);
 
 #endif // __OBSERVER_STORAGE_COMMON_CONDITION_FILTER_H_

@@ -17,6 +17,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "storage/common/table_meta.h"
 
+
 class DiskBufferPool;
 class RecordFileHandler;
 class ConditionFilter;

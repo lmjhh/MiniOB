@@ -18,8 +18,16 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 #include <stdlib.h>
 #include <string>
-#include <ostream>
-// #include "storage/default/disk_buffer_pool.h"
+
+#include <iostream>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>    
+#include <fcntl.h>
+#include "storage/default/disk_buffer_pool.h"
+
+
+
 
 class TupleValue {
 public:
@@ -212,53 +220,46 @@ public:
 class TextValue : public TupleValue {
 
 public:
-  explicit TextValue(int value) : value_(value) {
+  TextValue(const char *value, int len) : value_(value, len){
+  }
+  explicit TextValue(const char *value) : value_(value) {
   }
 
   void to_string(std::ostream &os) const override {
-    if(value_ == 0) os<<"NULL";
+    if(value_ == "NUL") os << "NULL";
     else{
-      // int a = 1, b=1;
-      // a = a << 12;
-      // b = b << 22;
-      // int offset = value_ % a;
-      // int page_num = (value_ % b) / a;
-      // int file_id = value_ >> 22;
+      int fd = open(value_.c_str(), O_RDONLY);
+      if(fd==-1){
+        std::cerr<<"can not open the file"<<std::endl;
+        return;
+      }
+      char text[4096] = {"\0"};
+      read(fd, text, 4096);
+      std::cerr<<"-----value_"<<value_<<std::endl;
+      std::cerr<<"-----text"<<text<<std::endl;
+      close(fd);
+      os << text;
 
-      // DiskBufferPool *disk_buffer_pool = theGlobalDiskBufferPool();
-      // RC ret = RC::SUCCESS;
-      // BPPageHandle page_handle;
-      // if ((ret = disk_buffer_pool->get_this_page(file_id, page_num, &page_handle)) != RC::SUCCESS) {
-      //   return;
-      // }
-      // char *data;
-      // ret = disk_buffer_pool->get_data(&page_handle, &data);
-      // if (ret != RC::SUCCESS) {
-      //   return;
-      // }
-
-      // char text[4096];
-      // memcpy(text, data, offset);
-      // os << text;
       
     }
   }
 
   int compare(const TupleValue &other) const override {
-    return 0;
+    const TextValue &string_other = (const TextValue &)other;
+    return strcmp(value_.c_str(), string_other.value_.c_str());
   }
 
   bool isNull() const override{
-    if(value_ == 0) return true;
+    if(value_ == "NUL") return true;
     return false; 
   }
 
   float getValue() const override{
-    return value_*1.0;
+    return 0.0;
   }
 
   private:
-    int value_;
+    std::string value_;
 };
 
 #endif //__OBSERVER_SQL_EXECUTOR_VALUE_H_

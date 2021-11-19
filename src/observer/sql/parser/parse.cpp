@@ -358,6 +358,8 @@ void attr_info_init(AttrInfo *attr_info, const char *name, AttrType type, size_t
   attr_info->is_nullable = is_null_able;
   std::cerr<<"----type:"<<type<<std::endl;
   attr_info->length = length;
+  if(type == AttrType::TEXTS)
+    attr_info->length = 64;
 }
 void attr_info_destroy(AttrInfo *attr_info) {
   free(attr_info->name);
