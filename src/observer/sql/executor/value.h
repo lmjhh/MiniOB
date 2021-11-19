@@ -235,8 +235,8 @@ public:
       }
       char text[4096] = {"\0"};
       read(fd, text, 4096);
-      std::cerr<<"-----value_"<<value_<<std::endl;
-      std::cerr<<"-----text"<<text<<std::endl;
+      //std::cerr<<"-----value_"<<value_<<std::endl;
+      //std::cerr<<"-----text"<<text<<std::endl;
       close(fd);
       os << text;
 

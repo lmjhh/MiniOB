@@ -314,8 +314,8 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
   for (int i = 0; i < value_num; i++) {
     const FieldMeta *field = table_meta_.field(i + normal_field_start_index);
     const Value &value = values[i];
-    std::cerr<<"---field->type():"<<field->type()<<std::endl;
-    std::cerr<<"---value.type:"<<value.type<<std::endl;
+    //std::cerr<<"---field->type():"<<field->type()<<std::endl;
+    //std::cerr<<"---value.type:"<<value.type<<std::endl;
     if ( field->type() != value.type && field->is_nullable() == false ) {
       if(field->type() == TEXTS && value.type == CHARS)
         continue;
@@ -376,14 +376,14 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
     }
     else if(field->type() == AttrType::TEXTS){
       const char *table_name = table_meta_.name();
-      std::cerr<<"-----table_meta_.name():"<<table_meta_.name()<<std::endl;
+      //std::cerr<<"-----table_meta_.name():"<<table_meta_.name()<<std::endl;
       const char *filed_name = field->name();
-      std::cerr<<"-----field->name():"<<field->name()<<std::endl;
+      //std::cerr<<"-----field->name():"<<field->name()<<std::endl;
       std::string text_file = base_dir_ + "/" + table_name + filed_name + std::to_string(++text_id);
-      std::cerr<<"-----text_file:"<<text_file<<std::endl;
+      //std::cerr<<"-----text_file:"<<text_file<<std::endl;
       int fd = ::open(text_file.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
       int len = strlen((char *)value.data);
-      std::cerr<<"---len:"<<len<<std::endl;
+      //std::cerr<<"---len:"<<len<<std::endl;
       if(len > 4096) 
         len = 4096;
       write(fd, (char *)value.data, len);
@@ -392,7 +392,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       char filed_context[64];
       strcpy(filed_context, text_file.c_str());
       int filed_len = strlen(filed_context);
-      std::cerr<<"---filed_len"<<filed_len<<std::endl;
+      //std::cerr<<"---filed_len"<<filed_len<<std::endl;
       filed_context[filed_len] = '\0';
       memcpy(record + field->offset(), filed_context, filed_len+1);   //长度加1
     }
@@ -608,9 +608,9 @@ RC Table::create_index(Trx *trx, const char *index_name, char * const attribute_
 
   // 遍历当前的所有数据，插入这个索引
   IndexInserter index_inserter(index);
-  std::cerr<<"---bp3"<<std::endl;
+  //std::cerr<<"---bp3"<<std::endl;
   rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
-  std::cerr<<"---bp3"<<std::endl;
+  //std::cerr<<"---bp3"<<std::endl;
   if (rc != RC::SUCCESS) {
     // rollback
     delete index;
@@ -705,10 +705,10 @@ RC Table::update_record(Trx *trx, ConditionFilter *filter, const char *attribute
       }
     }
   }
-  std::cerr<<"---bp1"<<std::endl;
+  //std::cerr<<"---bp1"<<std::endl;
   RC rc = scan_record(trx, filter, -1, &updater, record_reader_update_adapter);
-  std::cerr<<"---rc:"<<rc<<std::endl;
-  std::cerr<<"---bp1"<<std::endl;
+  //std::cerr<<"---rc:"<<rc<<std::endl;
+  //std::cerr<<"---bp1"<<std::endl;
   if (updated_count != nullptr) {
     *updated_count = updater.updated_count();
   }
@@ -815,9 +815,9 @@ static RC record_reader_delete_adapter(Record *record, void *context) {
 
 RC Table::delete_record(Trx *trx, ConditionFilter *filter, int *deleted_count) {
   RecordDeleter deleter(*this, trx);
-  std::cerr<<"---bp2"<<std::endl;
+  //std::cerr<<"---bp2"<<std::endl;
   RC rc = scan_record(trx, filter, -1, &deleter, record_reader_delete_adapter);
-  std::cerr<<"---bp2"<<std::endl;
+  //std::cerr<<"---bp2"<<std::endl;
   if (deleted_count != nullptr) {
     *deleted_count = deleter.deleted_count();
   }
