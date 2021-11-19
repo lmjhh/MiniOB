@@ -176,18 +176,18 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
         right.is_attr = 2;
         right.exp = condition.right_exp;
         if(condition.right_exp->expnodes[i].type == 2){
-          const FieldMeta *field_left = table_meta.field(condition.right_exp->expnodes[i].v.attr.attribute_name);
-          if (nullptr == field_left) {
+          const FieldMeta *field_right = table_meta.field(condition.right_exp->expnodes[i].v.attr.attribute_name);
+          if (nullptr == field_right) {
             LOG_WARN("No such field in condition. %s.%s", table.name(), condition.right_exp->expnodes[i].v.attr.attribute_name);
             return RC::SCHEMA_FIELD_MISSING;
           }
-          right.attr_lengths[right.attr_index] = field_left->len();
-          right.attr_offsets[right.attr_index] = field_left->offset();
-          right.attr_types[left.attr_index] = field_left->type();
+          right.attr_lengths[right.attr_index] = field_right->len();
+          right.attr_offsets[right.attr_index] = field_right->offset();
+          right.attr_types[right.attr_index] = field_right->type();
 
           right.value = nullptr;
 
-          type_right = field_left->type();
+          type_right = field_right->type();
           right.attr_index++;
         }
       }
@@ -252,9 +252,39 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   
 
   if (right_.is_attr == 1) {
-    right_value = (char *)(rec.data + right_.attr_offsets[left_.attr_index - 1]);
+    right_value = (char *)(rec.data + right_.attr_offsets[right_.attr_index - 1]);
   } else if(right_.is_attr == 0){
     right_value = (char *)right_.value;
+  } else if (right_.is_attr == 2){
+    LOG_ERROR("开始生成右边表达式Filter");
+    Exp tmpExp = *right_.exp;
+    for(int i = 0; i < tmpExp.exp_num; i++){
+      int current_index = 0;
+      if(tmpExp.expnodes[i].type == 2){
+        LOG_ERROR("当前属性类型 %d", right_.attr_types[current_index]);
+        if(right_.attr_types[current_index] == FLOATS){
+          float record_value = *(float *)(rec.data + right_.attr_offsets[current_index++]);
+          LOG_ERROR("从record中读到value = %f",record_value);
+          Value value;
+          value_init_float(&value, record_value);
+          tmpExp.expnodes[i].type = 1;
+          tmpExp.expnodes[i].v.value = value;    
+        }  
+        if(right_.attr_types[current_index] == INTS){
+          int record_value = *(int *)(rec.data + right_.attr_offsets[current_index++]);
+          LOG_ERROR("从record中读到value = %d",record_value);
+          Value value;
+          value_init_integer(&value, record_value);
+          tmpExp.expnodes[i].type = 1;
+          tmpExp.expnodes[i].v.value = value;   
+        }     
+      }
+    }
+    float result;
+    bool is_compute = compute_exp(&tmpExp, &result);
+    LOG_ERROR("右边计算结果 %f",result);
+    if(is_compute == false) return false;
+    right_value = (char *)&result;
   }
 
 
@@ -363,8 +393,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
         float left = *(int *)left_value * 1.0;
         float right = *(float *)right_value;  
         if(left - right < 0.00001 && left - right >= 0) cmp_result = 0;
-        if(left - right > 0.00001) cmp_result = 1;
-        if(left - right < 0.00001) cmp_result = -1;     
+        else if(left - right > 0.00001) cmp_result = 1;
+        else if(left - right < 0.00001) cmp_result = -1;     
       }
     } break;
     case FLOATS: {
@@ -372,15 +402,15 @@ bool DefaultConditionFilter::filter(const Record &rec) const
         float left = *(float *)left_value;
         float right = *(float *)right_value;
         if(left - right < 0.00001 && left - right >= 0) cmp_result = 0;
-        if(left - right > 0.00001) cmp_result = 1;
-        if(left - right < 0.00001) cmp_result = -1;
+        else if(left - right > 0.00001) cmp_result = 1;
+        else if(left - right < 0.00001) cmp_result = -1;
       }
       if(right_attr_type_ == INTS){
         float left = *(float *)left_value;
         float right = *(int *)right_value * 1.0;
         if(left - right < 0.00001 && left - right >= 0) cmp_result = 0;
-        if(left - right > 0.00001) cmp_result = 1;
-        if(left - right < 0.00001) cmp_result = -1;       
+        else if(left - right > 0.00001) cmp_result = 1;
+        else if(left - right < 0.00001) cmp_result = -1;       
       }
     } break;
     case NULLS: {

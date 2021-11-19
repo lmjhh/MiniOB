@@ -660,8 +660,10 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       }
       condition_filters.push_back(condition_filter);
     }
-    if((condition.left_is_attr == 2 || condition.right_is_attr == 2)){
-      if(only_one_table(selects.conditions[i].left_exp, table_name, table)){
+
+    if( (condition.left_is_attr == 2 && condition.right_is_attr != 2 && only_one_table(selects.conditions[i].left_exp, table_name, table)) ||
+        (condition.left_is_attr != 2 && condition.right_is_attr == 2 && only_one_table(selects.conditions[i].right_exp, table_name, table)) ||
+        (condition.left_is_attr == 2 && condition.right_is_attr == 2 && only_one_table(selects.conditions[i].left_exp, table_name, table) && only_one_table(selects.conditions[i].right_exp, table_name, table)) ){
         DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
         LOG_ERROR("准备构建表达式 condition");
         RC rc = condition_filter->init(*table, selects.conditions[i]);
@@ -674,7 +676,6 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
         }
         condition_filters.push_back(condition_filter);
         std::cout << "add one table exp condition" << std::endl;
-      }
     }
 
   }
@@ -1478,18 +1479,18 @@ void selects_print(const Selects &selects){
       }
     }else if(condition.left_is_attr == 2){
       // 打印出后缀表达式
-      std::cout<< "left : 后缀表达式" << std::endl;
-      for (int i=0; i <  condition.left_exp->exp_num; i++){
-        if (condition.left_exp->expnodes[i].type == 1){
-          std::cout<< *(int *)condition.left_exp->expnodes[i].v.value.data << std::endl;
-        }
-        if (condition.left_exp->expnodes[i].type == 2){
-          std::cout<< condition.left_exp->expnodes[i].v.attr.attribute_name << std::endl;
-        }
-        if (condition.left_exp->expnodes[i].type == 3){
-          std::cout<< condition.left_exp->expnodes[i].v.op << std::endl;
-        }
-      }
+      // std::cout<< "left : 后缀表达式" << std::endl;
+      // for (int i=0; i <  condition.left_exp->exp_num; i++){
+      //   if (condition.left_exp->expnodes[i].type == 1){
+      //     std::cout<< *(int *)condition.left_exp->expnodes[i].v.value.data << std::endl;
+      //   }
+      //   if (condition.left_exp->expnodes[i].type == 2){
+      //     std::cout<< condition.left_exp->expnodes[i].v.attr.attribute_name << std::endl;
+      //   }
+      //   if (condition.left_exp->expnodes[i].type == 3){
+      //     std::cout<< condition.left_exp->expnodes[i].v.op << std::endl;
+      //   }
+      // }
     }
 
     switch (condition.comp)
@@ -1536,18 +1537,18 @@ void selects_print(const Selects &selects){
       }
     }else if(condition.right_is_attr == 2){
       // 打印出后缀表达式
-      std::cout<< "right : 后缀表达式" << std::endl;
-      for (int i=0; i < condition.right_exp->exp_num; i++){
-        if (condition.right_exp->expnodes[i].type == 1){
-          std::cout<< *(int *)condition.right_exp->expnodes[i].v.value.data << std::endl;
-        }
-        if (condition.right_exp->expnodes[i].type == 2){
-          std::cout<< condition.right_exp->expnodes[i].v.attr.attribute_name << std::endl;
-        }
-        if (condition.right_exp->expnodes[i].type == 3){
-          std::cout<< condition.right_exp->expnodes[i].v.op << std::endl;
-        }
-      }
+      // std::cout<< "right : 后缀表达式" << std::endl;
+      // for (int i=0; i < condition.right_exp->exp_num; i++){
+      //   if (condition.right_exp->expnodes[i].type == 1){
+      //     std::cout<< *(int *)condition.right_exp->expnodes[i].v.value.data << std::endl;
+      //   }
+      //   if (condition.right_exp->expnodes[i].type == 2){
+      //     std::cout<< condition.right_exp->expnodes[i].v.attr.attribute_name << std::endl;
+      //   }
+      //   if (condition.right_exp->expnodes[i].type == 3){
+      //     std::cout<< condition.right_exp->expnodes[i].v.op << std::endl;
+      //   }
+      // }
     }
   
 
