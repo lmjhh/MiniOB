@@ -47,7 +47,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
 RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, Condition father_condition, Selects *selects, TupleSet &sub_result_tupleSet);
 void selects_print(const Selects &selects);
 bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects);
-static Selects selects_pool[18];
+static Selects selects_pool[2];
 static int selects_pool_length;
 
 //! Constructor
@@ -1233,7 +1233,7 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
 Selects * get_Selects(){
   selects_destroy(&selects_pool[selects_pool_length]);
   Selects * return_selects = &selects_pool[selects_pool_length++];
-  selects_pool_length = selects_pool_length % 18;
+  selects_pool_length = selects_pool_length % 2;
   return return_selects;
 }
 
@@ -1329,18 +1329,24 @@ bool is_need_and_change_condition(TupleSet &father_tupleSet, Selects *selects, i
       is_need = true;
     }
     if(condition.is_left_sub) {
-      Selects *new_select = get_Selects();
-      *new_select = *selects->conditions[cond_index].left_sub_select;
-      bool sub_is_need = is_need_and_change_condition(father_tupleSet, new_select, current_tuple_index);
-      if(sub_is_need) is_need = sub_is_need;
-      selects->conditions[cond_index].left_sub_select = new_select;
+      Selects new_select = *selects->conditions[cond_index].left_sub_select;
+      bool sub_is_need = is_need_and_change_condition(father_tupleSet, &new_select, current_tuple_index);
+      if(sub_is_need) {
+        is_need = sub_is_need;
+        Selects *new_need_select = get_Selects();
+        *new_need_select = new_select;
+        selects->conditions[cond_index].left_sub_select = new_need_select;
+      }
     }
     if(condition.is_right_sub) {
-      Selects *new_select = get_Selects();
-      *new_select = *selects->conditions[cond_index].right_sub_select;
-      bool sub_is_need = is_need_and_change_condition(father_tupleSet, new_select, current_tuple_index);
-      if(sub_is_need) is_need = sub_is_need;
-      selects->conditions[cond_index].right_sub_select = new_select;
+      Selects new_select = *selects->conditions[cond_index].right_sub_select;
+      bool sub_is_need = is_need_and_change_condition(father_tupleSet, &new_select, current_tuple_index);
+      if(sub_is_need) {
+        is_need = sub_is_need;
+        Selects *new_need_select = get_Selects();
+        *new_need_select = new_select;
+        selects->conditions[cond_index].right_sub_select = new_need_select;
+      }
     }
   }
   return is_need;
@@ -1355,16 +1361,16 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
   //如果子查询用到了父查询，
   for(int i = 0; i < father_tupleSet.size(); i++){
     const std::vector<std::shared_ptr<TupleValue>> &values = father_tupleSet.get(i).values();
-    Selects *new_selects = get_Selects();
-    *new_selects = *selects;
+    Selects new_selects = *selects;
     TupleSet tmp_result;
     LOG_ERROR("级联查询未修改的 condition");
     // selects_print(new_selects);
-    is_need = is_need_and_change_condition(father_tupleSet,new_selects,i);
+    is_need = is_need_and_change_condition(father_tupleSet,&new_selects,i);
     LOG_ERROR("级联查询修改完 condition");
-    selects_print(*new_selects);
+    selects_print(new_selects);
     if(is_need == false) return RC::GENERIC_ERROR;
-    rc = do_sub_select(trx,db,*new_selects,tmp_result);
+
+    rc = do_sub_select(trx,db,new_selects,tmp_result);
 
     LOG_ERROR("级联查询中间结果");
     std::stringstream aa;
