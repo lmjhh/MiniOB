@@ -18,7 +18,7 @@ See the Mulan PSL v2 for more details. */
 #include <stddef.h>
 #include <string.h>
 
-#define MAX_NUM 18
+#define MAX_NUM 20
 #define MAX_REL_NAME 20
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
@@ -124,16 +124,16 @@ typedef struct {
 
 // Order By
 typedef struct {
-  RelAttr   attributes[MAX_NUM];    //保存所有要排序的列
+  RelAttr   attributes[5];    //保存所有要排序的列
   size_t    attr_num;               //列的个数
-  OrderType order_type[MAX_NUM];    //对应升序还是降序
+  OrderType order_type[5];    //对应升序还是降序
 } OrderBy;
 
 // GropuBy
 typedef struct {
-  RelAttr   attributes[MAX_NUM];    //保存所有要排序的列
+  RelAttr   attributes[5];    //保存所有要排序的列
   size_t    attr_num;               //列的个数
-  OrderType order_type[MAX_NUM];    //对应升序还是降序
+  OrderType order_type[5];    //对应升序还是降序
 } GroupBy;
 
 // struct of select
