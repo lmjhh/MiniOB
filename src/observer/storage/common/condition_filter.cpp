@@ -26,13 +26,11 @@ ConditionFilter::~ConditionFilter()
 DefaultConditionFilter::DefaultConditionFilter()
 {
   left_.is_attr = false;
-  left_.attr_length = 0;
-  left_.attr_offset = 0;
+  left_.attr_index = 0;
   left_.value = nullptr;
 
   right_.is_attr = false;
-  right_.attr_length = 0;
-  right_.attr_offset = 0;
+  left_.attr_index = 0;
   right_.value = nullptr;
 }
 DefaultConditionFilter::~DefaultConditionFilter()
@@ -80,19 +78,20 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.left_attr.attribute_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
-    left.attr_length = field_left->len();
-    left.attr_offset = field_left->offset();
+    left.attr_lengths[left.attr_index] = field_left->len();
+    left.attr_offsets[left.attr_index] = field_left->offset();
 
     left.value = nullptr;
 
     type_left = field_left->type();
+    left.attr_index++;
+
   } else if(0 == condition.left_is_attr) {
     left.is_attr = 0;
     left.value = condition.left_value.data;  // 校验type 或者转换类型
     type_left = condition.left_value.type;
 
-    left.attr_length = 0;
-    left.attr_offset = 0;
+    left.attr_index = 0;
   }
 
   if (1 == condition.right_is_attr) {
@@ -102,18 +101,18 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       LOG_WARN("No such field in condition. %s.%s", table.name(), condition.right_attr.attribute_name);
       return RC::SCHEMA_FIELD_MISSING;
     }
-    right.attr_length = field_right->len();
-    right.attr_offset = field_right->offset();
+    right.attr_lengths[right.attr_index] = field_right->len();
+    right.attr_offsets[right.attr_index] = field_right->offset();
     type_right = field_right->type();
 
     right.value = nullptr;
+    right.attr_index++;
   } else if(0 == condition.right_is_attr){
     right.is_attr = 0;
     right.value = condition.right_value.data;
     type_right = condition.right_value.type;
 
-    right.attr_length = 0;
-    right.attr_offset = 0;
+    right.attr_index=0;
   }
 
   if(type_left != type_right 
@@ -132,13 +131,13 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   char *right_value = nullptr;
 
   if (left_.is_attr == 1) {  // value
-    left_value = (char *)(rec.data + left_.attr_offset);
+    left_value = (char *)(rec.data + left_.attr_offsets[left_.attr_index - 1]);
   } else if(left_.is_attr == 0){
     left_value = (char *)left_.value;
   }
 
   if (right_.is_attr == 1) {
-    right_value = (char *)(rec.data + right_.attr_offset);
+    right_value = (char *)(rec.data + right_.attr_offsets[left_.attr_index - 1]);
   } else if(right_.is_attr == 0){
     right_value = (char *)right_.value;
   }

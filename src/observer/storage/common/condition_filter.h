@@ -23,8 +23,9 @@ class Table;
 
 struct ConDesc {
   int    is_attr;     // 0 表示值， 1表示 attr 2表示表达式
-  int    attr_length; // 如果是属性，表示属性值长度
-  int    attr_offset; // 如果是属性，表示在记录中的偏移量
+  int    attr_lengths[10]; // 如果是属性，表示属性值长度
+  int    attr_offsets[10]; // 如果是属性，表示在记录中的偏移量
+  int    attr_index;
   void * value;       // 如果是值类型，这里记录值的数据
   Exp * exp;  
 };
