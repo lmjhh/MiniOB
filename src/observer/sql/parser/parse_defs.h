@@ -18,14 +18,14 @@ See the Mulan PSL v2 for more details. */
 #include <stddef.h>
 #include <string.h>
 
-#define MAX_NUM 20
+#define MAX_NUM 18
 #define MAX_REL_NAME 20
 #define MAX_ATTR_NAME 20
 #define MAX_ERROR_MESSAGE 20
 #define MAX_DATA 50
 #define OB_FLT_MIN 1.17549435e-38F
 #define OB_INT_MIN -2147483648
-#define MAX_EXP_NODE_NUM 15
+#define MAX_EXP_NODE_NUM 13
 #define MAX_EXP_TMP_NUM 5
 //属性结构体
 typedef struct {
