@@ -176,13 +176,12 @@ void TupleSchema::print(std::ostream &os, bool isMoreTable) const {
 
   for (std::vector<TupleField>::const_iterator iter = fields_.begin(), end = --fields_.end();
        iter != end; ++iter) {
-    if (isMoreTable && std::string(iter->field_name()).find("(")==-1 ) {
+    if (isMoreTable && (strcmp(iter->table_name(), "aggrefunc") !=0 && strcmp(iter->table_name(), "exp") !=0) ) {
       os << iter->table_name() << ".";
     }
     os << iter->field_name() << " | ";
   }
-
-  if (isMoreTable  && std::string(fields_.back().field_name()).find("(")==-1) {
+  if (isMoreTable  && (strcmp(fields_.back().table_name(), "aggrefunc") !=0  && strcmp(fields_.back().table_name(), "exp") !=0) ) {
     os << fields_.back().table_name() << ".";
   }
   os << fields_.back().field_name() << std::endl;

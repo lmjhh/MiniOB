@@ -418,8 +418,27 @@ void selects_append_conditions(Selects *selects, Condition conditions[], size_t 
 
 void selects_append_exp(Selects *selects, Exp *exp){
   if(selects->lsn < 0 or selects->lsn > MAX_NUM) selects->lsn = 0;
+  if(selects->exp_num < 0 || selects->exp_num > 5) selects->exp_num = 0;
   exp->lsn = selects->lsn++;
-  selects->exp_list[selects->exp_num++] = *exp;
+  selects->exp_list[selects->exp_num].exp_num = exp->exp_num;
+  selects->exp_list[selects->exp_num].exp_name = strdup(exp->exp_name);
+  selects->exp_list[selects->exp_num].lsn = exp->lsn;
+  for(int i = 0; i < exp->exp_num; i++){
+    selects->exp_list[selects->exp_num].expnodes[i].type = exp->expnodes[i].type;
+    if(exp->expnodes[i].type == 2){
+      selects->exp_list[selects->exp_num].expnodes[i].v.attr.attribute_name = strdup(exp->expnodes[i].v.attr.attribute_name);
+      if(exp->expnodes[i].v.attr.relation_name != nullptr)
+        selects->exp_list[selects->exp_num].expnodes[i].v.attr.relation_name = strdup(exp->expnodes[i].v.attr.relation_name);
+    }
+    if(exp->expnodes[i].type == 3){
+      selects->exp_list[selects->exp_num].expnodes[i].v.op = strdup(exp->expnodes[i].v.op);
+    }    
+    if(exp->expnodes[i].type == 1){
+      selects->exp_list[selects->exp_num].expnodes[i].v.value = exp->expnodes[i].v.value;
+    } 
+  }
+  selects->exp_num++;
+
   std::cout << "append exp->lsn--- " << exp->lsn << std::endl;
   std::cout<< "here print attri exp : 后缀表达式" << exp->exp_name << std::endl;
   for (int i=0; i < selects->exp_list[selects->exp_num-1].exp_num; i++){

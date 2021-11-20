@@ -1145,11 +1145,11 @@ RC get_ploy_tupleSet(const Poly poly_list[], int poly_num, TupleSet &full_tupleS
         needAttrIndex[needAttrCount++] = 0;
       }
 
-      if(po.poly_attr.poly_type == POAVG) schema.add(FLOATS, relation_name, field_name.c_str());
-      else if(po.poly_attr.poly_type == POCOUNT) schema.add(INTS, relation_name, field_name.c_str());
+      if(po.poly_attr.poly_type == POAVG) schema.add(FLOATS, "aggrefunc", field_name.c_str());
+      else if(po.poly_attr.poly_type == POCOUNT) schema.add(INTS, "aggrefunc", field_name.c_str());
       else {
         const TupleField tuple_field = full_tupleSet.get_schema().field(full_tupleSet.get_schema().index_of_field(relation_name, attr.attribute_name));
-        schema.add(tuple_field.type(), relation_name, field_name.c_str());
+        schema.add(tuple_field.type(), "aggrefunc", field_name.c_str());
       }
   }
   resultTupleSet.set_schema(schema);
