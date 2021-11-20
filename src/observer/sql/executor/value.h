@@ -233,13 +233,16 @@ public:
         std::cerr<<"can not open the file"<<std::endl;
         return;
       }
-      char text[4096] = {"\0"};
+      char text[4096];
+      text[4095] = '\0';
       read(fd, text, 4096);
+      int len = strlen(text);
+      char *new_text = (char *)malloc(len);
+      new_text = strdup(text);
       //std::cerr<<"-----value_"<<value_<<std::endl;
       //std::cerr<<"-----text"<<text<<std::endl;
       close(fd);
-      os << text;
-
+      os << new_text;
       
     }
   }

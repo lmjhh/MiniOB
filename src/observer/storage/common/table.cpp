@@ -383,9 +383,14 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       int fd = ::open(text_file.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
       int len = strlen((char *)value.data);
       //std::cerr<<"---len:"<<len<<std::endl;
-      if(len > 4096) 
-        len = 4096;
-      write(fd, (char *)value.data, len);
+      if(len >= 4096){
+        char * new_text = (char *)malloc(sizeof(char) * 4097);
+        new_text = strdup((char *)value.data);
+        new_text[4095] = '\0';
+        write(fd, new_text, 4096);
+      }else{
+        write(fd, (char *)value.data, len);
+      }
       close(fd);
 
       char filed_context[64];
