@@ -709,10 +709,6 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       condition_filters.push_back(condition_filter);
     }
 
-    if(condition.left_is_attr == 2){
-
-    }
-
     if( (condition.left_is_attr == 2 && condition.right_is_attr != 2 && only_one_table(selects.conditions[i].left_exp, table_name, table) && (condition.right_is_attr == 0 || (condition.right_is_attr == 1 && match_table(selects, condition.right_attr.relation_name, table_name) ))) ||
         (condition.left_is_attr != 2 && condition.right_is_attr == 2 && only_one_table(selects.conditions[i].right_exp, table_name, table) && (condition.left_is_attr == 0 || (condition.left_is_attr == 1 && match_table(selects, condition.left_attr.relation_name, table_name) ) ) ) ||
         (condition.left_is_attr == 2 && condition.right_is_attr == 2 && only_one_table(selects.conditions[i].left_exp, table_name, table) && only_one_table(selects.conditions[i].right_exp, table_name, table)) ){
@@ -1007,6 +1003,32 @@ TupleSet get_exp_final_result(const Selects &selects, TupleSet &full_tupleSet){
   //初始化 resultSchem{
   LOG_ERROR("一共 %d 条属性", selects.lsn);
   schema.clear();
+  for (int index = selects.lsn - 1; index >= 0; index--){
+    int value1_index = -1;
+    for(int attrIndex = selects.attr_num - 1; attrIndex >= 0 ; attrIndex--){
+      if(selects.attributes[attrIndex].lsn == index){
+        if(selects.attributes[attrIndex].relation_name != nullptr){
+          value1_index = full_tupleSet.get_schema().index_of_field(selects.attributes[attrIndex].relation_name, selects.attributes[attrIndex].attribute_name);
+          const TupleField *tmpField = &full_tupleSet.get_schema().field(value1_index);
+          schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());
+        }else{
+          const char *table_name = full_tupleSet.get_schema().field(0).table_name();
+          value1_index = full_tupleSet.get_schema().index_of_field(table_name, selects.attributes[attrIndex].attribute_name);
+          const TupleField *tmpField = &full_tupleSet.get_schema().field(value1_index);  
+          schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());        
+        }
+        break;
+      }
+    }
+    for(int expIndex = 0; expIndex < selects.exp_num ; expIndex++){
+      if(selects.exp_list[expIndex].lsn == index){
+        LOG_ERROR("开始构建表达式 attr ");
+        schema.add_if_not_exists(FLOATS, "exp", selects.exp_list[expIndex].exp_name); 
+      }
+    }
+  }
+
+
   for(int tuple_index = 0; tuple_index < full_tupleSet.size(); tuple_index++){
     const std::vector<std::shared_ptr<TupleValue>> &values = full_tupleSet.get(tuple_index).values();
     Tuple result_tuple;
