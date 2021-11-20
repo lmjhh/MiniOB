@@ -233,7 +233,7 @@ public:
         std::cerr<<"can not open the file"<<std::endl;
         return;
       }
-      char text[4096];
+      char text[4096] = {"\0"};
       text[4095] = '\0';
       read(fd, text, 4096);
       int len = strlen(text);
