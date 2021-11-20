@@ -213,7 +213,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
 {
   char *left_value = nullptr;
   char *right_value = nullptr;
-
+  float left_result;
+  float right_result;
   if (left_.is_attr == 1) {  // value
     left_value = (char *)(rec.data + left_.attr_offsets[left_.attr_index - 1]);
   } else if(left_.is_attr == 0){
@@ -243,11 +244,11 @@ bool DefaultConditionFilter::filter(const Record &rec) const
         }     
       }
     }
-    float result;
-    bool is_compute = compute_exp(&tmpExp, &result);
-    if(is_compute == false) LOG_ERROR("左边计算结果 %f",result);
+  
+    bool is_compute = compute_exp(&tmpExp, &left_result);
+    LOG_ERROR("左边计算结果 %f",left_result);
     if(is_compute == false) return false;
-    left_value = (char *)&result;
+    left_value = (char *)&left_result;
   }
   
 
@@ -280,11 +281,10 @@ bool DefaultConditionFilter::filter(const Record &rec) const
         }     
       }
     }
-    float result;
-    bool is_compute = compute_exp(&tmpExp, &result);
-    LOG_ERROR("右边计算结果 %f",result);
+    bool is_compute = compute_exp(&tmpExp, &right_result);
+    LOG_ERROR("右边计算结果 %f",right_result);
     if(is_compute == false) return false;
-    right_value = (char *)&result;
+    right_value = (char *)&right_result;
   }
 
 
@@ -409,6 +409,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       if(right_attr_type_ == FLOATS){
         float left = *(int *)left_value * 1.0;
         float right = *(float *)right_value;  
+        LOG_ERROR("比较 %f  和  %f",left,right);
         if(left - right < 0.00001 && left - right >= 0) cmp_result = 0;
         else if(left - right > 0.00001) cmp_result = 1;
         else if(left - right < 0.00001) cmp_result = -1;     
@@ -418,6 +419,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       if(right_attr_type_ == FLOATS){
         float left = *(float *)left_value;
         float right = *(float *)right_value;
+        LOG_ERROR("比较 %f  和  %f",left,right);
         if(left - right < 0.00001 && left - right >= 0) cmp_result = 0;
         else if(left - right > 0.00001) cmp_result = 1;
         else if(left - right < 0.00001) cmp_result = -1;
@@ -425,6 +427,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
       if(right_attr_type_ == INTS){
         float left = *(float *)left_value;
         float right = *(int *)right_value * 1.0;
+        LOG_ERROR("比较 %f  和  %f",left,right);
         if(left - right < 0.00001 && left - right >= 0) cmp_result = 0;
         else if(left - right > 0.00001) cmp_result = 1;
         else if(left - right < 0.00001) cmp_result = -1;       
@@ -441,6 +444,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     default: {
     }
   }
+
+  LOG_ERROR("得到比较结果 %d ", cmp_result);
 
   switch (comp_op_) {
     case EQUAL_TO:
