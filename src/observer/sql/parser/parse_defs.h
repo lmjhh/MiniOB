@@ -25,7 +25,7 @@ See the Mulan PSL v2 for more details. */
 #define MAX_DATA 50
 #define OB_FLT_MIN 1.17549435e-38F
 #define OB_INT_MIN -2147483648
-#define MAX_EXP_NODE_NUM 18
+#define MAX_EXP_NODE_NUM 25
 #define MAX_EXP_TMP_NUM 5
 //属性结构体
 typedef struct {
@@ -150,7 +150,7 @@ struct _Selects{
   OrderBy   order_by;               // 需要排序的列集合
   GroupBy   group_by;
   size_t    lsn;                    //用来排序 group by poly 和 attr
-  Exp       exp_list[5];
+  Exp       exp_list[8];
   size_t    exp_num; 
 };
 
