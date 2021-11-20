@@ -96,18 +96,18 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
     left.attr_index = 0;
   } else if(2 == condition.left_is_attr) { //是个表达式
-    if(exp_is_only_value(condition.left_exp)){
-      left.is_attr = 0;
-      float result;
-      bool is_compute = compute_exp(condition.left_exp, &result);
-      LOG_ERROR("左边计算结果 %f",result);
-      if(is_compute == false) return RC::GENERIC_ERROR;
-      Value value;
-      value_init_float(&value, result);
-      left.value = value.data;
-      type_left = value.type;
-      left.attr_index = 0;
-    }else {
+    // if(exp_is_only_value(condition.left_exp)){
+    //   left.is_attr = 0;
+    //   float result;
+    //   bool is_compute = compute_exp(condition.left_exp, &result);
+    //   LOG_ERROR("左边计算结果 %f",result);
+    //   if(is_compute == false) return RC::GENERIC_ERROR;
+    //   Value value;
+    //   value_init_float(&value, result);
+    //   left.value = value.data;
+    //   type_left = value.type;
+    //   left.attr_index = 0;
+    // }else {
       LOG_ERROR("输入带属性的表达式");
       left.is_attr = 2;
       for(int i = 0; i < condition.left_exp -> exp_num; i++){
@@ -135,7 +135,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       }else{
         type_left = FLOATS;
       }
-    }
+    // }
     LOG_ERROR("左边表达式Condition构建成功");
   }
 
@@ -160,18 +160,18 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
 
     right.attr_index=0;
   } else if(2 == condition.right_is_attr) { //是个表达式
-    if(exp_is_only_value(condition.right_exp)){
-      right.is_attr = 0;
-      float result;
-      bool is_compute = compute_exp(condition.right_exp, &result);
-      LOG_ERROR("右边计算结果 %f",result);
-      if(is_compute == false) return RC::GENERIC_ERROR;
-      Value value;
-      value_init_float(&value, result);
-      right.value = value.data;
-      type_right = value.type;
-      right.attr_index = 0;
-    }else {
+    // if(exp_is_only_value(condition.right_exp)){
+    //   right.is_attr = 0;
+    //   float result;
+    //   bool is_compute = compute_exp(condition.right_exp, &result);
+    //   LOG_ERROR("右边计算结果 %f",result);
+    //   if(is_compute == false) return RC::GENERIC_ERROR;
+    //   Value value;
+    //   value_init_float(&value, result);
+    //   right.value = value.data;
+    //   type_right = value.type;
+    //   right.attr_index = 0;
+    // }else {
       for(int i = 0; i < condition.right_exp -> exp_num; i++){
         right.is_attr = 2;
         right.exp = condition.right_exp;
@@ -196,7 +196,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
       }else{
         type_right = FLOATS;
       }
-    }
+    // }
   }
 
   if(type_left != type_right 
