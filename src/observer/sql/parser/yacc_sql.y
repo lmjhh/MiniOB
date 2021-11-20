@@ -16,6 +16,7 @@ typedef struct ParserContext {
   size_t condition_length;
   size_t from_length;
   size_t value_length;
+	size_t value_length_exp;
 
 	//做一个快照
   size_t condition_length_tmp[5];
@@ -24,6 +25,7 @@ typedef struct ParserContext {
 	CompOp comp_tmp[5];
 
   Value values[MAX_NUM];
+	Value values_exp[MAX_NUM];
   Condition conditions[MAX_NUM];
   CompOp comp;
   char id[MAX_NUM];
@@ -60,6 +62,7 @@ void yyerror(yyscan_t scanner, const char *str)
   context->from_length = 0;
   context->select_length = 0;
   context->value_length = 0;
+	context->value_length_exp = 0;
   context->exp_length = 0;
   context->ssql->sstr.insertion.tuple_num = 0;
   printf(". error=%s", str);
@@ -172,6 +175,7 @@ ParserContext *get_context(yyscan_t scanner)
 %type <number> type;
 %type <condition1> condition;
 %type <value1> value;
+%type <value1> value_exp;
 %type <number> number;
 %type <string> expression;
 %type <string> expression_with_op;
@@ -410,6 +414,14 @@ value:
 		}
     ;
     
+value_exp:
+    NUMBER{	
+  		value_init_integer(&CONTEXT->values_exp[CONTEXT->value_length_exp++], $1);
+		}
+    |FLOAT{
+  		value_init_float(&CONTEXT->values_exp[CONTEXT->value_length_exp++], $1);
+		}
+    ;
 delete:		/*  delete 语句的语法解析树*/
     DELETE FROM ID where SEMICOLON 
 		{
@@ -446,6 +458,7 @@ select:				/*  select 语句的语法解析树*/
 			CONTEXT->select_length = 0;
 			CONTEXT->value_length = 0;
 			CONTEXT->order_by_type = 0;
+			CONTEXT->value_length_exp = 0;
 			CONTEXT->selects_tmp_pool_length=0;
 	}
 
@@ -1063,8 +1076,8 @@ expression:
 			// strcat($$,"+");
 			strcat($$,$2);
 		}
-    | value { 
-		Value *value = &CONTEXT->values[CONTEXT->value_length - 1];
+    | value_exp { 
+		Value *value = &CONTEXT->values_exp[CONTEXT->value_length_exp - 1];
 		ExpNode expnode;
 		expnode_init(&expnode, 1, value, NULL, NULL);
 		// 入当前栈
