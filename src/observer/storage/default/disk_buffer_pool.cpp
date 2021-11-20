@@ -80,96 +80,14 @@ RC DiskBufferPool::create_file(const char *file_name)
   return RC::SUCCESS;
 }
 
-RC DiskBufferPool::open_file(const char *file_name, int *file_id)
-{
-  int fd, i;
-  // This part isn't gentle, the better method is using LRU queue.
-  for (i = 0; i < MAX_OPEN_FILE; i++) {
-    if (open_list_[i]) {
-      if (!strcmp(open_list_[i]->file_name, file_name)) {
-        *file_id = i;
-        LOG_INFO("%s has already been opened.", file_name);
-        return RC::SUCCESS;
-      }
-    }
-  }
-  i = 0;
-  while (i < MAX_OPEN_FILE && open_list_[i++])
-    ;
-  if (i >= MAX_OPEN_FILE && open_list_[i - 1]) {
-    LOG_ERROR("Failed to open file %s, because too much files has been opened.", file_name);
-    return RC::BUFFERPOOL_OPEN_TOO_MANY_FILES;
-  }
-
-  if ((fd = open(file_name, O_RDWR)) < 0) {
-    LOG_ERROR("Failed to open file %s, because %s.", file_name, strerror(errno));
-    return RC::IOERR_ACCESS;
-  }
-  LOG_INFO("Successfully open file %s.", file_name);
-
-  BPFileHandle *file_handle = new (std::nothrow) BPFileHandle();
-  if (file_handle == nullptr) {
-    LOG_ERROR("Failed to alloc memory of BPFileHandle for %s.", file_name);
-    close(fd);
-    return RC::NOMEM;
-  }
-
-  RC tmp;
-  file_handle->bopen = true;
-  int file_name_len = strlen(file_name) + 1;
-  char *cloned_file_name = new char[file_name_len];
-  snprintf(cloned_file_name, file_name_len, "%s", file_name);
-  cloned_file_name[file_name_len - 1] = '\0';
-  file_handle->file_name = cloned_file_name;
-  file_handle->file_desc = fd;
-  if ((tmp = allocate_block(&file_handle->hdr_frame)) != RC::SUCCESS) {
-    LOG_ERROR("Failed to allocate block for %s's BPFileHandle.", file_name);
-    delete file_handle;
-    close(fd);
-    return tmp;
-  }
-  file_handle->hdr_frame->dirty = false;
-  file_handle->hdr_frame->acc_time = current_time();
-  file_handle->hdr_frame->file_desc = fd;
-  file_handle->hdr_frame->pin_count = 1;
-  if ((tmp = load_page(0, file_handle, file_handle->hdr_frame)) != RC::SUCCESS) {
-    file_handle->hdr_frame->pin_count = 0;
-    dispose_block(file_handle->hdr_frame);
-    close(fd);
-    delete file_handle;
-    return tmp;
-  }
-
-  file_handle->hdr_page = &(file_handle->hdr_frame->page);
-  file_handle->bitmap = file_handle->hdr_page->data + BP_FILE_SUB_HDR_SIZE;
-  file_handle->file_sub_header = (BPFileSubHeader *)file_handle->hdr_page->data;
-  open_list_[i - 1] = file_handle;
-  *file_id = i - 1;
-  LOG_INFO("Successfully open %s. file_id=%d, hdr_frame=%p", file_name, *file_id, file_handle->hdr_frame);
-  return RC::SUCCESS;
-}
-
 // RC DiskBufferPool::open_file(const char *file_name, int *file_id)
 // {
-//   int fd, i, j;
+//   int fd, i;
 //   // This part isn't gentle, the better method is using LRU queue.
 //   for (i = 0; i < MAX_OPEN_FILE; i++) {
 //     if (open_list_[i]) {
 //       if (!strcmp(open_list_[i]->file_name, file_name)) {
-//         if (i==0){
-//           *file_id = i;
-//         }
-//         else{
-//         // put the latest visit to pos 0
-//         BPFileHandle *file_handle_tmp = nullptr;
-//         file_handle_tmp = open_list_[i];
-//         for (j = i; j > 0; j--) {
-//           open_list_[j] = open_list_[j-1];
-//         }
-//         open_list_[0] = file_handle_tmp;
-//         *file_id = 0;
-//         }
-
+//         *file_id = i;
 //         LOG_INFO("%s has already been opened.", file_name);
 //         return RC::SUCCESS;
 //       }
@@ -179,18 +97,9 @@ RC DiskBufferPool::open_file(const char *file_name, int *file_id)
 //   while (i < MAX_OPEN_FILE && open_list_[i++])
 //     ;
 //   if (i >= MAX_OPEN_FILE && open_list_[i - 1]) {
-//     // LOG_ERROR("Failed to open file %s, because too much files has been opened.", file_name);
-//     // return RC::BUFFERPOOL_OPEN_TOO_MANY_FILES;
-    
-//     // remove the last(MAX_OPEN_FILE-1) (oldest) file and open a new file in the first(0)
-//     close_file(MAX_OPEN_FILE - 1);
-//     i = MAX_OPEN_FILE - 1;
+//     LOG_ERROR("Failed to open file %s, because too much files has been opened.", file_name);
+//     return RC::BUFFERPOOL_OPEN_TOO_MANY_FILES;
 //   }
-//   // here need to open file, so >> 1 position and empty pos 0
-//   for (j = i; j > 0; j--) {
-//     open_list_[j] = open_list_[j-1];
-//   }
-//   open_list_[0] = nullptr;
 
 //   if ((fd = open(file_name, O_RDWR)) < 0) {
 //     LOG_ERROR("Failed to open file %s, because %s.", file_name, strerror(errno));
@@ -234,14 +143,105 @@ RC DiskBufferPool::open_file(const char *file_name, int *file_id)
 //   file_handle->hdr_page = &(file_handle->hdr_frame->page);
 //   file_handle->bitmap = file_handle->hdr_page->data + BP_FILE_SUB_HDR_SIZE;
 //   file_handle->file_sub_header = (BPFileSubHeader *)file_handle->hdr_page->data;
-//   // open_list_[i - 1] = file_handle;
-//   // *file_id = i - 1;
-//   // put to the first
-//   open_list_[0] = file_handle;
-//   *file_id = 0;
+//   open_list_[i - 1] = file_handle;
+//   *file_id = i - 1;
 //   LOG_INFO("Successfully open %s. file_id=%d, hdr_frame=%p", file_name, *file_id, file_handle->hdr_frame);
 //   return RC::SUCCESS;
 // }
+
+RC DiskBufferPool::open_file(const char *file_name, int *file_id)
+{
+  int fd, i, j;
+  // This part isn't gentle, the better method is using LRU queue.
+  for (i = 0; i < MAX_OPEN_FILE; i++) {
+    if (open_list_[i]) {
+      if (!strcmp(open_list_[i]->file_name, file_name)) {
+        if (i==0){
+          *file_id = i;
+        }
+        else{
+        // put the latest visit to pos 0
+        BPFileHandle *file_handle_tmp = nullptr;
+        file_handle_tmp = open_list_[i];
+        for (j = i; j > 0; j--) {
+          open_list_[j] = open_list_[j-1];
+        }
+        open_list_[0] = file_handle_tmp;
+        *file_id = 0;
+        }
+
+        LOG_INFO("%s has already been opened.", file_name);
+        return RC::SUCCESS;
+      }
+    }
+  }
+  i = 0;
+  while (i < MAX_OPEN_FILE && open_list_[i++])
+    ;
+  if (i >= MAX_OPEN_FILE && open_list_[i - 1]) {
+    // LOG_ERROR("Failed to open file %s, because too much files has been opened.", file_name);
+    // return RC::BUFFERPOOL_OPEN_TOO_MANY_FILES;
+    
+    // remove the last(MAX_OPEN_FILE-1) (oldest) file and open a new file in the first(0)
+    close_file(MAX_OPEN_FILE - 1);
+    i = MAX_OPEN_FILE - 1;
+  }
+  // here need to open file, so >> 1 position and empty pos 0
+  for (j = i; j > 0; j--) {
+    open_list_[j] = open_list_[j-1];
+  }
+  open_list_[0] = nullptr;
+
+  if ((fd = open(file_name, O_RDWR)) < 0) {
+    LOG_ERROR("Failed to open file %s, because %s.", file_name, strerror(errno));
+    return RC::IOERR_ACCESS;
+  }
+  LOG_INFO("Successfully open file %s.", file_name);
+
+  BPFileHandle *file_handle = new (std::nothrow) BPFileHandle();
+  if (file_handle == nullptr) {
+    LOG_ERROR("Failed to alloc memory of BPFileHandle for %s.", file_name);
+    close(fd);
+    return RC::NOMEM;
+  }
+
+  RC tmp;
+  file_handle->bopen = true;
+  int file_name_len = strlen(file_name) + 1;
+  char *cloned_file_name = new char[file_name_len];
+  snprintf(cloned_file_name, file_name_len, "%s", file_name);
+  cloned_file_name[file_name_len - 1] = '\0';
+  file_handle->file_name = cloned_file_name;
+  file_handle->file_desc = fd;
+  if ((tmp = allocate_block(&file_handle->hdr_frame)) != RC::SUCCESS) {
+    LOG_ERROR("Failed to allocate block for %s's BPFileHandle.", file_name);
+    delete file_handle;
+    close(fd);
+    return tmp;
+  }
+  file_handle->hdr_frame->dirty = false;
+  file_handle->hdr_frame->acc_time = current_time();
+  file_handle->hdr_frame->file_desc = fd;
+  file_handle->hdr_frame->pin_count = 1;
+  if ((tmp = load_page(0, file_handle, file_handle->hdr_frame)) != RC::SUCCESS) {
+    file_handle->hdr_frame->pin_count = 0;
+    dispose_block(file_handle->hdr_frame);
+    close(fd);
+    delete file_handle;
+    return tmp;
+  }
+
+  file_handle->hdr_page = &(file_handle->hdr_frame->page);
+  file_handle->bitmap = file_handle->hdr_page->data + BP_FILE_SUB_HDR_SIZE;
+  file_handle->file_sub_header = (BPFileSubHeader *)file_handle->hdr_page->data;
+  // open_list_[i - 1] = file_handle;
+  // *file_id = i - 1;
+  // put to the first
+  open_list_[0] = file_handle;
+  *file_id = 0;
+  LOG_INFO("Successfully open %s. file_id=%d, hdr_frame=%p", file_name, *file_id, file_handle->hdr_frame);
+  return RC::SUCCESS;
+}
 
 RC DiskBufferPool::close_file(int file_id)
 {
