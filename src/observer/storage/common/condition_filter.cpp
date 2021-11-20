@@ -258,8 +258,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   } else if (right_.is_attr == 2){
     LOG_ERROR("开始生成右边表达式Filter");
     Exp tmpExp = *right_.exp;
+    int current_index = 0;
     for(int i = 0; i < tmpExp.exp_num; i++){
-      int current_index = 0;
       if(tmpExp.expnodes[i].type == 2){
         LOG_ERROR("当前属性类型 %d", right_.attr_types[current_index]);
         if(right_.attr_types[current_index] == FLOATS){
