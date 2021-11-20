@@ -47,6 +47,8 @@ RC filter_sub_selects(TupleSet &full_tupleSet, Condition condition, TupleSet &le
 RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, Condition father_condition, Selects *selects, TupleSet &sub_result_tupleSet);
 void selects_print(const Selects &selects);
 bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects);
+TupleSet get_filter_exp_result(const Selects &selects, TupleSet &full_tupleSet);
+int only_one_table_in_multi_table(Exp * exp, char * const table_names[], int table_name_length);
 static Selects selects_pool[2];
 static int selects_pool_length;
 
@@ -295,7 +297,20 @@ std::vector<TupleSet> tuple_sets;
       rc = get_ploy_tupleSet(selects.poly_list, selects.poly_num, join_result_tupleSet, result_tupleSet);
       if(rc != RC::SUCCESS) return rc;
     }else {
-      result_tupleSet = get_final_result(selects, join_result_tupleSet);
+      int is_need_exp = 0;
+      for(int cond_index = 0; cond_index < selects.condition_num; cond_index++){
+        Condition cond = selects.conditions[cond_index];
+        if(cond.left_is_attr == 2 && cond.right_is_attr != 2 && only_one_table_in_multi_table(cond.left_exp, selects.relations, selects.relation_num) == 2) is_need_exp = 1;
+        if(cond.left_is_attr != 2 && cond.right_is_attr == 2 && only_one_table_in_multi_table(cond.right_exp, selects.relations, selects.relation_num) == 2) is_need_exp = 1;
+        if(cond.left_is_attr == 2 && cond.right_is_attr == 2 && only_one_table_in_multi_table(cond.left_exp, selects.relations, selects.relation_num) >=1 
+            && only_one_table_in_multi_table(cond.right_exp, selects.relations, selects.relation_num) >=1 ) is_need_exp = 1;
+      }
+      if(is_need_exp){
+        TupleSet exp_result_tupleSet = get_filter_exp_result(selects, join_result_tupleSet);
+        result_tupleSet = get_final_result(selects, exp_result_tupleSet);
+      }else {
+        result_tupleSet = get_final_result(selects, join_result_tupleSet);
+      }
     }
 
   } else { //单张表
@@ -438,6 +453,26 @@ static RC schema_add_field(Table *table, const char *field_name, TupleSchema &sc
 
   schema.add_if_not_exists(field_meta->type(), table->name(), field_meta->name());
   return RC::SUCCESS;
+}
+
+// 0 不在任何一表内 1 只有用到一个表 2 用了两个表
+int only_one_table_in_multi_table(Exp * exp, char * const table_names[], int table_name_length){
+  char *tmp_table_name;
+  int flag = 0;
+  for (int i=0; i<exp->exp_num; i++){
+    if (exp->expnodes[i].type == 2){
+      if (exp->expnodes[i].v.attr.relation_name != nullptr){
+        for(int j = 0; j < table_name_length; j++){
+          if (strcmp(exp->expnodes[i].v.attr.relation_name, table_names[j]) == 0){
+            flag = 1;
+            if(tmp_table_name == nullptr) tmp_table_name = strdup(table_names[j]);
+            else if(strcmp(tmp_table_name, table_names[j]) != 0) return 2;
+          }
+        }
+      }
+    }
+  }
+  return flag;
 }
 
 int only_one_table(Exp * exp, const char * table_name, Table *table){
@@ -661,8 +696,12 @@ RC create_selection_executor(Trx *trx, const Selects &selects, const char *db, c
       condition_filters.push_back(condition_filter);
     }
 
-    if( (condition.left_is_attr == 2 && condition.right_is_attr != 2 && only_one_table(selects.conditions[i].left_exp, table_name, table)) ||
-        (condition.left_is_attr != 2 && condition.right_is_attr == 2 && only_one_table(selects.conditions[i].right_exp, table_name, table)) ||
+    if(condition.left_is_attr == 2){
+
+    }
+
+    if( (condition.left_is_attr == 2 && condition.right_is_attr != 2 && only_one_table(selects.conditions[i].left_exp, table_name, table) && (condition.right_is_attr == 0 || (condition.right_is_attr == 1 && match_table(selects, condition.right_attr.relation_name, table_name) ))) ||
+        (condition.left_is_attr != 2 && condition.right_is_attr == 2 && only_one_table(selects.conditions[i].right_exp, table_name, table) && (condition.left_is_attr == 0 || (condition.left_is_attr == 1 && match_table(selects, condition.left_attr.relation_name, table_name) ) ) ) ||
         (condition.left_is_attr == 2 && condition.right_is_attr == 2 && only_one_table(selects.conditions[i].left_exp, table_name, table) && only_one_table(selects.conditions[i].right_exp, table_name, table)) ){
         DefaultConditionFilter *condition_filter = new DefaultConditionFilter();
         LOG_ERROR("准备构建表达式 condition");
@@ -823,6 +862,128 @@ bool filter_tuple(const std::shared_ptr<TupleValue> &values1, const std::shared_
 
   LOG_PANIC("Never should print this.");
   return cmp_result;  // should not go here
+}
+
+bool filter_tuple(CompOp op, int cmp_result){
+    switch (op) {
+    case EQUAL_TO:
+      return 0 == cmp_result;
+    case LESS_EQUAL:
+      return cmp_result <= 0;
+    case NOT_EQUAL:
+      return cmp_result != 0;
+    case LESS_THAN:
+      return cmp_result < 0;
+    case GREAT_EQUAL:
+      return cmp_result >= 0;
+    case GREAT_THAN:
+      return cmp_result > 0;
+    default:
+      break;
+  }
+  return true;
+}
+
+
+TupleSet get_filter_exp_result(const Selects &selects, TupleSet &full_tupleSet){
+  TupleSet result_tupleSet;
+  result_tupleSet.clear();
+  result_tupleSet.set_schema(full_tupleSet.get_schema());
+  for(int cond_index = 0; cond_index < selects.condition_num; cond_index++){
+    Condition condition = selects.conditions[cond_index];
+    if(condition.left_is_attr == 2 || condition.right_is_attr == 2){
+      for(int tuple_index = 0; tuple_index < full_tupleSet.size(); tuple_index++){
+        const std::vector<std::shared_ptr<TupleValue>> &values = full_tupleSet.get(tuple_index).values();
+        float left_value;
+        float right_value;
+        if(condition.left_is_attr == 2){
+          Exp tmpExp = *condition.left_exp;
+          for(int i = 0; i < tmpExp.exp_num; i++){
+            if(tmpExp.expnodes[i].type == 2){
+              int index = full_tupleSet.get_schema().index_of_field(tmpExp.expnodes[i].v.attr.relation_name, tmpExp.expnodes[i].v.attr.attribute_name);
+              TupleField field = full_tupleSet.get_schema().field(index);
+              float tuple_value = (*values[index]).getValue();
+              Value value;
+              value_init_float(&value, tuple_value);
+              tmpExp.expnodes[i].type = 1;
+              tmpExp.expnodes[i].v.value = value;         
+            }
+          }
+          float result;
+          bool is_compute = compute_exp(&tmpExp, &result);
+          LOG_ERROR("左边计算结果 %f",result);
+          if(is_compute == false) continue;
+          left_value = result;
+        }else if (condition.left_is_attr == 0)
+        {
+          if(condition.left_value.type == INTS)
+            left_value = *(int *)condition.left_value.data * 1.0;
+          if(condition.left_value.type == FLOATS)
+            left_value = *(float *)condition.left_value.data;
+        }else if (condition.left_is_attr == 1)
+        {
+          int index;
+          if(condition.left_attr.relation_name == nullptr){
+            index = full_tupleSet.get_schema().index_of_field(full_tupleSet.get_schema().field(0).table_name(), condition.left_attr.attribute_name);
+          }else{
+            index = full_tupleSet.get_schema().index_of_field(condition.left_attr.relation_name, condition.left_attr.attribute_name);
+          }
+          TupleField field = full_tupleSet.get_schema().field(index);
+          left_value = (*values[index]).getValue(); 
+        }
+
+        if(condition.right_is_attr == 2){
+          Exp tmpExp = *condition.right_exp;
+          for(int i = 0; i < tmpExp.exp_num; i++){
+            if(tmpExp.expnodes[i].type == 2){
+              int index = full_tupleSet.get_schema().index_of_field(tmpExp.expnodes[i].v.attr.relation_name, tmpExp.expnodes[i].v.attr.attribute_name);
+              TupleField field = full_tupleSet.get_schema().field(index);
+              float tuple_value = (*values[index]).getValue();
+              Value value;
+              value_init_float(&value, tuple_value);
+              tmpExp.expnodes[i].type = 1;
+              tmpExp.expnodes[i].v.value = value;         
+            }
+          }
+          float result;
+          bool is_compute = compute_exp(&tmpExp, &result);
+          LOG_ERROR("右边计算结果 %f",result);
+          if(is_compute == false) continue;
+          right_value = result;
+        }else if (condition.right_is_attr == 0)
+        {
+          if(condition.right_value.type == INTS)
+            right_value = *(int *)condition.right_value.data * 1.0;
+          if(condition.left_value.type == FLOATS)
+            right_value = *(float *)condition.right_value.data;
+        }else if (condition.right_is_attr == 1)
+        {
+          int index;
+          if(condition.right_attr.relation_name == nullptr){
+            index = full_tupleSet.get_schema().index_of_field(full_tupleSet.get_schema().field(0).table_name(), condition.right_attr.attribute_name);
+          }else{
+            index = full_tupleSet.get_schema().index_of_field(condition.right_attr.relation_name, condition.right_attr.attribute_name);
+          }
+          TupleField field = full_tupleSet.get_schema().field(index);
+          right_value = (*values[index]).getValue(); 
+        }
+        int cmp_result;       
+        if(left_value - right_value < 0.00001 && left_value - right_value >= 0) cmp_result = 0;
+        else if(left_value - right_value > 0.00001) cmp_result = 1;
+        else if(left_value - right_value < 0.00001) cmp_result = -1; 
+        if(filter_tuple(condition.comp,cmp_result)){
+          Tuple new_tuple;
+          for (std::vector<std::shared_ptr<TupleValue>>::const_iterator iter = values.begin(), end = values.end();
+          iter != end; ++iter){
+            new_tuple.add(*iter);
+           }
+          //合并插入新的 tupleset
+          result_tupleSet.add(std::move(new_tuple));
+        }
+      }
+    }
+  }
+  return result_tupleSet;
 }
 
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet){
@@ -1241,7 +1402,6 @@ Selects * get_Selects(){
 bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects){
   bool is_need = false;
   const char *father_name = father_tupleSet.get_schema().field(0).table_name();
-  const std::vector<std::shared_ptr<TupleValue>> &values = father_tupleSet.get(0).values();
   for(int cond_index = 0; cond_index < selects->condition_num; cond_index++){
     Condition condition = selects->conditions[cond_index];
     //发现使用父查询的属性，进行替换
