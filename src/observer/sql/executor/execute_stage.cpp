@@ -1776,6 +1776,11 @@ void selects_print(const Selects &selects){
           std::cout<< condition.left_exp->expnodes[i].v.op << std::endl;
         }
       }
+    }else if(condition.left_is_attr == 0){
+        if(condition.left_value.type == FLOATS)
+          LOG_ERROR("左边的值 = %f",*(float *)condition.left_value.data);
+      if(condition.left_value.type == INTS)
+          LOG_ERROR("左边的值 = %d",*(int *)condition.left_value.data);
     }
 
     switch (condition.comp)
