@@ -104,7 +104,7 @@ typedef struct ParserContext {
 	Selects selects[5];
 
 	int selects_tmp_pool_length;
-	Selects selects_tmp_pool[5];
+	Selects selects_tmp_pool[8];
 
 } ParserContext;
 
@@ -1926,7 +1926,7 @@ yyreduce:
 				CONTEXT->selects_tmp_pool_length++;
 			}
 
-			CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % (5);
+			CONTEXT->selects_tmp_pool_length = CONTEXT->selects_tmp_pool_length % (8);
 	}
 #line 1932 "yacc_sql.tab.c"
     break;
