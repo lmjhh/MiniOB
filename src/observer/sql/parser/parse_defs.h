@@ -144,7 +144,7 @@ struct _Selects{
   size_t    relation_num;           // Length of relations in Fro clause
   char *    relations[MAX_NUM];     // relations in From clause
   size_t    condition_num;          // Length of conditions in Where clause
-  Condition conditions[15];    // conditions in Where clause
+  Condition conditions[MAX_NUM];    // conditions in Where clause
   size_t    poly_num;               // Length of attrs in poly
   Poly      poly_list[10];     //每扫描到一个poly 就记录下来是什么poly 以及涉及到的attri
   OrderBy   order_by;               // 需要排序的列集合
