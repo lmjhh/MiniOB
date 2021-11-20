@@ -15,8 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
-#include <time.h>
-#include <unistd.h>
+#include <stdlib.h>
 
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
@@ -377,13 +376,9 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       //std::cerr<<"-----table_meta_.name():"<<table_meta_.name()<<std::endl;
       const char *filed_name = field->name();
       //std::cerr<<"-----field->name():"<<field->name()<<std::endl;
-      
-      sleep(1000);
-      time_t t;
-      t = time(NULL);
-      int ii = time(&t);
+  
 
-      std::string text_file = base_dir_ + "/" + table_name + filed_name + std::to_string(ii);
+      std::string text_file = base_dir_ + "/" + table_name + filed_name + std::to_string(rand());
       //std::cerr<<"-----text_file:"<<text_file<<std::endl;
       int fd = ::open(text_file.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
       int len = strlen((char *)value.data);
