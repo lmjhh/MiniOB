@@ -123,7 +123,7 @@ RC DefaultConditionFilter::init(Table &table, const Condition &condition)
           left.attr_types[left.attr_index] = field_left->type();
 
           LOG_ERROR("左边表达式属性名 %s",condition.left_exp->expnodes[i].v.attr.attribute_name);
-          LOG_ERROR("左边表达式属性类型 %d", field_left->type());
+          LOG_ERROR("左边表达式属性类型 %d, 偏移量 %d", field_left->type(), field_left->offset());
           left.value = nullptr;
 
           type_left = field_left->type();
@@ -221,8 +221,8 @@ bool DefaultConditionFilter::filter(const Record &rec) const
   } else if (left_.is_attr == 2){
     LOG_ERROR("开始生成左边表达式Filter");
     Exp tmpExp = *left_.exp;
+    int current_index = 0;
     for(int i = 0; i < tmpExp.exp_num; i++){
-      int current_index = 0;
       if(tmpExp.expnodes[i].type == 2){
         LOG_ERROR("当前属性类型 %d", left_.attr_types[current_index]);
         if(left_.attr_types[current_index] == FLOATS){
