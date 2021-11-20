@@ -233,9 +233,9 @@ public:
         std::cerr<<"can not open the file"<<std::endl;
         return;
       }
-      char text[4096] = {"\0"};
-      text[4095] = '\0';
+      char text[4097] = {"\0"};
       read(fd, text, 4096);
+      text[4096] = '\0';
       int len = strlen(text);
       char *new_text = (char *)malloc(len);
       new_text = strdup(text);
