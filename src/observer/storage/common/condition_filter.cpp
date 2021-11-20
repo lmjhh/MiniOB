@@ -245,7 +245,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     }
     float result;
     bool is_compute = compute_exp(&tmpExp, &result);
-    LOG_ERROR("左边计算结果 %f",result);
+    if(is_compute == false) LOG_ERROR("左边计算结果 %f",result);
     if(is_compute == false) return false;
     left_value = (char *)&result;
   }
@@ -547,7 +547,7 @@ bool operate(float a, char theta, float b, float &r) { //计算二元表达式�
 	else if (theta == '*')
 		r = a * b;
 	else {
-		if ((b - 0.0 < 1e-8 && b > 0.0) || (0.0 - b < 1e-8 && b < 0))  //如果除数为0，返回错误信息
+		if ((b - 0.0 < 1e-8 && b >= 0.0) || (0.0 - b < 1e-8 && b <= 0))  //如果除数为0，返回错误信息
 			return false;
 		else {
 			r = a / b;
