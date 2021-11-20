@@ -1724,6 +1724,29 @@ void selects_print(const Selects &selects){
       }
     }
   }
+  for (size_t i = 0; i < selects.exp_num; i++)
+  {
+    // 打印出后缀表达式
+    std::cout<< "attr : 后缀表达式" << std::endl;
+    Exp tmp_exp = selects.exp_list[i];
+    for(int j = 0; j < tmp_exp.exp_num; j++){
+      if (tmp_exp.expnodes[i].type == 1){
+        if (tmp_exp.expnodes[i].v.value.type == INTS){
+          std::cout<< *(int *)tmp_exp.expnodes[i].v.value.data << std::endl;
+        }
+        if (tmp_exp.expnodes[i].v.value.type == FLOATS){
+          std::cout<< *(float *)tmp_exp.expnodes[i].v.value.data << std::endl;
+        }  
+      }
+      if (tmp_exp.expnodes[i].type == 2){
+        std::cout<< tmp_exp.expnodes[i].v.attr.attribute_name << std::endl;
+      }
+      if (tmp_exp.expnodes[i].type == 3){
+        std::cout<< tmp_exp.expnodes[i].v.op << std::endl;
+      }
+    }
+  }
+  
 
   for (size_t i = 0; i < selects.condition_num; i++){
     Condition condition = selects.conditions[i];
@@ -1736,18 +1759,23 @@ void selects_print(const Selects &selects){
       }
     }else if(condition.left_is_attr == 2){
       // 打印出后缀表达式
-      // std::cout<< "left : 后缀表达式" << std::endl;
-      // for (int i=0; i <  condition.left_exp->exp_num; i++){
-      //   if (condition.left_exp->expnodes[i].type == 1){
-      //     std::cout<< *(int *)condition.left_exp->expnodes[i].v.value.data << std::endl;
-      //   }
-      //   if (condition.left_exp->expnodes[i].type == 2){
-      //     std::cout<< condition.left_exp->expnodes[i].v.attr.attribute_name << std::endl;
-      //   }
-      //   if (condition.left_exp->expnodes[i].type == 3){
-      //     std::cout<< condition.left_exp->expnodes[i].v.op << std::endl;
-      //   }
-      // }
+      std::cout<< "left : 后缀表达式" << std::endl;
+      for (int i=0; i <  condition.left_exp->exp_num; i++){
+        if (condition.left_exp->expnodes[i].type == 1){
+          if (condition.left_exp->expnodes[i].v.value.type == INTS){
+            std::cout<< *(int *)condition.left_exp->expnodes[i].v.value.data << std::endl;
+          }
+          if (condition.left_exp->expnodes[i].v.value.type == FLOATS){
+            std::cout<< *(float *)condition.left_exp->expnodes[i].v.value.data << std::endl;
+          }  
+        }
+        if (condition.left_exp->expnodes[i].type == 2){
+          std::cout<< condition.left_exp->expnodes[i].v.attr.attribute_name << std::endl;
+        }
+        if (condition.left_exp->expnodes[i].type == 3){
+          std::cout<< condition.left_exp->expnodes[i].v.op << std::endl;
+        }
+      }
     }
 
     switch (condition.comp)
@@ -1794,18 +1822,23 @@ void selects_print(const Selects &selects){
       }
     }else if(condition.right_is_attr == 2){
       // 打印出后缀表达式
-      // std::cout<< "right : 后缀表达式" << std::endl;
-      // for (int i=0; i < condition.right_exp->exp_num; i++){
-      //   if (condition.right_exp->expnodes[i].type == 1){
-      //     std::cout<< *(int *)condition.right_exp->expnodes[i].v.value.data << std::endl;
-      //   }
-      //   if (condition.right_exp->expnodes[i].type == 2){
-      //     std::cout<< condition.right_exp->expnodes[i].v.attr.attribute_name << std::endl;
-      //   }
-      //   if (condition.right_exp->expnodes[i].type == 3){
-      //     std::cout<< condition.right_exp->expnodes[i].v.op << std::endl;
-      //   }
-      // }
+      std::cout<< "right : 后缀表达式" << std::endl;
+      for (int i=0; i < condition.right_exp->exp_num; i++){
+        if (condition.right_exp->expnodes[i].type == 1){
+          if (condition.right_exp->expnodes[i].v.value.type == INTS){
+            std::cout<< *(int *)condition.right_exp->expnodes[i].v.value.data << std::endl;
+          }
+          if (condition.right_exp->expnodes[i].v.value.type == FLOATS){
+            std::cout<< *(float *)condition.right_exp->expnodes[i].v.value.data << std::endl;
+          }  
+        }
+        if (condition.right_exp->expnodes[i].type == 2){
+          std::cout<< condition.right_exp->expnodes[i].v.attr.attribute_name << std::endl;
+        }
+        if (condition.right_exp->expnodes[i].type == 3){
+          std::cout<< condition.right_exp->expnodes[i].v.op << std::endl;
+        }
+      }
     }
   
 
