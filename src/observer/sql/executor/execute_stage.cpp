@@ -48,6 +48,7 @@ RC sub_select_from_father(Trx *trx, const char *db, TupleSet &father_tupleSet, C
 void selects_print(const Selects &selects);
 bool is_need_change_condition(TupleSet &father_tupleSet, Selects *selects);
 TupleSet get_filter_exp_result(const Selects &selects, TupleSet &full_tupleSet);
+TupleSet get_exp_final_result(const Selects &selects, TupleSet &full_tupleSet);
 int only_one_table_in_multi_table(Exp * exp, char * const table_names[], int table_name_length);
 static Selects selects_pool[2];
 static int selects_pool_length;
@@ -307,9 +308,17 @@ std::vector<TupleSet> tuple_sets;
       }
       if(is_need_exp){
         TupleSet exp_result_tupleSet = get_filter_exp_result(selects, join_result_tupleSet);
-        result_tupleSet = get_final_result(selects, exp_result_tupleSet);
+        if(selects.exp_num > 0){
+          result_tupleSet = get_exp_final_result(selects, exp_result_tupleSet);
+        }else{
+          result_tupleSet = get_final_result(selects, exp_result_tupleSet);
+        }
       }else {
-        result_tupleSet = get_final_result(selects, join_result_tupleSet);
+        if(selects.exp_num > 0){
+          result_tupleSet = get_exp_final_result(selects, join_result_tupleSet);
+        }else{
+          result_tupleSet = get_final_result(selects, join_result_tupleSet);
+        }
       }
     }
 
@@ -400,7 +409,11 @@ std::vector<TupleSet> tuple_sets;
         result_tupleSet = group_by_field(selects, tuple_sets.front());       
       } else {
         rc = tuple_sets.front().order_by_field_and_type(selects.order_by.attributes, selects.order_by.order_type, selects.order_by.attr_num);
-        result_tupleSet = get_final_result(selects, tuple_sets.front());
+        if(selects.exp_num > 0){
+          result_tupleSet = get_exp_final_result(selects, tuple_sets.front());
+        }else{
+          result_tupleSet = get_final_result(selects, tuple_sets.front());
+        }
       }
     }
     // result_tupleSet.print(ss);
@@ -984,6 +997,78 @@ TupleSet get_filter_exp_result(const Selects &selects, TupleSet &full_tupleSet){
     }
   }
   return result_tupleSet;
+}
+
+TupleSet get_exp_final_result(const Selects &selects, TupleSet &full_tupleSet){
+  std::cout << "ready find exp result full_tupleSet size = " << full_tupleSet.size() << std::endl;
+  TupleSet result_tupleSet;
+  result_tupleSet.clear();
+  TupleSchema schema;
+  //初始化 resultSchem{
+  LOG_ERROR("一共 %d 条属性", selects.lsn);
+  schema.clear();
+  for(int tuple_index = 0; tuple_index < full_tupleSet.size(); tuple_index++){
+    const std::vector<std::shared_ptr<TupleValue>> &values = full_tupleSet.get(tuple_index).values();
+    Tuple result_tuple;
+    for (int index = selects.lsn - 1; index >= 0; index--){
+      int value1_index = -1;
+      for(int attrIndex = selects.attr_num - 1; attrIndex >= 0 ; attrIndex--){
+        if(selects.attributes[attrIndex].lsn == index){
+          if(selects.attributes[attrIndex].relation_name != nullptr){
+            value1_index = full_tupleSet.get_schema().index_of_field(selects.attributes[attrIndex].relation_name, selects.attributes[attrIndex].attribute_name);
+            const TupleField *tmpField = &full_tupleSet.get_schema().field(value1_index);
+            schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());
+          }else{
+            const char *table_name = full_tupleSet.get_schema().field(0).table_name();
+            value1_index = full_tupleSet.get_schema().index_of_field(table_name, selects.attributes[attrIndex].attribute_name);
+            const TupleField *tmpField = &full_tupleSet.get_schema().field(value1_index);  
+            schema.add_if_not_exists(tmpField->type(), tmpField->table_name(), tmpField->field_name());        
+          }
+          if(value1_index >= 0){
+            LOG_ERROR("add value %f ",values[value1_index]->getValue());
+            result_tuple.add(values[value1_index]);
+          }
+          break;
+        }
+      }
+      for(int expIndex = 0; expIndex < selects.exp_num ; expIndex++){
+        if(selects.exp_list[expIndex].lsn == index){
+          LOG_ERROR("开始构建表达式 attr ");
+          schema.add_if_not_exists(FLOATS, "exp", selects.exp_list[expIndex].exp_name);
+          Exp tmpExp = selects.exp_list[expIndex];
+          for(int exp_node_index = 0; exp_node_index < tmpExp.exp_num; exp_node_index++){
+            if(tmpExp.expnodes[exp_node_index].type == 2){
+              int exp_field_index;
+              if(tmpExp.expnodes[exp_node_index].v.attr.relation_name == nullptr){
+                LOG_ERROR("我要找 %s.%s",full_tupleSet.get_schema().field(0).table_name(), tmpExp.expnodes[exp_node_index].v.attr.attribute_name);
+                exp_field_index = full_tupleSet.get_schema().index_of_field(full_tupleSet.get_schema().field(0).table_name(), tmpExp.expnodes[exp_node_index].v.attr.attribute_name);
+              }else {
+                LOG_ERROR("我要找 %s.%s",tmpExp.expnodes[exp_node_index].v.attr.relation_name, tmpExp.expnodes[exp_node_index].v.attr.attribute_name);
+                exp_field_index = full_tupleSet.get_schema().index_of_field(tmpExp.expnodes[exp_node_index].v.attr.relation_name, tmpExp.expnodes[exp_node_index].v.attr.attribute_name);
+              }
+              LOG_ERROR("找到 field 位置 %d", exp_field_index);
+              if(exp_field_index < 0) continue;
+              TupleField field = full_tupleSet.get_schema().field(exp_field_index);
+              float tuple_value = (*values[exp_field_index]).getValue();
+              Value value;
+              value_init_float(&value, tuple_value);
+              tmpExp.expnodes[exp_node_index].type = 1;
+              tmpExp.expnodes[exp_node_index].v.value = value;         
+            }
+          }
+          float result;
+          bool is_compute = compute_exp(&tmpExp, &result);
+          LOG_ERROR("attr 表达式计算结果 %f",result);
+          if(is_compute == false) continue;
+          result_tuple.add(result);           
+          break;
+        }
+      }
+    }
+    result_tupleSet.add(std::move(result_tuple));
+  }
+  result_tupleSet.set_schema(schema);
+  return result_tupleSet;  
 }
 
 TupleSet get_final_result(const Selects &selects, TupleSet &full_tupleSet){
