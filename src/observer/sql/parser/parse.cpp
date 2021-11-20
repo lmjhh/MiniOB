@@ -422,20 +422,20 @@ void selects_append_exp(Selects *selects, Exp *exp){
   selects->exp_list[selects->exp_num++] = *exp;
   std::cout << "append exp->lsn--- " << exp->lsn << std::endl;
   std::cout<< "here print attri exp : 后缀表达式" << exp->exp_name << std::endl;
-  for (int i=0; i < exp->exp_num; i++){
-    if (exp->expnodes[i].type == 1){
-      if (exp->expnodes[i].v.value.type == INTS){
-        std::cout<< *(int *)exp->expnodes[i].v.value.data << std::endl;
+  for (int i=0; i < selects->exp_list[selects->exp_num-1].exp_num; i++){
+    if (selects->exp_list[selects->exp_num-1].expnodes[i].type == 1){
+      if (selects->exp_list[selects->exp_num-1].expnodes[i].v.value.type == INTS){
+        std::cout<< *(int *)selects->exp_list[selects->exp_num-1].expnodes[i].v.value.data << std::endl;
       }
-      if (exp->expnodes[i].v.value.type == FLOATS){
-        std::cout<< *(float *)exp->expnodes[i].v.value.data << std::endl;
+      if (selects->exp_list[selects->exp_num-1].expnodes[i].v.value.type == FLOATS){
+        std::cout<< *(float *)selects->exp_list[selects->exp_num-1].expnodes[i].v.value.data << std::endl;
       }
     }
-    if (exp->expnodes[i].type == 2){
-      std::cout<< exp->expnodes[i].v.attr.attribute_name << std::endl;
+    if (selects->exp_list[selects->exp_num-1].expnodes[i].type == 2){
+      std::cout<< selects->exp_list[selects->exp_num-1].expnodes[i].v.attr.attribute_name << std::endl;
     }
-    if (exp->expnodes[i].type == 3){
-      std::cout<< exp->expnodes[i].v.op << std::endl;
+    if (selects->exp_list[selects->exp_num-1].expnodes[i].type == 3){
+      std::cout<< selects->exp_list[selects->exp_num-1].expnodes[i].v.op << std::endl;
     }
   }
 

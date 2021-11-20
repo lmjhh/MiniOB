@@ -1730,19 +1730,19 @@ void selects_print(const Selects &selects){
     std::cout<< "attr : 后缀表达式" << std::endl;
     Exp tmp_exp = selects.exp_list[i];
     for(int j = 0; j < tmp_exp.exp_num; j++){
-      if (tmp_exp.expnodes[i].type == 1){
-        if (tmp_exp.expnodes[i].v.value.type == INTS){
-          std::cout<< *(int *)tmp_exp.expnodes[i].v.value.data << std::endl;
+      if (tmp_exp.expnodes[j].type == 1){
+        if (tmp_exp.expnodes[j].v.value.type == INTS){
+          std::cout<< *(int *)tmp_exp.expnodes[j].v.value.data << std::endl;
         }
-        if (tmp_exp.expnodes[i].v.value.type == FLOATS){
-          std::cout<< *(float *)tmp_exp.expnodes[i].v.value.data << std::endl;
+        if (tmp_exp.expnodes[j].v.value.type == FLOATS){
+          std::cout<< *(float *)tmp_exp.expnodes[j].v.value.data << std::endl;
         }  
       }
-      if (tmp_exp.expnodes[i].type == 2){
-        std::cout<< tmp_exp.expnodes[i].v.attr.attribute_name << std::endl;
+      if (tmp_exp.expnodes[j].type == 2){
+        std::cout<< tmp_exp.expnodes[j].v.attr.attribute_name << std::endl;
       }
-      if (tmp_exp.expnodes[i].type == 3){
-        std::cout<< tmp_exp.expnodes[i].v.op << std::endl;
+      if (tmp_exp.expnodes[j].type == 3){
+        std::cout<< tmp_exp.expnodes[j].v.op << std::endl;
       }
     }
   }

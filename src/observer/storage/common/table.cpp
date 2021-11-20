@@ -15,7 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
-
+#include <time.h>
 
 
 #include "storage/common/table.h"
@@ -29,8 +29,6 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/index.h"
 #include "storage/common/bplus_tree_index.h"
 #include "storage/trx/trx.h"
-
-static int text_id = 0;
 
 Table::Table() : 
     data_buffer_pool_(nullptr),
@@ -379,13 +377,19 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       //std::cerr<<"-----table_meta_.name():"<<table_meta_.name()<<std::endl;
       const char *filed_name = field->name();
       //std::cerr<<"-----field->name():"<<field->name()<<std::endl;
-      std::string text_file = base_dir_ + "/" + table_name + filed_name + std::to_string(++text_id);
+      
+
+      time_t t;
+      t = time(NULL);
+      int ii = time(&t);
+
+      std::string text_file = base_dir_ + "/" + table_name + filed_name + std::to_string(ii);
       //std::cerr<<"-----text_file:"<<text_file<<std::endl;
       int fd = ::open(text_file.c_str(), O_RDWR | O_CREAT | O_EXCL, S_IREAD | S_IWRITE);
       int len = strlen((char *)value.data);
       //std::cerr<<"---len:"<<len<<std::endl;
       if(len > 4096) 
-        len = 4096;
+        len = 4095;
       write(fd, (char *)value.data, len);
       close(fd);
 
