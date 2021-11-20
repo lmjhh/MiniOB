@@ -233,8 +233,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
           value_init_float(&value, record_value);
           tmpExp.expnodes[i].type = 1;
           tmpExp.expnodes[i].v.value = value;    
-        }  
-        if(left_.attr_types[current_index] == INTS){
+        }else if(left_.attr_types[current_index] == INTS){
           int record_value = *(int *)(rec.data + left_.attr_offsets[current_index++]);
           LOG_ERROR("从record中读到value = %d",record_value);
           Value value;
@@ -270,8 +269,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
           value_init_float(&value, record_value);
           tmpExp.expnodes[i].type = 1;
           tmpExp.expnodes[i].v.value = value;    
-        }  
-        if(right_.attr_types[current_index] == INTS){
+        } else if(right_.attr_types[current_index] == INTS){
           int record_value = *(int *)(rec.data + right_.attr_offsets[current_index++]);
           LOG_ERROR("从record中读到value = %d",record_value);
           Value value;
