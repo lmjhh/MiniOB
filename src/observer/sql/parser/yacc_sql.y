@@ -975,6 +975,17 @@ expression_with_op:
 		strcat($$,$2);
 		strcat($$,")");
 	}
+	| expression expression{
+			ExpNode expnode;
+			expnode_init(&expnode, 3, NULL, NULL, "+");
+			// 入当前栈
+			push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+			//$$=$1+$3; 
+			$$=(char*)malloc(50*sizeof(char)); 
+			strcpy($$,$1);
+			// strcat($$,"+");
+			strcat($$,$2);
+		}
 	;
 
 expression:
@@ -1040,6 +1051,17 @@ expression:
 		strcpy($$,"(");
 		strcat($$,$2);
 		strcat($$,")");
+		}
+		| expression expression{
+			ExpNode expnode;
+			expnode_init(&expnode, 3, NULL, NULL, "+");
+			// 入当前栈
+			push_to_exp(&CONTEXT->exp[CONTEXT->exp_length], &expnode);
+			//$$=$1+$3; 
+			$$=(char*)malloc(50*sizeof(char)); 
+			strcpy($$,$1);
+			// strcat($$,"+");
+			strcat($$,$2);
 		}
     | value { 
 		Value *value = &CONTEXT->values[CONTEXT->value_length - 1];

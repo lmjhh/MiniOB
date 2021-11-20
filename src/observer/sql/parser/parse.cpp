@@ -423,40 +423,38 @@ void selects_append_exp(Selects *selects, Exp *exp){
   selects->exp_list[selects->exp_num].exp_num = exp->exp_num;
   selects->exp_list[selects->exp_num].exp_name = strdup(exp->exp_name);
   selects->exp_list[selects->exp_num].lsn = exp->lsn;
+
+  std::cout << "append exp->lsn--- " << selects->exp_list[selects->exp_num].lsn << std::endl;
+  std::cout<< "here print attri exp : 后缀表达式" << selects->exp_list[selects->exp_num].exp_name << std::endl;
   for(int i = 0; i < exp->exp_num; i++){
     selects->exp_list[selects->exp_num].expnodes[i].type = exp->expnodes[i].type;
     if(exp->expnodes[i].type == 2){
       selects->exp_list[selects->exp_num].expnodes[i].v.attr.attribute_name = strdup(exp->expnodes[i].v.attr.attribute_name);
-      if(exp->expnodes[i].v.attr.relation_name != nullptr)
+      if(exp->expnodes[i].v.attr.relation_name != nullptr){
         selects->exp_list[selects->exp_num].expnodes[i].v.attr.relation_name = strdup(exp->expnodes[i].v.attr.relation_name);
+      }
+      std::cout<< selects->exp_list[selects->exp_num].expnodes[i].v.attr.attribute_name << std::endl;
     }
     if(exp->expnodes[i].type == 3){
       selects->exp_list[selects->exp_num].expnodes[i].v.op = strdup(exp->expnodes[i].v.op);
+      std::cout<< selects->exp_list[selects->exp_num].expnodes[i].v.op << std::endl;
     }    
     if(exp->expnodes[i].type == 1){
-      selects->exp_list[selects->exp_num].expnodes[i].v.value = exp->expnodes[i].v.value;
+      selects->exp_list[selects->exp_num].expnodes[i].v.value.type = exp->expnodes[i].v.value.type;
+
+      if (selects->exp_list[selects->exp_num].expnodes[i].v.value.type == INTS){
+        selects->exp_list[selects->exp_num].expnodes[i].v.value.data = malloc(sizeof(int));
+        memcpy(selects->exp_list[selects->exp_num].expnodes[i].v.value.data, (int *)exp->expnodes[i].v.value.data, sizeof(int));
+        std::cout<< *(int *)selects->exp_list[selects->exp_num].expnodes[i].v.value.data << std::endl;
+      }
+      if (selects->exp_list[selects->exp_num].expnodes[i].v.value.type == FLOATS){
+        selects->exp_list[selects->exp_num].expnodes[i].v.value.data = malloc(sizeof(float));
+        memcpy(selects->exp_list[selects->exp_num].expnodes[i].v.value.data, (float *)exp->expnodes[i].v.value.data, sizeof(float));
+        std::cout<< *(float *)selects->exp_list[selects->exp_num].expnodes[i].v.value.data << std::endl;
+      }
     } 
   }
   selects->exp_num++;
-
-  std::cout << "append exp->lsn--- " << exp->lsn << std::endl;
-  std::cout<< "here print attri exp : 后缀表达式" << exp->exp_name << std::endl;
-  for (int i=0; i < selects->exp_list[selects->exp_num-1].exp_num; i++){
-    if (selects->exp_list[selects->exp_num-1].expnodes[i].type == 1){
-      if (selects->exp_list[selects->exp_num-1].expnodes[i].v.value.type == INTS){
-        std::cout<< *(int *)selects->exp_list[selects->exp_num-1].expnodes[i].v.value.data << std::endl;
-      }
-      if (selects->exp_list[selects->exp_num-1].expnodes[i].v.value.type == FLOATS){
-        std::cout<< *(float *)selects->exp_list[selects->exp_num-1].expnodes[i].v.value.data << std::endl;
-      }
-    }
-    if (selects->exp_list[selects->exp_num-1].expnodes[i].type == 2){
-      std::cout<< selects->exp_list[selects->exp_num-1].expnodes[i].v.attr.attribute_name << std::endl;
-    }
-    if (selects->exp_list[selects->exp_num-1].expnodes[i].type == 3){
-      std::cout<< selects->exp_list[selects->exp_num-1].expnodes[i].v.op << std::endl;
-    }
-  }
 
 }
 
