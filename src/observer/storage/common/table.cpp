@@ -16,7 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include <string.h>
 #include <algorithm>
 #include <time.h>
-
+#include <unistd.h>
 
 #include "storage/common/table.h"
 #include "storage/common/table_meta.h"
@@ -378,7 +378,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       const char *filed_name = field->name();
       //std::cerr<<"-----field->name():"<<field->name()<<std::endl;
       
-
+      sleep(1000);
       time_t t;
       t = time(NULL);
       int ii = time(&t);
@@ -389,7 +389,7 @@ RC Table::make_record(int value_num, const Value *values, char * &record_out) {
       int len = strlen((char *)value.data);
       //std::cerr<<"---len:"<<len<<std::endl;
       if(len > 4096) 
-        len = 4095;
+        len = 4096;
       write(fd, (char *)value.data, len);
       close(fd);
 
