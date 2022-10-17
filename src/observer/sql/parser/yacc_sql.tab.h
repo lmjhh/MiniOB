@@ -36,10 +36,10 @@
    private implementation details that can be changed or removed.  */
 
 #ifndef YY_YY_YACC_SQL_TAB_H_INCLUDED
-# define YY_YY_YACC_SQL_TAB_H_INCLUDED
+#define YY_YY_YACC_SQL_TAB_H_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
-# define YYDEBUG 0
+#define YYDEBUG 0
 #endif
 #if YYDEBUG
 extern int yydebug;
@@ -47,114 +47,84 @@ extern int yydebug;
 
 /* Token kinds.  */
 #ifndef YYTOKENTYPE
-# define YYTOKENTYPE
-  enum yytokentype
-  {
-    YYEMPTY = -2,
-    YYEOF = 0,                     /* "end of file"  */
-    YYerror = 256,                 /* error  */
-    YYUNDEF = 257,                 /* "invalid token"  */
-    SEMICOLON = 258,               /* SEMICOLON  */
-    CREATE = 259,                  /* CREATE  */
-    DROP = 260,                    /* DROP  */
-    TABLE = 261,                   /* TABLE  */
-    TABLES = 262,                  /* TABLES  */
-    INDEX = 263,                   /* INDEX  */
-    SELECT = 264,                  /* SELECT  */
-    DESC = 265,                    /* DESC  */
-    SHOW = 266,                    /* SHOW  */
-    SYNC = 267,                    /* SYNC  */
-    INSERT = 268,                  /* INSERT  */
-    DELETE = 269,                  /* DELETE  */
-    UPDATE = 270,                  /* UPDATE  */
-    LBRACE = 271,                  /* LBRACE  */
-    RBRACE = 272,                  /* RBRACE  */
-    COMMA = 273,                   /* COMMA  */
-    TRX_BEGIN = 274,               /* TRX_BEGIN  */
-    TRX_COMMIT = 275,              /* TRX_COMMIT  */
-    TRX_ROLLBACK = 276,            /* TRX_ROLLBACK  */
-    INT_T = 277,                   /* INT_T  */
-    DATE_T = 278,                  /* DATE_T  */
-    TEXT_T = 279,                  /* TEXT_T  */
-    STRING_T = 280,                /* STRING_T  */
-    FLOAT_T = 281,                 /* FLOAT_T  */
-    NULL_T = 282,                  /* NULL_T  */
-    HELP = 283,                    /* HELP  */
-    EXIT = 284,                    /* EXIT  */
-    DOT = 285,                     /* DOT  */
-    INTO = 286,                    /* INTO  */
-    VALUES = 287,                  /* VALUES  */
-    FROM = 288,                    /* FROM  */
-    WHERE = 289,                   /* WHERE  */
-    AND = 290,                     /* AND  */
-    SET = 291,                     /* SET  */
-    ON = 292,                      /* ON  */
-    LOAD = 293,                    /* LOAD  */
-    DATA = 294,                    /* DATA  */
-    INFILE = 295,                  /* INFILE  */
-    EQ = 296,                      /* EQ  */
-    LT = 297,                      /* LT  */
-    GT = 298,                      /* GT  */
-    LE = 299,                      /* LE  */
-    GE = 300,                      /* GE  */
-    NE = 301,                      /* NE  */
-    MAX = 302,                     /* MAX  */
-    MIN = 303,                     /* MIN  */
-    COUNT = 304,                   /* COUNT  */
-    AVG = 305,                     /* AVG  */
-    ORDERBY = 306,                 /* ORDERBY  */
-    ASC = 307,                     /* ASC  */
-    INNERJOIN = 308,               /* INNERJOIN  */
-    UNIQUE = 309,                  /* UNIQUE  */
-    NULLABLE = 310,                /* NULLABLE  */
-    NOTNULL = 311,                 /* NOTNULL  */
-    IS = 312,                      /* IS  */
-    GROUPBY = 313,                 /* GROUPBY  */
-    IN = 314,                      /* IN  */
-    NOTIN = 315,                   /* NOTIN  */
-    PLUS = 316,                    /* PLUS  */
-    MINUS = 317,                   /* MINUS  */
-    DIVE = 318,                    /* DIVE  */
-    NUMBER = 319,                  /* NUMBER  */
-    FLOAT = 320,                   /* FLOAT  */
-    ID = 321,                      /* ID  */
-    PATH = 322,                    /* PATH  */
-    DATE = 323,                    /* DATE  */
-    SSS = 324,                     /* SSS  */
-    STAR = 325,                    /* STAR  */
-    STRING_V = 326,                /* STRING_V  */
-    POLYKEY = 327,                 /* POLYKEY  */
-    UMINUS = 328                   /* UMINUS  */
-  };
-  typedef enum yytokentype yytoken_kind_t;
+#define YYTOKENTYPE
+enum yytokentype {
+  YYEMPTY = -2,
+  YYEOF = 0,          /* "end of file"  */
+  YYerror = 256,      /* error  */
+  YYUNDEF = 257,      /* "invalid token"  */
+  SEMICOLON = 258,    /* SEMICOLON  */
+  CREATE = 259,       /* CREATE  */
+  DROP = 260,         /* DROP  */
+  TABLE = 261,        /* TABLE  */
+  TABLES = 262,       /* TABLES  */
+  INDEX = 263,        /* INDEX  */
+  SELECT = 264,       /* SELECT  */
+  DESC = 265,         /* DESC  */
+  SHOW = 266,         /* SHOW  */
+  SYNC = 267,         /* SYNC  */
+  INSERT = 268,       /* INSERT  */
+  DELETE = 269,       /* DELETE  */
+  UPDATE = 270,       /* UPDATE  */
+  LBRACE = 271,       /* LBRACE  */
+  RBRACE = 272,       /* RBRACE  */
+  COMMA = 273,        /* COMMA  */
+  TRX_BEGIN = 274,    /* TRX_BEGIN  */
+  TRX_COMMIT = 275,   /* TRX_COMMIT  */
+  TRX_ROLLBACK = 276, /* TRX_ROLLBACK  */
+  INT_T = 277,        /* INT_T  */
+  STRING_T = 278,     /* STRING_T  */
+  FLOAT_T = 279,      /* FLOAT_T  */
+  HELP = 280,         /* HELP  */
+  EXIT = 281,         /* EXIT  */
+  DOT = 282,          /* DOT  */
+  INTO = 283,         /* INTO  */
+  VALUES = 284,       /* VALUES  */
+  FROM = 285,         /* FROM  */
+  WHERE = 286,        /* WHERE  */
+  AND = 287,          /* AND  */
+  SET = 288,          /* SET  */
+  ON = 289,           /* ON  */
+  LOAD = 290,         /* LOAD  */
+  DATA = 291,         /* DATA  */
+  INFILE = 292,       /* INFILE  */
+  EQ = 293,           /* EQ  */
+  LT = 294,           /* LT  */
+  GT = 295,           /* GT  */
+  LE = 296,           /* LE  */
+  GE = 297,           /* GE  */
+  NE = 298,           /* NE  */
+  NUMBER = 299,       /* NUMBER  */
+  FLOAT = 300,        /* FLOAT  */
+  ID = 301,           /* ID  */
+  PATH = 302,         /* PATH  */
+  SSS = 303,          /* SSS  */
+  STAR = 304,         /* STAR  */
+  STRING_V = 305      /* STRING_V  */
+};
+typedef enum yytokentype yytoken_kind_t;
 #endif
 
 /* Value type.  */
-#if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-union YYSTYPE
-{
-#line 147 "yacc_sql.y"
+#if !defined YYSTYPE && !defined YYSTYPE_IS_DECLARED
+union YYSTYPE {
+#line 106 "yacc_sql.y"
 
   struct _Attr *attr;
   struct _Condition *condition1;
   struct _Value *value1;
   char *string;
-  char *date;
   int number;
   float floats;
-  int isNULL;
-	char *position;
+  char *position;
 
-#line 149 "yacc_sql.tab.h"
-
+#line 124 "yacc_sql.tab.h"
 };
 typedef union YYSTYPE YYSTYPE;
-# define YYSTYPE_IS_TRIVIAL 1
-# define YYSTYPE_IS_DECLARED 1
+#define YYSTYPE_IS_TRIVIAL 1
+#define YYSTYPE_IS_DECLARED 1
 #endif
 
-
-
-int yyparse (void *scanner);
+int yyparse(void *scanner);
 
 #endif /* !YY_YY_YACC_SQL_TAB_H_INCLUDED  */

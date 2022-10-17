@@ -333,7 +333,7 @@ extern int yylex \
 #undef YY_DECL
 #endif
 
-#line 115 "lex_sql.l"
+#line 88 "lex_sql.l"
 
 
 #line 340 "lex.yy.h"

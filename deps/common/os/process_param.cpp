@@ -17,14 +17,15 @@ See the Mulan PSL v2 for more details. */
 namespace common {
 
 //! Global process config
-ProcessParam*& the_process_param()
+ProcessParam *&the_process_param()
 {
-  static ProcessParam* process_cfg = new ProcessParam();
+  static ProcessParam *process_cfg = new ProcessParam();
 
   return process_cfg;
 }
 
-void ProcessParam::init_default(std::string &process_name) {
+void ProcessParam::init_default(std::string &process_name)
+{
   assert(process_name.empty() == false);
   this->process_name_ = process_name;
   if (std_out_.empty()) {
@@ -34,12 +35,10 @@ void ProcessParam::init_default(std::string &process_name) {
     std_err_ = "../log/" + process_name + ".err";
   }
   if (conf.empty()) {
-    conf = "../../etc/" + process_name + ".ini";
+    conf = "../etc/" + process_name + ".ini";
   }
 
   demon = false;
 }
 
-
-
-} //namespace common
+}  // namespace common

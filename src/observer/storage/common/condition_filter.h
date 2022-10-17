@@ -9,7 +9,7 @@ MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 See the Mulan PSL v2 for more details. */
 
 //
-// Created by Wangyunlai on 2021/5/7.
+// Created by Meiyi & Wangyunlai on 2021/5/7.
 //
 
 #ifndef __OBSERVER_STORAGE_COMMON_CONDITION_FILTER_H_
@@ -17,18 +17,15 @@ See the Mulan PSL v2 for more details. */
 
 #include "rc.h"
 #include "sql/parser/parse.h"
-#include <stack>
-struct Record;
+
+class Record;
 class Table;
 
 struct ConDesc {
-  int    is_attr;     // 0 表示值， 1表示 attr 2表示表达式
-  int    attr_lengths[10]; // 如果是属性，表示属性值长度
-  int    attr_offsets[10]; // 如果是属性，表示在记录中的偏移量
-  int    attr_types[10];   // 如果是数学，记录属性类型 int/float
-  int    attr_index;
-  void * value;       // 如果是值类型，这里记录值的数据
-  Exp * exp;  
+  bool is_attr;     // 是否属性，false 表示是值
+  int attr_length;  // 如果是属性，表示属性值长度
+  int attr_offset;  // 如果是属性，表示在记录中的偏移量
+  void *value;      // 如果是值类型，这里记录值的数据
 };
 
 class ConditionFilter {
@@ -48,30 +45,34 @@ public:
   DefaultConditionFilter();
   virtual ~DefaultConditionFilter();
 
-  RC init(const ConDesc &left, const ConDesc &right, AttrType left_attr_type, AttrType right_attr_type, CompOp comp_op);
+  RC init(const ConDesc &left, const ConDesc &right, AttrType attr_type, CompOp comp_op);
   RC init(Table &table, const Condition &condition);
 
   virtual bool filter(const Record &rec) const;
 
 public:
-  const ConDesc &left() const {
+  const ConDesc &left() const
+  {
     return left_;
   }
 
-  const ConDesc &right() const {
+  const ConDesc &right() const
+  {
     return right_;
   }
 
-  CompOp comp_op() const {
+  CompOp comp_op() const
+  {
     return comp_op_;
   }
 
+  AttrType attr_type() const { return attr_type_; }
+
 private:
-  ConDesc  left_;
-  ConDesc  right_;
-  AttrType left_attr_type_ = UNDEFINED;
-  AttrType right_attr_type_ = UNDEFINED;
-  CompOp   comp_op_ = NO_OP;
+  ConDesc left_;
+  ConDesc right_;
+  AttrType attr_type_ = UNDEFINED;
+  CompOp comp_op_ = NO_OP;
 };
 
 class CompositeConditionFilter : public ConditionFilter {
@@ -84,27 +85,22 @@ public:
   virtual bool filter(const Record &rec) const;
 
 public:
-  int filter_num() const {
+  int filter_num() const
+  {
     return filter_num_;
   }
-  const ConditionFilter &filter(int index) const {
+  const ConditionFilter &filter(int index) const
+  {
     return *filters_[index];
   }
 
 private:
   RC init(const ConditionFilter *filters[], int filter_num, bool own_memory);
+
 private:
-  const ConditionFilter **      filters_ = nullptr;
-  int                           filter_num_ = 0;
-  bool                          memory_owner_ = false; // filters_的内存是否由自己来控制
+  const ConditionFilter **filters_ = nullptr;
+  int filter_num_ = 0;
+  bool memory_owner_ = false;  // filters_的内存是否由自己来控制
 };
 
-/* 表达式相关函数 */
-bool exp_is_only_value(Exp * exp);
-
-bool operate(float a, char theta, float b, float &r);
-
-// 传入表达式，返回结果到result
-bool compute_exp(Exp* exp, float *result);
-
-#endif // __OBSERVER_STORAGE_COMMON_CONDITION_FILTER_H_
+#endif  // __OBSERVER_STORAGE_COMMON_CONDITION_FILTER_H_
