@@ -169,9 +169,12 @@ void ExecuteStage::handle_request(common::StageEvent *event)
     case SCF_DESC_TABLE: {
       do_desc_table(sql_event);
     } break;
-
-    case SCF_DROP_TABLE:
-    case SCF_DROP_INDEX:
+    case SCF_DROP_TABLE:{
+      do_drop_table(sql_event);
+    } break;
+    case SCF_DROP_INDEX:{
+      do_drop_index(sql_event);
+    } break;
     case SCF_LOAD_DATA: {
       default_storage_stage_->handle_event(event);
     } break;
@@ -489,6 +492,20 @@ RC ExecuteStage::do_create_index(SQLStageEvent *sql_event)
   }
 
   RC rc = table->create_index(nullptr, create_index.index_name, create_index.attribute_name);
+  sql_event->session_event()->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
+  return rc;
+}
+
+RC ExecuteStage::do_drop_index(SQLStageEvent *sql_event) {
+  //Todo
+  return RC::SUCCESS;
+}
+
+RC ExecuteStage::do_drop_table(SQLStageEvent *sql_event) {
+  SessionEvent *session_event = sql_event->session_event();
+  Db *db = session_event->session()->get_current_db();
+  const DropTable dropTable = sql_event->query()->sstr.drop_table;
+  RC rc = db->drop_table(dropTable.relation_name);
   sql_event->session_event()->set_response(rc == RC::SUCCESS ? "SUCCESS\n" : "FAILURE\n");
   return rc;
 }

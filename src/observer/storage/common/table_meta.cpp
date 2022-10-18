@@ -104,6 +104,20 @@ RC TableMeta::add_index(const IndexMeta &index)
   return RC::SUCCESS;
 }
 
+RC TableMeta::remove_index(const char *name)
+{
+
+  std::vector<IndexMeta>::iterator itor;
+  for( itor = indexes_.begin(); itor != indexes_.end(); itor++ )
+  {
+    if (0 == strcmp(itor->name(), name)) {
+      indexes_.erase(itor);
+      return RC::SUCCESS;
+    }
+  }
+  return RC::SCHEMA_INDEX_NOT_EXIST;
+}
+
 const char *TableMeta::name() const
 {
   return name_.c_str();

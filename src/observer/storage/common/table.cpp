@@ -15,6 +15,7 @@ See the Mulan PSL v2 for more details. */
 #include <limits.h>
 #include <string.h>
 #include <algorithm>
+#include <cstdio>
 
 #include "common/defs.h"
 #include "storage/common/table.h"
@@ -637,6 +638,35 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
 
   return rc;
 }
+
+RC Table::drop_index(Trx *trx, const char *index_name) {
+  if (common::is_blank(index_name)) {
+    LOG_INFO("Invalid input arguments, table name is %s, index_name is blank or attribute_name is blank", name());
+    return RC::INVALID_ARGUMENT;
+  }
+
+  for (Index *index : indexes_) {
+    if (strcmp(index->index_meta().name(), index_name) == 0) {
+      BplusTreeIndex *b_index = (BplusTreeIndex *)index;
+      b_index->close();
+    }
+  }
+
+  std::string index_file = table_index_file(base_dir_.c_str(), name(), index_name);
+  if (remove(index_file.c_str()) != 0) {
+    return RC::SCHEMA_FIELD_NOT_EXIST;
+  }
+  return table_meta_.remove_index(index_name);
+}
+
+RC Table::drop_all_index(Trx *trx) {
+  while (table_meta_.index_num() > 0) {
+    const IndexMeta *indexMeta = table_meta_.index(0);
+    drop_index(trx, indexMeta->name());
+  }
+}
+
+
 
 RC Table::update_record(Trx *trx, const char *attribute_name, const Value *value, int condition_num,
     const Condition conditions[], int *updated_count)

@@ -84,6 +84,28 @@ RC Db::create_table(const char *table_name, int attribute_count, const AttrInfo 
   return RC::SUCCESS;
 }
 
+RC Db::drop_table(const char *table_name)
+{
+  RC rc = RC::SUCCESS;
+  Table *table = find_table(table_name);
+  if (table == nullptr) {
+    return RC::SCHEMA_TABLE_NOT_EXIST;
+  }
+  rc = table->drop_all_index(nullptr);
+  std::string table_file_path = table_meta_file(path_.c_str(), table_name);
+  std::string data_file = table_data_file(path_.c_str(), table_name);
+  if (remove(table_file_path.c_str()) != 0) {
+    return RC::IOERR;
+  }
+  BufferPoolManager &bpm = BufferPoolManager::instance();
+  bpm.close_file(data_file.c_str());
+  if (remove(data_file.c_str()) != 0) {
+    return RC::IOERR;
+  }
+  opened_tables_.erase(table_name);
+  return rc;
+}
+
 Table *Db::find_table(const char *table_name) const
 {
   std::unordered_map<std::string, Table *>::const_iterator iter = opened_tables_.find(table_name);

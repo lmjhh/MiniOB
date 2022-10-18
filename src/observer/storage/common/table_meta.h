@@ -36,6 +36,8 @@ public:
 
   RC add_index(const IndexMeta &index);
 
+  RC remove_index(const char *name);
+
 public:
   const char *name() const;
   const FieldMeta *trx_field() const;
