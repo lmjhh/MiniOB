@@ -645,12 +645,12 @@ RC Table::drop_index(Trx *trx, const char *index_name) {
     return RC::INVALID_ARGUMENT;
   }
 
-  for (Index *index : indexes_) {
-    if (strcmp(index->index_meta().name(), index_name) == 0) {
-      BplusTreeIndex *b_index = (BplusTreeIndex *)index;
-      b_index->close();
-    }
-  }
+//  for (Index *index : indexes_) {
+//    if (strcmp(index->index_meta().name(), index_name) == 0) {
+//      BplusTreeIndex *b_index = (BplusTreeIndex *)index;
+//      b_index->close();
+//    }
+//  }
 
   std::string index_file = table_index_file(base_dir_.c_str(), name(), index_name);
   if (remove(index_file.c_str()) != 0) {

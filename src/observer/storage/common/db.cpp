@@ -97,12 +97,12 @@ RC Db::drop_table(const char *table_name)
   if (remove(table_file_path.c_str()) != 0) {
     return RC::IOERR;
   }
-  BufferPoolManager &bpm = BufferPoolManager::instance();
-  bpm.close_file(data_file.c_str());
+//  BufferPoolManager &bpm = BufferPoolManager::instance();
+//  bpm.close_file(data_file.c_str());
   if (remove(data_file.c_str()) != 0) {
     return RC::IOERR;
   }
-  opened_tables_.erase(table_name);
+//  opened_tables_.erase(table_name);
   return rc;
 }
 
