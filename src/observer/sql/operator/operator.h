@@ -41,7 +41,11 @@ public:
     children_.push_back(oper);
   }
 
+  void add_trx(Trx * trx) {
+    trx_ = trx;
+  }
 
 protected:
   std::vector<Operator *> children_;
+  Trx *trx_ = nullptr;
 };

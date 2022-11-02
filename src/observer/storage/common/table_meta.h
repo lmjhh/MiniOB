@@ -32,14 +32,13 @@ public:
 
   void swap(TableMeta &other) noexcept;
 
-  RC init(const char *name, int field_num, const AttrInfo attributes[]);
+  RC init(const char *name, int space_id, int field_num, const AttrInfo attributes[]);
 
   RC add_index(const IndexMeta &index);
 
-  RC remove_index(const char *name);
-
 public:
   const char *name() const;
+  const int32_t space_id() const;
   const FieldMeta *trx_field() const;
   const FieldMeta *field(int index) const;
   const FieldMeta *field(const char *name) const;
@@ -67,6 +66,7 @@ protected:
 
 protected:
   std::string name_;
+  int32_t space_id_;
   std::vector<FieldMeta> fields_;  // 包含sys_fields
   std::vector<IndexMeta> indexes_;
 

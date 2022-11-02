@@ -18,17 +18,19 @@ See the Mulan PSL v2 for more details. */
 #include <stddef.h>
 #include <unordered_map>
 #include <unordered_set>
+#include <deque>
 #include <mutex>
-
 #include "sql/parser/parse.h"
-#include "storage/record/record_manager.h"
+#include "storage/common/record_manager.h"
 #include "rc.h"
 
 class Table;
+class LockManager;
 
 class Operation {
 public:
   enum class Type : int {
+    READ,
     INSERT,
     UPDATE,
     DELETE,
@@ -79,12 +81,9 @@ public:
  */
 class Trx {
 public:
-  static std::atomic<int32_t> trx_id;
+  enum class State { GROWING, SHRINKING, COMMITTED, ABORTED };
 
-  static int32_t default_trx_id();
   static int32_t next_trx_id();
-  static void set_trx_id(int32_t id);
-
   static const char *trx_field_name();
   static AttrType trx_field_type();
   static int trx_field_len();
@@ -97,6 +96,7 @@ public:
   RC insert_record(Table *table, Record *record);
   RC delete_record(Table *table, Record *record);
 
+  RC begin();
   RC commit();
   RC rollback();
 
@@ -107,9 +107,39 @@ public:
 
   void init_trx_info(Table *table, Record &record);
 
-  void next_current_id();
+  void set_is_auto_commit(bool is_auto_commit) { is_auto_commit_ = is_auto_commit; }
+  bool is_auto_commit() { return  is_auto_commit_; }
 
-  int32_t get_current_id();
+  /**
+   * 获取事务 tid
+   */
+  inline int32_t get_trx_id() const { return trx_id_; }
+  /**
+   * 事务状态相关
+   */
+  inline State get_state() { return state_; }
+  inline void set_state(State state) { state_ = state; }
+
+  /**
+   * 仅用于B+树，保存当前事务访问索引持有的页
+   * @param frame
+   */
+  inline void add_into_page_set(Frame *frame) {
+    page_set_->push_back(frame);
+  }
+  inline std::shared_ptr<std::deque<Frame *>> get_page_set() { return page_set_; }
+
+  inline std::shared_ptr<std::unordered_set<RID>> get_shared_lockset() {
+    return shared_lock_set_;
+  }
+
+  inline std::shared_ptr<std::unordered_set<RID>> get_exclusive_lockset() {
+    return exclusive_lock_set_;
+  }
+
+  inline LSN get_prev_LSN() { return prev_lsn_; }
+
+  inline void set_prev_LSN(LSN prev_lsn) { prev_lsn_ = prev_lsn; }
 
 private:
   void set_record_trx_id(Table *table, Record &record, int32_t trx_id, bool deleted) const;
@@ -126,8 +156,27 @@ private:
   void start_if_not_started();
 
 private:
+
+  bool is_auto_commit_ = true;
+  /**
+   * 事务状态：初始化为GROWING状态
+   */
+  State state_ = State::GROWING;
   int32_t trx_id_ = 0;
+  LSN prev_lsn_ = 0;
   std::unordered_map<Table *, OperationSet> operations_;
+
+  /**
+   * 此事务获得共享锁的rid集合
+   */
+  std::shared_ptr<std::unordered_set<RID>> shared_lock_set_;
+  /**
+   * 此事务获得排他锁的rid集合
+   */
+  std::shared_ptr<std::unordered_set<RID>> exclusive_lock_set_;
+
+  // 用于B+索引的并发安全
+  std::shared_ptr<std::deque<Frame *>> page_set_;
 };
 
 #endif  // __OBSERVER_STORAGE_TRX_TRX_H_

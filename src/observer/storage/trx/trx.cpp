@@ -16,38 +16,19 @@ See the Mulan PSL v2 for more details. */
 
 #include "storage/trx/trx.h"
 #include "storage/common/table.h"
-#include "storage/record/record_manager.h"
+#include "storage/common/record_manager.h"
+#include "storage/trx/lock_manager.h"
 #include "storage/common/field_meta.h"
 #include "common/log/log.h"
+#include "storage/log/log_manager.h"
 
 static const uint32_t DELETED_FLAG_BIT_MASK = 0x80000000;
 static const uint32_t TRX_ID_BIT_MASK = 0x7FFFFFFF;
-std::atomic<int32_t> Trx::trx_id(0);
-
-int32_t Trx::default_trx_id()
-{
-  return 0;
-}
 
 int32_t Trx::next_trx_id()
 {
+  static std::atomic<int32_t> trx_id(0);
   return ++trx_id;
-}
-
-void Trx::set_trx_id(int32_t id)
-{
-  trx_id = id;
-}
-
-void Trx::next_current_id()
-{
-  Trx::next_trx_id();
-  trx_id_ = trx_id;
-}
-
-int32_t Trx::get_current_id()
-{
-  return trx_id_;
 }
 
 const char *Trx::trx_field_name()
@@ -67,11 +48,16 @@ int Trx::trx_field_len()
 
 Trx::Trx()
 {
-  start_if_not_started();
+  page_set_.reset(new std::deque<Frame *>);
+  shared_lock_set_.reset(new std::unordered_set<RID>);
+  exclusive_lock_set_.reset(new std::unordered_set<RID>);
+  trx_id_ = Trx::next_trx_id();
 }
 
 Trx::~Trx()
-{}
+{
+
+}
 
 RC Trx::insert_record(Table *table, Record *record)
 {
@@ -79,15 +65,13 @@ RC Trx::insert_record(Table *table, Record *record)
   // 先校验是否以前是否存在过(应该不会存在)
   Operation *old_oper = find_operation(table, record->rid());
   if (old_oper != nullptr) {
-    if (old_oper->type() == Operation::Type::DELETE) {
-      delete_operation(table, record->rid());
-    } else {
-      return RC::GENERIC_ERROR;
-    }
+    return RC::GENERIC_ERROR;  // error code
   }
 
-  // start_if_not_started();
-  
+  start_if_not_started();
+
+  // 设置record中trx_field为当前的事务号
+  // set_record_trx_id(table, record, trx_id_, false);
   // 记录到operations中
   insert_operation(table, Operation::Type::INSERT, record->rid());
   return rc;
@@ -163,8 +147,20 @@ void Trx::delete_operation(Table *table, const RID &rid)
   table_operations_iter->second.erase(tmp);
 }
 
+RC Trx::begin()
+{
+  trx_id_ = Trx::next_trx_id();
+  state_ = State::GROWING;
+  if (Enable_Logging) {
+    LogRecord record = LogRecord(LogRecord::Type::BEGIN, -1, prev_lsn_, trx_id_);
+    prev_lsn_ = LogManager::instance().append_log_record(record);
+  }
+  return RC::SUCCESS;
+}
+
 RC Trx::commit()
 {
+  set_state(State::COMMITTED);
   RC rc = RC::SUCCESS;
   for (const auto &table_operations : operations_) {
     Table *table = table_operations.first;
@@ -198,14 +194,31 @@ RC Trx::commit()
       }
     }
   }
-
   operations_.clear();
-  trx_id_ = 0;
+
+  if (Enable_Logging) {
+    LogRecord record = LogRecord(LogRecord::Type::COMMIT, -1, prev_lsn_, trx_id_);
+    prev_lsn_ = LogManager::instance().append_log_record(record);
+    //使用组提交，不需要立刻往下刷
+    LogManager::instance().flush(false);
+  }
+
+  // 释放所有锁
+  std::unordered_set<RID> lock_set;
+  for (auto item : *shared_lock_set_)
+    lock_set.emplace(item);
+  for (auto item : *exclusive_lock_set_)
+    lock_set.emplace(item);
+  for (auto locked_rid : lock_set) {
+    LockManager::instance().unlock(this, locked_rid);
+  }
+
   return rc;
 }
 
 RC Trx::rollback()
 {
+  set_state(Trx::State::ABORTED);
   RC rc = RC::SUCCESS;
   for (const auto &table_operations : operations_) {
     Table *table = table_operations.first;
@@ -241,7 +254,25 @@ RC Trx::rollback()
   }
 
   operations_.clear();
-  trx_id_ = 0;
+
+  if (Enable_Logging) {
+    LogRecord record = LogRecord(LogRecord::Type::ABORT, -1, prev_lsn_, trx_id_);
+    prev_lsn_ = LogManager::instance().append_log_record(record);
+    //使用组提交，不需要立刻往下刷
+    LogManager::instance().flush(false);
+  }
+
+  // 释放所有锁
+  std::unordered_set<RID> lock_set;
+  for (auto item : *shared_lock_set_)
+    lock_set.emplace(item);
+  for (auto item : *exclusive_lock_set_)
+    lock_set.emplace(item);
+
+  for (auto locked_rid : lock_set) {
+    LockManager::instance().unlock(this, locked_rid);
+  }
+
   return rc;
 }
 
@@ -262,7 +293,6 @@ bool Trx::is_visible(Table *table, const Record *record)
   int32_t record_trx_id;
   bool record_deleted;
   get_record_trx_id(table, *record, record_trx_id, record_deleted);
-
   // 0 表示这条数据已经提交
   if (0 == record_trx_id || record_trx_id == trx_id_) {
     return !record_deleted;

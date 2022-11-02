@@ -38,7 +38,10 @@ See the Mulan PSL v2 for more details. */
 #include "storage/mem/mem_storage_stage.h"
 #include "storage/default/disk_buffer_pool.h"
 #include "storage/default/default_handler.h"
-
+#include "storage/buffer/buffer_pool.h"
+#include "storage/trx/lock_manager.h"
+#include "storage/log/log_manager.h"
+#include "storage/disk/disk_manager.h"
 using namespace common;
 
 bool *&_get_init()
@@ -166,6 +169,17 @@ int init_global_objects()
   DefaultHandler *handler = new DefaultHandler();
   DefaultHandler::set_default(handler);
 
+  LockManager *lock_manager = new LockManager(false);
+  LockManager::set_instance(lock_manager);
+
+  LogManager *log_manager = new LogManager();
+  LogManager::set_instance(log_manager);
+
+  DiskManager *disk_manager = new DiskManager();
+  DiskManager::set_instance(disk_manager);
+
+  MemBufferPoolManager *mbpm = new MemBufferPoolManager(1);
+  MemBufferPoolManager::instance().set_instance(mbpm);
   return 0;
 }
 
@@ -182,6 +196,25 @@ int uninit_global_objects()
     BufferPoolManager::set_instance(nullptr);
     delete bpm;
   }
+
+  LockManager *lock_manager = &LockManager::instance();
+  if (lock_manager != nullptr) {
+    BufferPoolManager::set_instance(nullptr);
+    delete lock_manager;
+  }
+
+  LogManager *log_manager = &LogManager::instance();
+  if (log_manager != nullptr) {
+    LogManager::set_instance(nullptr);
+    delete log_manager;
+  }
+
+  DiskManager *disk_manager = &DiskManager::instance();
+  if (disk_manager != nullptr) {
+    DiskManager::set_instance(nullptr);
+    delete disk_manager;
+  }
+
   return 0;
 }
 

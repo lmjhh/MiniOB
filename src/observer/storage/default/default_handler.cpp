@@ -19,7 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "common/os/path.h"
 #include "common/log/log.h"
 #include "common/lang/string.h"
-#include "storage/record/record_manager.h"
+#include "storage/common/record_manager.h"
 #include "storage/index/bplus_tree.h"
 #include "storage/common/table.h"
 #include "storage/common/condition_filter.h"
@@ -123,10 +123,6 @@ RC DefaultHandler::open_db(const char *dbname)
   if ((ret = db->init(dbname, dbpath.c_str())) != RC::SUCCESS) {
     LOG_ERROR("Failed to open db: %s. error=%d", dbname, ret);
   }
-  if ((ret = db->recover()) != RC::SUCCESS) {
-    LOG_ERROR("Failed to recover db: %s. error=%d", dbname, ret);
-  }
-
   opened_dbs_[dbname] = db;
   return RC::SUCCESS;
 }

@@ -16,6 +16,8 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 #include "storage/common/db.h"
 #include "storage/default/default_handler.h"
+#include "storage/trx/lock_manager.h"
+#include "common/log/log.h"
 
 Session &Session::default_session()
 {
@@ -71,7 +73,7 @@ bool Session::is_trx_multi_operation_mode() const
 Trx *Session::current_trx()
 {
   if (trx_ == nullptr) {
-    trx_ = new Trx;
+    trx_ = new Trx();
   }
   return trx_;
 }

@@ -21,6 +21,8 @@ See the Mulan PSL v2 for more details. */
 #include "common/log/log.h"
 #include "sql/parser/parse_defs.h"
 #include "gtest/gtest.h"
+#include "storage/trx/trx.h"
+#include "storage/trx/lock_manager.h"
 
 using namespace common;
 
@@ -31,7 +33,6 @@ using namespace common;
 #define INSERT_NUM (TIMES * ORDER * ORDER * ORDER * ORDER)
 #define POOL_NUM 2
 
-BufferPoolManager bpm;
 BplusTreeHandler *handler = nullptr;
 const char *index_name = "test.btree";
 int insert_num = INSERT_NUM;
@@ -41,13 +42,15 @@ int k = 0;
 
 void init_bpm()
 {
-  if (&BufferPoolManager::instance() == nullptr) {
-    BufferPoolManager::set_instance(&bpm);
-  }
+  BufferPoolManager *bmp = new BufferPoolManager();
+  BufferPoolManager::set_instance(bmp);
+  LockManager *lock_manager = new LockManager(false);
+  LockManager::set_instance(lock_manager);
 }
 void test_insert()
 {
   RC rc = RC::SUCCESS;
+  Trx trx;
   for (int i = 0; i < insert_num; i++) {
 
     rid.page_num = i / page_size;
@@ -61,14 +64,13 @@ void test_insert()
       } else {
         LOG_INFO("Insert %d. rid=%s", i, rid.to_string().c_str());
       }
-      rc = handler->insert_entry((const char *)&i, &rid);
+      rc = handler->insert_entry((const char *)&i, &rid, &trx);
       ASSERT_EQ(RC::SUCCESS, rc);
       handler->print_tree();
       ASSERT_EQ(true, handler->validate_tree());
     }
   }
   handler->print_tree();
-
   for (int i = 0; i < insert_num; i++) {
 
     rid.page_num = i / page_size;
@@ -82,7 +84,7 @@ void test_insert()
       } else {
         LOG_INFO("Insert %d. rid=%s", i, rid.to_string().c_str());
       }
-      rc = handler->insert_entry((const char *)&i, &rid);
+      rc = handler->insert_entry((const char *)&i, &rid, &trx);
       ASSERT_EQ(RC::SUCCESS, rc);
       handler->print_tree();
       ASSERT_EQ(true, handler->validate_tree());
@@ -103,7 +105,7 @@ void test_insert()
       } else {
         LOG_INFO("Insert %d. rid=%s", i, rid.to_string().c_str());
       }
-      rc = handler->insert_entry((const char *)&i, &rid);
+      rc = handler->insert_entry((const char *)&i, &rid, &trx);
       ASSERT_EQ(RC::SUCCESS, rc);
       ASSERT_EQ(true, handler->validate_tree());
     }
@@ -126,11 +128,11 @@ void test_insert()
     } else {
       LOG_INFO("check duplicate Insert %d. rid=%s. i%TIMES=%d", i, rid.to_string().c_str(), i%TIMES);
     }
-    rc = handler->insert_entry((const char *)&i, &rid);
+    rc = handler->insert_entry((const char *)&i, &rid, &trx);
     int t = i % TIMES;
     if (t == 0 || t == 1 || t == 2) {
       if (rc != RC::RECORD_DUPLICATE_KEY) {
-	LOG_WARN("insert duplicate key success");
+        LOG_WARN("insert duplicate key success");
       }
       ASSERT_EQ(RC::RECORD_DUPLICATE_KEY, rc);
     } else {
@@ -170,6 +172,7 @@ void test_delete()
   RC rc = RC::SUCCESS;
   std::list<RID> rids;
 
+  Trx trx;
   for (int i = 0; i < insert_num / 2; i++) {
     rid.page_num = i / page_size;
     rid.slot_num = i % page_size;
@@ -184,18 +187,16 @@ void test_delete()
         LOG_INFO("Begin to delete entry of index,  i=%d, rid: %s", i, rid.to_string().c_str());
       }
 
-      rc = handler->delete_entry((const char *)&i, &rid);
+      rc = handler->delete_entry((const char *)&i, &rid, &trx);
       if (rc != RC::SUCCESS) {
-	LOG_WARN("failed to delete entry. i=%d, rid=%s", i, rid.to_string().c_str());
+        LOG_WARN("failed to delete entry. i=%d, rid=%s", i, rid.to_string().c_str());
       }
       ASSERT_EQ(RC::SUCCESS, rc);
 
       ASSERT_EQ(true, handler->validate_tree());
     }
   }
-
   handler->print_tree();
-
   for (int i = insert_num - 1; i >= insert_num / 2; i--) {
     rid.page_num = i / page_size;
     rid.slot_num = i % page_size;
@@ -209,7 +210,7 @@ void test_delete()
       } else {
         LOG_INFO("Begin to delete entry of index,  rid: %s", rid.to_string().c_str());
       }
-      rc = handler->delete_entry((const char *)&i, &rid);
+      rc = handler->delete_entry((const char *)&i, &rid, &trx);
 
       ASSERT_EQ(true, handler->validate_tree());
       ASSERT_EQ(RC::SUCCESS, rc);
@@ -235,12 +236,12 @@ void test_delete()
       ASSERT_EQ(0, rids.size());
     } else {
       if (rids.size() != 1) {
-	LOG_WARN("invalid. i=%d, rid=%s, check rid=%s", i, rid.to_string().c_str(), check_rid.to_string().c_str());
+        LOG_WARN("invalid. i=%d, rid=%s, check rid=%s", i, rid.to_string().c_str(), check_rid.to_string().c_str());
       }
       ASSERT_EQ(1, rids.size());
       check_rid = rids.front();
       if (rid != check_rid) {
-	LOG_WARN("invalid. i=%d, rid=%s, check rid=%s", i, rid.to_string().c_str(), check_rid.to_string().c_str());
+        LOG_WARN("invalid. i=%d, rid=%s, check rid=%s", i, rid.to_string().c_str(), check_rid.to_string().c_str());
       }
       ASSERT_EQ(rid.page_num, check_rid.page_num);
       ASSERT_EQ(rid.slot_num, check_rid.slot_num);
@@ -262,7 +263,7 @@ void test_delete()
       } else {
         LOG_INFO("Begin to delete entry of index,  rid: %s", rid.to_string().c_str());
       }
-      rc = handler->delete_entry((const char *)&i, &rid);
+      rc = handler->delete_entry((const char *)&i, &rid, &trx);
 
       ASSERT_EQ(true, handler->validate_tree());
       ASSERT_EQ(RC::SUCCESS, rc);
@@ -284,7 +285,7 @@ void test_delete()
       } else {
         LOG_INFO("Begin to delete entry of index,  rid: %s", rid.to_string().c_str());
       }
-      rc = handler->delete_entry((const char *)&i, &rid);
+      rc = handler->delete_entry((const char *)&i, &rid, &trx);
 
       ASSERT_EQ(true, handler->validate_tree());
       ASSERT_EQ(RC::SUCCESS, rc);
@@ -303,7 +304,7 @@ void test_delete()
     } else {
       LOG_INFO("Begin to insert entry of index,  rid: %s", rid.to_string().c_str());
     }
-    rc = handler->insert_entry((const char *)&i, &rid);
+    rc = handler->insert_entry((const char *)&i, &rid, &trx);
     int t = i % TIMES;
     if (t == 0 || t == 1 || t == 2) {
       ASSERT_EQ(RC::SUCCESS, rc);
@@ -404,12 +405,6 @@ TEST(test_bplus_tree, test_internal_index_node_handle)
   rid.page_num = 0;
   rid.slot_num = 0;
 
-  key = 0;
-  index = internal_node.lookup(key_comparator, key_mem, &found, &insert_position);
-  ASSERT_EQ(false, found);
-  ASSERT_EQ(0, index);
-  ASSERT_EQ(1, insert_position);
-
   key = 3;
   internal_node.create_new_root(1, key_mem, key);
   for (int i = 2; i < 5; i++) {
@@ -475,26 +470,25 @@ TEST(test_bplus_tree, test_internal_index_node_handle)
 TEST(test_bplus_tree, test_chars)
 {
   LoggerFactory::init_default("test_chars.log");
-
   const char *index_name = "chars.btree";
   ::remove(index_name);
   handler = new BplusTreeHandler();
   handler->create(index_name, CHARS, 8, ORDER, ORDER);
-
   char keys[][9] = {
-    "abcdefg",
-    "12345678",
-    "12345678",
-    "abcdefg",
-    "abcdefga"
+      "abcdefg",
+      "12345678",
+      "12345678",
+      "abcdefg",
+      "abcdefga"
   };
 
   RID rid;
   RC rc = RC::SUCCESS;
+  Trx trx;
   for (size_t i = 0; i < sizeof(keys)/sizeof(keys[0]); i++) {
     rid.page_num = 0;
     rid.slot_num = i;
-    rc = handler->insert_entry(keys[i], &rid);
+    rc = handler->insert_entry(keys[i], &rid, &trx);
     ASSERT_EQ(RC::SUCCESS, rc);
   }
 
@@ -506,7 +500,6 @@ TEST(test_bplus_tree, test_chars)
   const char *key = "abcdefg";
   rc = scanner.open(key, strlen(key), true, key, strlen(key), true);
   ASSERT_EQ(rc, RC::SUCCESS);
-
   int count = 0;
   while (RC::SUCCESS == (rc = scanner.next_entry(&rid))) {
     count++;
@@ -527,11 +520,12 @@ TEST(test_bplus_tree, test_scanner)
   int count = 0;
   RC rc = RC::SUCCESS;
   RID rid;
+  Trx trx;
   for (int i = 0; i < 100; i++) {
     int key = i * 2 + 1;
     rid.page_num = 0;
     rid.slot_num = key;
-    rc = handler->insert_entry((const char *)&key, &rid);
+    rc = handler->insert_entry((const char *)&key, &rid, &trx);
     ASSERT_EQ(RC::SUCCESS, rc);
   }
 
@@ -555,24 +549,24 @@ TEST(test_bplus_tree, test_scanner)
   ASSERT_EQ(RC::SUCCESS, rc);
   rc = scanner.next_entry(&rid);
   ASSERT_EQ(RC::RECORD_EOF, rc);
-
   scanner.close();
 
   begin = -100;
   end = 1;
+
   rc = scanner.open((const char *)&begin, 4, false, (const char *)&end, 4, true/*inclusive*/);
   ASSERT_EQ(RC::SUCCESS, rc);
   rc = scanner.next_entry(&rid);
   ASSERT_EQ(RC::SUCCESS, rc);
   rc = scanner.next_entry(&rid);
   ASSERT_EQ(RC::RECORD_EOF, rc);
-
   scanner.close();
 
   begin = 1;
   end = 3;
   rc = scanner.open((const char *)&begin, 4, false, (const char *)&end, 4, false/*inclusive*/);
   ASSERT_EQ(RC::SUCCESS, rc);
+
   rc = scanner.next_entry(&rid);
   ASSERT_EQ(RC::RECORD_EOF, rc);
 
@@ -681,7 +675,6 @@ TEST(test_bplus_tree, test_scanner)
   }
   ASSERT_EQ(100, count);
   ASSERT_EQ(RC::RECORD_EOF, rc);
-
   scanner.close();
 
   begin = 300;
@@ -733,11 +726,8 @@ TEST(test_bplus_tree, test_bplus_tree_insert)
   handler->create(index_name, INTS, sizeof(int), ORDER, ORDER);
 
   test_insert();
-
   test_get();
-
   test_delete();
-
   handler->close();
   delete handler;
   handler = nullptr;

@@ -88,18 +88,18 @@ RC BplusTreeIndex::close()
   return RC::SUCCESS;
 }
 
-RC BplusTreeIndex::insert_entry(const char *record, const RID *rid)
+RC BplusTreeIndex::insert_entry(const char *record, const RID *rid, Trx *trx)
 {
-  return index_handler_.insert_entry(record + field_meta_.offset(), rid);
+  return index_handler_.insert_entry(record + field_meta_.offset(), rid, trx);
 }
 
-RC BplusTreeIndex::delete_entry(const char *record, const RID *rid)
+RC BplusTreeIndex::delete_entry(const char *record, const RID *rid, Trx *trx)
 {
-  return index_handler_.delete_entry(record + field_meta_.offset(), rid);
+  return index_handler_.delete_entry(record + field_meta_.offset(), rid, trx);
 }
 
 IndexScanner *BplusTreeIndex::create_scanner(const char *left_key, int left_len, bool left_inclusive,
-					     const char *right_key, int right_len, bool right_inclusive)
+    const char *right_key, int right_len, bool right_inclusive)
 {
   BplusTreeIndexScanner *index_scanner = new BplusTreeIndexScanner(index_handler_);
   RC rc = index_scanner->open(left_key, left_len, left_inclusive, right_key, right_len, right_inclusive);
@@ -126,7 +126,7 @@ BplusTreeIndexScanner::~BplusTreeIndexScanner() noexcept
 }
 
 RC BplusTreeIndexScanner::open(const char *left_key, int left_len, bool left_inclusive,
-                               const char *right_key, int right_len, bool right_inclusive)
+    const char *right_key, int right_len, bool right_inclusive)
 {
   return tree_scanner_.open(left_key, left_len, left_inclusive, right_key, right_len, right_inclusive);
 }

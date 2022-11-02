@@ -14,9 +14,8 @@ See the Mulan PSL v2 for more details. */
 
 #include "common/log/log.h"
 #include "sql/operator/delete_operator.h"
-#include "storage/record/record.h"
+#include "storage/common/record.h"
 #include "storage/common/table.h"
-#include "storage/trx/trx.h"
 #include "sql/stmt/delete_stmt.h"
 
 RC DeleteOperator::open()

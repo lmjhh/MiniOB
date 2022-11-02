@@ -14,5 +14,19 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
+#include <cstdint>
+
+using FrameId = int32_t;
 using PageNum = int32_t;
 using SlotNum = int32_t;
+using LSN = int32_t;
+
+static constexpr int INVALID_PAGE_NUM = -1;
+static constexpr int INVALID_TRX_ID = -1;
+static constexpr int INVALID_LSN = -1;
+static constexpr int HEADER_PAGE_NUM = 0;
+
+static constexpr bool Enable_Logging = false;
+
+#define PAGE_SIZE (1 << 13)
+#define PAGE_DATA_SIZE (PAGE_SIZE - sizeof(PageNum))

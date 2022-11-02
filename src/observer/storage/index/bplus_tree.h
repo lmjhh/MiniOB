@@ -21,10 +21,10 @@ See the Mulan PSL v2 for more details. */
 #include <sstream>
 #include <functional>
 
-#include "storage/record/record_manager.h"
+#include "storage/common/record_manager.h"
 #include "storage/default/disk_buffer_pool.h"
 #include "sql/parser/parse_defs.h"
-#include "util/comparator.h"
+#include "storage/trx/trx.h"
 
 #define EMPTY_RID_PAGE_NUM -1
 #define EMPTY_RID_SLOT_NUM -1
@@ -45,14 +45,18 @@ public:
   int operator()(const char *v1, const char *v2) const {
     switch (attr_type_) {
     case INTS: {
-      return compare_int((void *)v1, (void *)v2);
+      return *(int *)v1 - *(int *)v2;
     }
       break;
     case FLOATS: {
-      return compare_float((void *)v1, (void *)v2);
+      float result = *(float *)v1 - *(float *)v2;
+      if (-1e-6 < result && result < 1e-6) {
+        return 0;
+      }
+      return result > 0 ? 1 : -1;
     }
     case CHARS: {
-      return compare_string((void *)v1, attr_length_, (void *)v2, attr_length_);
+      return strncmp(v1, v2, attr_length_);
     }
     default:{
       LOG_ERROR("unknown attr type. %d", attr_type_);
@@ -267,6 +271,8 @@ public:
 
   bool validate() const;
 
+  bool is_safe(Operation::Type op);
+
   friend std::string to_string(const IndexNodeHandler &handler);
 
 protected:
@@ -406,14 +412,14 @@ public:
    * 即向索引中插入一个值为（user_key，rid）的键值对
    * @note 这里假设user_key的内存大小与attr_length 一致
    */
-  RC insert_entry(const char *user_key, const RID *rid);
+  RC insert_entry(const char *user_key, const RID *rid, Trx *trx);
 
   /**
    * 从IndexHandle句柄对应的索引中删除一个值为（*pData，rid）的索引项
    * @return RECORD_INVALID_KEY 指定值不存在
    * @note 这里假设user_key的内存大小与attr_length 一致
    */
-  RC delete_entry(const char *user_key, const RID *rid);
+  RC delete_entry(const char *user_key, const RID *rid, Trx *trx);
 
   bool is_empty() const;
 
@@ -427,14 +433,61 @@ public:
   RC sync();
 
   /**
+   * 并发环境会不准确，不要在还有线程在修改的时候调用
    * Check whether current B+ tree is invalid or not.
    * return true means current tree is valid, return false means current tree is invalid.
    * @return
+   *
    */
   bool validate_tree();
 
+  /**
+   * exclusive == true, write
+   * exclusive == false, read
+   */
+  inline void lock_root_page(bool exclusive) {
+    if (exclusive) {
+      pthread_rwlock_wrlock(&root_rwlock_);
+    } else {
+      pthread_rwlock_rdlock(&root_rwlock_);
+    }
+    root_locked_cnt_++;
+  }
+
+  inline void try_unlock_root_page() {
+    if (root_locked_cnt_ > 0) {
+      pthread_rwlock_unlock(&root_rwlock_);
+      root_locked_cnt_--;
+    }
+  }
+
+  inline void lock(bool exclusive,Frame * page) {
+    if (exclusive) {
+      page->w_latch();
+    } else {
+      page->r_latch();
+    }
+  }
+
+  inline void unlock(bool exclusive,Frame * page) {
+    if (exclusive) {
+      page->w_unlatch();
+    } else {
+      page->r_unlatch();
+    }
+  }
+
+
 public:
+  /**
+   * 并发环境会不准确
+   * @return
+   */
   RC print_tree();
+  /**
+   * 并发环境会不准确
+   * @return
+   */
   RC print_leafs();
 
 private:
@@ -446,34 +499,37 @@ private:
   bool validate_node_recursive(Frame *frame);
 
 protected:
-  RC find_leaf(const char *key, Frame *&frame);
+  RC find_leaf(const char *key, Frame *&frame, Operation::Type op, Trx *trx);
   RC left_most_page(Frame *&frame);
   RC right_most_page(Frame *&frame);
   RC find_leaf_internal(const std::function<PageNum(InternalIndexNodeHandler &)> &child_page_getter,
-			Frame *&frame);
+			Frame *&frame, Operation::Type op, Trx *trx);
+  RC crabing_protocal_fetch_page(PageNum page_id, Frame *&frame, Operation::Type op, Frame* previous, Trx *trx);
 
   RC insert_into_parent(
       PageNum parent_page, Frame *left_frame, const char *pkey, Frame &right_frame);
 
-  RC delete_entry_internal(Frame *leaf_frame, const char *key);
+  RC delete_entry_internal(Frame *leaf_frame, const char *key, Trx *trx);
 
   RC insert_into_new_root(Frame *left_frame, const char *pkey, Frame &right_frame);
 
   template <typename IndexNodeHandlerType>
-  RC split(Frame *frame, Frame *&new_frame);
+  RC split(Frame *frame, Frame *&new_frame, Trx *trx);
   template <typename IndexNodeHandlerType>
-  RC coalesce_or_redistribute(Frame *frame);
+  RC coalesce_or_redistribute(Frame *frame, Trx *trx);
   template <typename IndexNodeHandlerType>
-  RC coalesce(Frame *neighbor_frame, Frame *frame, Frame *parent_frame, int index);
+  RC coalesce(Frame *neighbor_frame, Frame *frame, Frame *parent_frame, int index, Trx *trx);
   template <typename IndexNodeHandlerType>
   RC redistribute(Frame *neighbor_frame, Frame *frame, Frame *parent_frame, int index);
 
-  RC insert_entry_into_parent(Frame *frame, Frame *new_frame, const char *key);
-  RC insert_entry_into_leaf_node(Frame *frame, const char *pkey, const RID *rid);
+  RC insert_entry_into_parent(Frame *frame, Frame *new_frame, const char *key, Trx *trx);
+  RC insert_entry_into_leaf_node(Frame *frame, const char *pkey, const RID *rid, Trx *trx);
   RC update_root_page_num();
   RC create_new_tree(const char *key, const RID *rid);
 
   RC adjust_root(Frame *root_frame);
+
+  RC unlock_page_in_trx(bool exclusive, Trx *trx, Frame *cur_page = nullptr);
 
 private:
   char *make_key(const char *user_key, const RID &rid);
@@ -487,6 +543,11 @@ protected:
   KeyPrinter    key_printer_;
 
   common::MemPoolItem *mem_pool_item_ = nullptr;
+
+  //根节点锁
+  pthread_rwlock_t root_rwlock_ = PTHREAD_RWLOCK_INITIALIZER;
+  //使用线程局部变量来保证每个线程加锁解锁次数不冲突
+  static thread_local int root_locked_cnt_;
 
 private:
   friend class BplusTreeScanner;
@@ -524,12 +585,13 @@ private:
   bool inited_ = false;
   BplusTreeHandler &tree_handler_;
 
-  /// 使用左右叶子节点和位置来表示扫描的起始位置和终止位置
-  /// 起始位置和终止位置都是有效的数据
   Frame *      left_frame_  = nullptr;
-  Frame *      right_frame_ = nullptr;
+  /**
+   * 保存右边的 key 作为终止
+   */
+  char * right_key_ = nullptr;
   int          iter_index_  = -1;
-  int          end_index_   = -1; // use -1 for end of scan
+  bool         is_end_  = true;
 };
 
 #endif  //__OBSERVER_STORAGE_COMMON_INDEX_MANAGER_H_

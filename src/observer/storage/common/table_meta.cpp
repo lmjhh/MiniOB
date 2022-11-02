@@ -21,18 +21,20 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 
 static const Json::StaticString FIELD_TABLE_NAME("table_name");
+static const Json::StaticString FIELD_TABLE_ID("space_id");
 static const Json::StaticString FIELD_FIELDS("fields");
 static const Json::StaticString FIELD_INDEXES("indexes");
 
 std::vector<FieldMeta> TableMeta::sys_fields_;
 
 TableMeta::TableMeta(const TableMeta &other)
-    : name_(other.name_), fields_(other.fields_), indexes_(other.indexes_), record_size_(other.record_size_)
+    : name_(other.name_), space_id_(other.space_id_),fields_(other.fields_), indexes_(other.indexes_), record_size_(other.record_size_)
 {}
 
 void TableMeta::swap(TableMeta &other) noexcept
 {
   name_.swap(other.name_);
+  space_id_ = other.space_id_;
   fields_.swap(other.fields_);
   indexes_.swap(other.indexes_);
   std::swap(record_size_, other.record_size_);
@@ -51,7 +53,7 @@ RC TableMeta::init_sys_fields()
   sys_fields_.push_back(field_meta);
   return rc;
 }
-RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
+RC TableMeta::init(const char *name, int space_id, int field_num, const AttrInfo attributes[])
 {
   if (common::is_blank(name)) {
     LOG_ERROR("Name cannot be empty");
@@ -94,7 +96,8 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
   record_size_ = field_offset;
 
   name_ = name;
-  LOG_INFO("Sussessfully initialized table meta. table name=%s", name);
+  space_id_ = space_id;
+  LOG_INFO("Sussessfully initialized table meta. table name=%s, space id = %d", name, space_id);
   return RC::SUCCESS;
 }
 
@@ -104,23 +107,14 @@ RC TableMeta::add_index(const IndexMeta &index)
   return RC::SUCCESS;
 }
 
-RC TableMeta::remove_index(const char *name)
-{
-
-  std::vector<IndexMeta>::iterator itor;
-  for( itor = indexes_.begin(); itor != indexes_.end(); itor++ )
-  {
-    if (0 == strcmp(itor->name(), name)) {
-      indexes_.erase(itor);
-      return RC::SUCCESS;
-    }
-  }
-  return RC::SCHEMA_INDEX_NOT_EXIST;
-}
-
 const char *TableMeta::name() const
 {
   return name_.c_str();
+}
+
+const int32_t TableMeta::space_id() const
+{
+  return space_id_;
 }
 
 const FieldMeta *TableMeta::trx_field() const
@@ -205,6 +199,8 @@ int TableMeta::serialize(std::ostream &ss) const
   Json::Value table_value;
   table_value[FIELD_TABLE_NAME] = name_;
 
+  table_value[FIELD_TABLE_ID] = std::to_string(space_id_);
+
   Json::Value fields_value;
   for (const FieldMeta &field : fields_) {
     Json::Value field_value;
@@ -257,6 +253,14 @@ int TableMeta::deserialize(std::istream &is)
 
   std::string table_name = table_name_value.asString();
 
+  const Json::Value &space_id_value = table_value[FIELD_TABLE_ID];
+  if (!space_id_value.isString()) {
+    LOG_ERROR("Invalid table id. json value=%s", space_id_value.toStyledString().c_str());
+    return -1;
+  }
+
+  int32_t space_id = atoi(space_id_value.asString().c_str());
+
   const Json::Value &fields_value = table_value[FIELD_FIELDS];
   if (!fields_value.isArray() || fields_value.size() <= 0) {
     LOG_ERROR("Invalid table meta. fields is not array, json value=%s", fields_value.toStyledString().c_str());
@@ -281,6 +285,7 @@ int TableMeta::deserialize(std::istream &is)
       fields.begin(), fields.end(), [](const FieldMeta &f1, const FieldMeta &f2) { return f1.offset() < f2.offset(); });
 
   name_.swap(table_name);
+  space_id_ = space_id;
   fields_.swap(fields);
   record_size_ = fields_.back().offset() + fields_.back().len() - fields_.begin()->offset();
 
@@ -319,6 +324,7 @@ void TableMeta::to_string(std::string &output) const
 void TableMeta::desc(std::ostream &os) const
 {
   os << name_ << '(' << std::endl;
+  os << space_id_ << std::endl;
   for (const auto &field : fields_) {
     os << '\t';
     field.desc(os);

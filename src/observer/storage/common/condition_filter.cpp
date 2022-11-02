@@ -13,9 +13,8 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <stddef.h>
-#include <math.h>
 #include "condition_filter.h"
-#include "storage/record/record_manager.h"
+#include "record_manager.h"
 #include "common/log/log.h"
 #include "storage/common/table.h"
 
@@ -157,8 +156,7 @@ bool DefaultConditionFilter::filter(const Record &rec) const
     case FLOATS: {
       float left = *(float *)left_value;
       float right = *(float *)right_value;
-      float result = left - right;
-      cmp_result = result >= 0 ? ceil(result) : floor(result);
+      cmp_result = (int)(left - right);
     } break;
     default: {
     }

@@ -21,7 +21,8 @@ See the Mulan PSL v2 for more details. */
 #include "rc.h"
 #include "storage/common/index_meta.h"
 #include "storage/common/field_meta.h"
-#include "storage/record/record_manager.h"
+#include "storage/common/record_manager.h"
+#include "storage/trx/trx.h"
 
 class IndexDataOperator {
 public:
@@ -31,7 +32,6 @@ public:
 };
 
 class IndexScanner;
-
 class Index {
 
 public:
@@ -43,11 +43,11 @@ public:
     return index_meta_;
   }
 
-  virtual RC insert_entry(const char *record, const RID *rid) = 0;
-  virtual RC delete_entry(const char *record, const RID *rid) = 0;
+  virtual RC insert_entry(const char *record, const RID *rid, Trx *trx = nullptr) = 0;
+  virtual RC delete_entry(const char *record, const RID *rid, Trx *trx = nullptr) = 0;
 
   virtual IndexScanner *create_scanner(const char *left_key, int left_len, bool left_inclusive,
-				       const char *right_key, int right_len, bool right_inclusive) = 0;
+      const char *right_key, int right_len, bool right_inclusive) = 0;
 
   virtual RC sync() = 0;
 

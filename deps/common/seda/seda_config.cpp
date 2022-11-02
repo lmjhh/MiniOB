@@ -312,9 +312,8 @@ std::string SedaConfig::get_thread_pool(std::string &stage_name)
         stage_name.c_str(),
         thread_name.c_str(),
         DEFAULT_THREAD_POOL);
-    return ret;
   }
-  return thread_name;
+  return ret;
 }
 
 SedaConfig::status_t SedaConfig::init_stages()

@@ -181,6 +181,7 @@ void DefaultStorageStage::handle_event(StageEvent *event)
   }
 
   session_event->set_response(response);
+  event->done_immediate();
 
   LOG_TRACE("Exit\n");
 }
@@ -220,9 +221,7 @@ RC insert_record_from_file(
     const FieldMeta *field = table->table_meta().field(i + sys_field_num);
 
     std::string &file_value = file_values[i];
-    if (field->type() != CHARS) {
-      common::strip(file_value);
-    }
+    common::strip(file_value);
 
     switch (field->type()) {
       case INTS: {

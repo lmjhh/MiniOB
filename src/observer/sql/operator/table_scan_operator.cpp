@@ -14,6 +14,7 @@ See the Mulan PSL v2 for more details. */
 
 #include "sql/operator/table_scan_operator.h"
 #include "storage/common/table.h"
+#include "storage/trx/trx.h"
 #include "rc.h"
 
 RC TableScanOperator::open()
@@ -27,12 +28,14 @@ RC TableScanOperator::open()
 
 RC TableScanOperator::next()
 {
-  if (!record_scanner_.has_next()) {
-    return RC::RECORD_EOF;
+  RC rc = RC::SUCCESS;
+  while (record_scanner_.has_next()) {
+    rc = record_scanner_.next(current_record_);
+    if (trx_->is_visible(table_, &current_record_)) {
+      return rc;
+    }
   }
-
-  RC rc = record_scanner_.next(current_record_);
-  return rc;
+  return RC::RECORD_EOF;
 }
 
 RC TableScanOperator::close()

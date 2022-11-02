@@ -27,14 +27,14 @@ public:
   RC open(const char *file_name, const IndexMeta &index_meta, const FieldMeta &field_meta);
   RC close();
 
-  RC insert_entry(const char *record, const RID *rid) override;
-  RC delete_entry(const char *record, const RID *rid) override;
+  RC insert_entry(const char *record, const RID *rid, Trx *trx = nullptr) override;
+  RC delete_entry(const char *record, const RID *rid, Trx *trx = nullptr) override;
 
   /**
    * 扫描指定范围的数据
    */
   IndexScanner *create_scanner(const char *left_key, int left_len, bool left_inclusive,
-			       const char *right_key, int right_len, bool right_inclusive) override;
+      const char *right_key, int right_len, bool right_inclusive) override;
 
   RC sync() override;
 
@@ -52,7 +52,7 @@ public:
   RC destroy() override;
 
   RC open(const char *left_key, int left_len, bool left_inclusive,
-          const char *right_key, int right_len, bool right_inclusive);
+      const char *right_key, int right_len, bool right_inclusive);
 private:
   BplusTreeScanner tree_scanner_;
 };

@@ -16,7 +16,6 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/field.h"
 #include "common/log/log.h"
 #include "util/comparator.h"
-#include "util/util.h"
 
 void TupleCell::to_string(std::ostream &os) const
 {
@@ -25,8 +24,7 @@ void TupleCell::to_string(std::ostream &os) const
     os << *(int *)data_;
   } break;
   case FLOATS: {
-    float v = *(float *)data_;
-    os << double2string(v);
+    os << *(float *)data_;
   } break;
   case CHARS: {
     for (int i = 0; i < length_; i++) {
