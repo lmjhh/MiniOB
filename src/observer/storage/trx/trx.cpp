@@ -20,21 +20,21 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/field_meta.h"
 #include "common/log/log.h"
 
-static const uint32_t DELETED_FLAG_BIT_MASK = 0x80000000;
-static const uint32_t TRX_ID_BIT_MASK = 0x7FFFFFFF;
-std::atomic<int32_t> Trx::trx_id(0);
+static const uint8_t DELETED_FLAG_BIT_MASK = 0x80;
+static const uint8_t TRX_ID_BIT_MASK = 0x7F;
+std::atomic<int8_t> Trx::trx_id(0);
 
-int32_t Trx::default_trx_id()
+int8_t Trx::default_trx_id()
 {
   return 0;
 }
 
-int32_t Trx::next_trx_id()
+int8_t Trx::next_trx_id()
 {
   return ++trx_id;
 }
 
-void Trx::set_trx_id(int32_t id)
+void Trx::set_trx_id(int8_t id)
 {
   trx_id = id;
 }
@@ -45,7 +45,7 @@ void Trx::next_current_id()
   trx_id_ = trx_id;
 }
 
-int32_t Trx::get_current_id()
+int8_t Trx::get_current_id()
 {
   return trx_id_;
 }
@@ -62,7 +62,7 @@ AttrType Trx::trx_field_type()
 
 int Trx::trx_field_len()
 {
-  return sizeof(int32_t);
+  return sizeof(int8_t);
 }
 
 Trx::Trx()

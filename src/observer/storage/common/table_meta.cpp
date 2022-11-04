@@ -65,13 +65,13 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
 
   RC rc = RC::SUCCESS;
   //不记录事务id
-//  if (sys_fields_.empty()) {
-//    rc = init_sys_fields();
-//    if (rc != RC::SUCCESS) {
-//      LOG_ERROR("Failed to init_sys_fields, name:%s ", name);
-//      return rc;
-//    }
-//  }
+  if (sys_fields_.empty()) {
+    rc = init_sys_fields();
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to init_sys_fields, name:%s ", name);
+      return rc;
+    }
+  }
 
   fields_.resize(field_num + sys_fields_.size());
   for (size_t i = 0; i < sys_fields_.size(); i++) {
@@ -79,9 +79,9 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
   }
 
   // 当前实现下，所有类型都是4字节对齐的，所以不再考虑字节对齐问题
-//  int field_offset = sys_fields_.back().offset() + sys_fields_.back().len();
+  int field_offset = sys_fields_.back().offset() + sys_fields_.back().len();
   //这个比赛不需要事务，也没有删除case, 直接不要记事务id
-  int field_offset = 0;
+//  int field_offset = 0;
   for (int i = 0; i < field_num; i++) {
     const AttrInfo &attr_info = attributes[i];
     rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);

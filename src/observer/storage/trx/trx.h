@@ -79,11 +79,11 @@ public:
  */
 class Trx {
 public:
-  static std::atomic<int32_t> trx_id;
+  static std::atomic<int8_t> trx_id;
 
-  static int32_t default_trx_id();
-  static int32_t next_trx_id();
-  static void set_trx_id(int32_t id);
+  static int8_t default_trx_id();
+  static int8_t next_trx_id();
+  static void set_trx_id(int8_t id);
 
   static const char *trx_field_name();
   static AttrType trx_field_type();
@@ -109,7 +109,7 @@ public:
 
   void next_current_id();
 
-  int32_t get_current_id();
+  int8_t get_current_id();
 
 private:
   void set_record_trx_id(Table *table, Record &record, int32_t trx_id, bool deleted) const;
@@ -126,7 +126,7 @@ private:
   void start_if_not_started();
 
 private:
-  int32_t trx_id_ = 0;
+  int8_t trx_id_ = 0;
   std::unordered_map<Table *, OperationSet> operations_;
 };
 

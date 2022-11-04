@@ -783,7 +783,6 @@ RC BplusTreeHandler::create(const char *file_name, AttrType attr_type, int attr_
   file_header->internal_max_size = internal_max_size;
   file_header->leaf_max_size = leaf_max_size;
   file_header->root_page = BP_INVALID_PAGE_NUM;
-
   header_frame->mark_dirty();
 
   disk_buffer_pool_ = bp;
