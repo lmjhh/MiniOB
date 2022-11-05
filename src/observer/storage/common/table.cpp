@@ -914,6 +914,7 @@ IndexScanner *Table::find_index_for_scan(const ConditionFilter *filter)
 RC Table::sync()
 {
   RC rc = RC::SUCCESS;
+  data_buffer_pool_->flush_all_pages();
   for (Index *index : indexes_) {
     rc = index->sync();
     if (rc != RC::SUCCESS) {

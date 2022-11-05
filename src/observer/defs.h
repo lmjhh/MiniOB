@@ -14,5 +14,5 @@ See the Mulan PSL v2 for more details. */
 
 #pragma once
 
-using PageNum = int32_t;
-using SlotNum = int32_t;
+using PageNum = int16_t;
+using SlotNum = int16_t;

@@ -176,10 +176,8 @@ void ExecuteStage::handle_request(common::StageEvent *event)
       default_storage_stage_->handle_event(event);
     } break;
     case SCF_SYNC: {
-      /*
       RC rc = DefaultHandler::get_default().sync();
       session_event->set_response(strrc(rc));
-      */
     } break;
     case SCF_BEGIN: {
       do_begin(sql_event);
