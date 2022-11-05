@@ -45,7 +45,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/common/condition_filter.h"
 #include "storage/trx/trx.h"
 #include "storage/clog/clog.h"
-
+#include "util/util.h"
 using namespace common;
 
 //RC create_selection_executor(
@@ -335,6 +335,15 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   ValueExpr &right_value_expr = *(ValueExpr *)right;
   TupleCell value;
   right_value_expr.get_tuple_cell(value);
+
+  if (field.attr_type() == DATES) {
+    void *data = malloc(sizeof(DateNum));
+    DateNum data_num = to_date_data((char *)value.data());
+    memcpy(data, &data_num, sizeof(DateNum));
+    TupleCell new_value = TupleCell(AttrType::DATES, (char *)data);
+    value = new_value;
+  }
+
 
   const TupleCell *left_cell = nullptr;
   const TupleCell *right_cell = nullptr;

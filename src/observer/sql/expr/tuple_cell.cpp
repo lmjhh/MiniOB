@@ -36,6 +36,11 @@ void TupleCell::to_string(std::ostream &os) const
       os << data_[i];
     }
   } break;
+  case DATES: {
+    DateNum date_num = *(DateNum *)data_;
+    std::string str = to_date_str(date_num);
+    os << str.c_str();
+  }
   default: {
     LOG_WARN("unsupported attr type: %d", attr_type_);
   } break;
@@ -49,6 +54,7 @@ int TupleCell::compare(const TupleCell &other) const
     case INTS: return compare_int(this->data_, other.data_);
     case FLOATS: return compare_float(this->data_, other.data_);
     case CHARS: return compare_string(this->data_, this->length_, other.data_, other.length_);
+    case DATES: { printf("1111\n"); return compare_date(this->data_, other.data_); }
     default: {
       LOG_WARN("unsupported type: %d", this->attr_type_);
     }
@@ -59,6 +65,11 @@ int TupleCell::compare(const TupleCell &other) const
   } else if (this->attr_type_ == FLOATS && other.attr_type_ == INTS) {
     float other_data = *(int *)other.data_;
     return compare_float(data_, &other_data);
+  } else if (this->attr_type_ == CHARS && other.attr_type_ == DATES) {
+    printf("111111\n"); //不会出现
+  } else if (this->attr_type_ == DATES && other.attr_type_ == CHARS) {
+    DateNum other_data = to_date_data(other.data_);
+    return compare_date(data_, &other_data);
   }
   LOG_WARN("not supported");
   return -1; // TODO return rc?

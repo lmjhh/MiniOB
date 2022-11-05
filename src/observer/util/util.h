@@ -13,7 +13,10 @@ See the Mulan PSL v2 for more details. */
 //
 
 #pragma once
-
 #include <string>
+typedef uint16_t DateNum;
 
 std::string double2string(double v);
+
+DateNum to_date_data (char *str);
+std::string to_date_str (DateNum data);

@@ -1711,6 +1711,7 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
   // 校验输入的键值是否是合法范围
   if (left_user_key && right_user_key) {
     const auto &attr_comparator = tree_handler_.key_comparator_.attr_comparator();
+
     const int result = attr_comparator(left_user_key, right_user_key);
     if (result > 0 || // left < right
          // left == right but is (left,right)/[left,right) or (left,right]
@@ -1855,7 +1856,6 @@ RC BplusTreeScanner::open(const char *left_user_key, int left_len, bool left_inc
     }
     end_index_ = right_index;
   }
-
   // 判断是否左边界比右边界要靠后
   // 两个边界最多会多一页
   // 查找不存在的元素，或者不存在的范围数据时，可能会存在这个问题
