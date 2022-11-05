@@ -13,6 +13,8 @@ See the Mulan PSL v2 for more details. */
 //
 
 #include <string.h>
+#include <unordered_map>
+#include <vector>
 #include "util/util.h"
 
 std::string double2string(double v)
@@ -31,7 +33,7 @@ std::string double2string(double v)
   return std::string(buf, len);
 }
 
-
+//////////////////////////////////日期编码
 DateNum to_date_data (char *str) {
   int y, m, d;
   sscanf(str, "%d-%d-%d", &y, &m, &d);
@@ -59,4 +61,22 @@ std::string to_date_str (DateNum data) {
   char result[11];
   sprintf(result, "%s-%s-%s", yearStr, monthStr, dayStr);
   return std::string(result);
+}
+
+///////////////////////////////////
+static std::unordered_map<std::string, uint8_t> SHIP_MODE_MAP = {
+        {"RAIL", 0}, {"SHIP", 1}, {"REG AIR", 2},
+        {"AIR", 3}, {"FOB", 4}, {"MAIL", 5},
+        {"TRUCK", 6}
+};
+static std::vector<std::string> SHIP_MODE_ARRAY = {
+        "RAIL", "SHIP", "REG AIR", "AIR", "FOB", "MAIL", "TRUCK"
+};
+
+uint8_t ship_mode_to_code(char *str) {
+  return SHIP_MODE_MAP[std::string(str)];
+}
+
+std::string ship_code_to_str(uint8_t code) {
+  return SHIP_MODE_ARRAY[code];
 }

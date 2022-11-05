@@ -40,6 +40,10 @@ void TupleCell::to_string(std::ostream &os) const
     DateNum date_num = *(DateNum *)data_;
     std::string str = to_date_str(date_num);
     os << str.c_str();
+  } break;
+  case SHIP_MODES: {
+    std::string str = ship_code_to_str(*(uint8_t *)data_);
+    os << str.c_str();
   }
   default: {
     LOG_WARN("unsupported attr type: %d", attr_type_);

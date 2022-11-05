@@ -20,3 +20,6 @@ std::string double2string(double v);
 
 DateNum to_date_data (char *str);
 std::string to_date_str (DateNum data);
+
+uint8_t ship_mode_to_code(char *str);
+std::string ship_code_to_str(uint8_t code);

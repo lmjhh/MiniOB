@@ -65,6 +65,15 @@ void value_init_date(Value *value, const char *v)
   DateNum date_num = to_date_data((char *)v);
   memcpy(value->data, &date_num, sizeof(DateNum));
 }
+
+void value_init_ship_mode(Value *value, const char *v)
+{
+  value->type = SHIP_MODES;
+  value->data = malloc(sizeof(uint8_t));
+  uint8_t code = ship_mode_to_code((char *)v);
+  memcpy(value->data, &code, sizeof(uint8_t));
+}
+
 void value_destroy(Value *value)
 {
   value->type = UNDEFINED;

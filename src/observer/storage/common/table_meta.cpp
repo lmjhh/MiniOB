@@ -89,6 +89,10 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
       attr_info.length = 2;
       attr_info.type = DATES;
     }
+    if (strstr(attr_info.name, "shipmode") != NULL) {
+      attr_info.length = 1;
+      attr_info.type = SHIP_MODES;
+    }
 
     rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
     if (rc != RC::SUCCESS) {

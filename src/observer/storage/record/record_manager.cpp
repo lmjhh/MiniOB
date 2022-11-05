@@ -141,7 +141,7 @@ RC RecordPageHandler::init_empty_page(DiskBufferPool &buffer_pool, PageNum page_
   }
 
   int page_size = BP_PAGE_DATA_SIZE;
-  int record_phy_size = align8(record_size);
+  int record_phy_size = record_size;
   page_header_->record_num = 0;
   page_header_->record_capacity = page_record_capacity(page_size, record_phy_size);
   page_header_->record_real_size = record_size;
