@@ -367,6 +367,13 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
         copy_len = data_len + 1;
       }
     }
+    if (field->type() == SHIPS && copy_len == 0) {
+      uint8_t ship_mode_code = *(uint8_t *)value.data;
+      uint8_t ship_two_code = *(uint8_t *)(record + field->offset());
+      ship_two_code = ship_two_code << 4;
+      ship_two_code = ship_two_code | ship_mode_code;
+      memcpy(record + field->offset(), &ship_two_code, 1);
+    }
     memcpy(record + field->offset(), value.data, copy_len);
   }
 

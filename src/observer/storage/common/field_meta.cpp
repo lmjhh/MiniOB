@@ -24,7 +24,7 @@ const static Json::StaticString FIELD_OFFSET("offset");
 const static Json::StaticString FIELD_LEN("len");
 const static Json::StaticString FIELD_VISIBLE("visible");
 
-const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "ship_mods"};
+const char *ATTR_TYPE_NAME[] = {"undefined", "chars", "ints", "floats", "dates", "ships"};
 
 const char *attr_type_to_string(AttrType type)
 {
@@ -54,7 +54,7 @@ RC FieldMeta::init(const char *name, AttrType attr_type, int attr_offset, int at
     return RC::INVALID_ARGUMENT;
   }
 
-  if (AttrType::UNDEFINED == attr_type || attr_offset < 0 || attr_len <= 0) {
+  if (AttrType::UNDEFINED == attr_type || attr_offset < 0 || attr_len < 0) {
     LOG_WARN(
         "Invalid argument. name=%s, attr_type=%d, attr_offset=%d, attr_len=%d", name, attr_type, attr_offset, attr_len);
     return RC::INVALID_ARGUMENT;

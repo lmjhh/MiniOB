@@ -64,19 +64,24 @@ std::string to_date_str (DateNum data) {
 }
 
 ///////////////////////////////////
-static std::unordered_map<std::string, uint8_t> SHIP_MODE_MAP = {
+static std::unordered_map<std::string, uint8_t> SHIP_MAP = {
         {"RAIL", 0}, {"SHIP", 1}, {"REG AIR", 2},
         {"AIR", 3}, {"FOB", 4}, {"MAIL", 5},
-        {"TRUCK", 6}
+        {"TRUCK", 6},
+        {"TAKE BACK RETURN", 7},
+        {"DELIVER IN PERSON", 8},
+        {"NONE", 9},
+        {"COLLECT COD", 10}
+
 };
-static std::vector<std::string> SHIP_MODE_ARRAY = {
-        "RAIL", "SHIP", "REG AIR", "AIR", "FOB", "MAIL", "TRUCK"
+static std::vector<std::string> SHIP_ARRAY = {
+        "RAIL", "SHIP", "REG AIR", "AIR", "FOB", "MAIL", "TRUCK", "TAKE BACK RETURN", "DELIVER IN PERSON", "NONE", "COLLECT COD"
 };
 
-uint8_t ship_mode_to_code(char *str) {
-  return SHIP_MODE_MAP[std::string(str)];
+uint8_t str_to_ship_code(char *str) {
+  return SHIP_MAP[std::string(str)];
 }
 
 std::string ship_code_to_str(uint8_t code) {
-  return SHIP_MODE_ARRAY[code];
+  return SHIP_ARRAY[code];
 }

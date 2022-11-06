@@ -41,8 +41,15 @@ void TupleCell::to_string(std::ostream &os) const
     std::string str = to_date_str(date_num);
     os << str.c_str();
   } break;
-  case SHIP_MODES: {
-    std::string str = ship_code_to_str(*(uint8_t *)data_);
+  case SHIPS: {
+    uint8_t code = *(uint8_t *)data_;
+    if (length() == 1) {
+      code = code >> 4;
+    } else {
+      code = code << 4;
+      code = code >> 4;
+    }
+    std::string str = ship_code_to_str(code);
     os << str.c_str();
   }
   default: {

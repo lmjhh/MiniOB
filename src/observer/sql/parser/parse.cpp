@@ -66,11 +66,11 @@ void value_init_date(Value *value, const char *v)
   memcpy(value->data, &date_num, sizeof(DateNum));
 }
 
-void value_init_ship_mode(Value *value, const char *v)
+void value_init_ship_code(Value *value, const char *v)
 {
-  value->type = SHIP_MODES;
+  value->type = SHIPS;
   value->data = malloc(sizeof(uint8_t));
-  uint8_t code = ship_mode_to_code((char *)v);
+  uint8_t code = str_to_ship_code((char *)v);
   memcpy(value->data, &code, sizeof(uint8_t));
 }
 

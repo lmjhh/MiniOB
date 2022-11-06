@@ -88,10 +88,13 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
     if (attr_info.length == 10 && strstr (attr_info.name, "date") != NULL) {
       attr_info.length = 2;
       attr_info.type = DATES;
-    }
-    if (strstr(attr_info.name, "shipmode") != NULL) {
+    } else if (strstr(attr_info.name, "ship") != NULL) { //ship_date
       attr_info.length = 1;
-      attr_info.type = SHIP_MODES;
+      attr_info.type = SHIPS;
+      if (strstr(attr_info.name, "mode") != NULL) {
+        attr_info.length = 0;
+        field_offset -= 1;
+      }
     }
 
     rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
@@ -99,7 +102,7 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name);
       return rc;
     }
-
+    if (attr_info.length == 0) field_offset += 1;
     field_offset += attr_info.length;
   }
 
