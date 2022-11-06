@@ -47,7 +47,8 @@ typedef enum
   INTS,
   FLOATS,
   DATES,
-  SHIPS
+  SHIPS,
+  SMALL_INTS
 } AttrType;
 
 //属性值
@@ -190,6 +191,7 @@ void relation_attr_init(RelAttr *relation_attr, const char *relation_name, const
 void relation_attr_destroy(RelAttr *relation_attr);
 
 void value_init_integer(Value *value, int v);
+void value_init_small_integer(Value *value, unsigned char v);
 void value_init_float(Value *value, float v);
 void value_init_string(Value *value, const char *v);
 void value_init_date(Value *value, const char *v);

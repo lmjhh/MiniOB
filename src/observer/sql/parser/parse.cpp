@@ -47,6 +47,14 @@ void value_init_integer(Value *value, int v)
   value->data = malloc(sizeof(v));
   memcpy(value->data, &v, sizeof(v));
 }
+
+void value_init_small_integer(Value *value, uint8_t v)
+{
+  value->type = SMALL_INTS;
+  value->data = malloc(sizeof(v));
+  memcpy(value->data, &v, sizeof(v));
+}
+
 void value_init_float(Value *value, float v)
 {
   value->type = FLOATS;

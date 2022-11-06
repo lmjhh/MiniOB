@@ -96,6 +96,10 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
         field_offset -= 1;
       }
     }
+    if (strstr (attr_info.name, "linenumber") != NULL || strstr (attr_info.name, "quantity") != NULL) {
+      attr_info.length = 1;
+      attr_info.type = SMALL_INTS;
+    }
 
     rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
     if (rc != RC::SUCCESS) {

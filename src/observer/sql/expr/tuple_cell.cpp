@@ -24,6 +24,10 @@ void TupleCell::to_string(std::ostream &os) const
   case INTS: {
     os << *(int *)data_;
   } break;
+  case SMALL_INTS: {
+    int value = *(uint8_t *)data_;
+    os << value;
+  } break;
   case FLOATS: {
     float v = *(float *)data_;
     os << double2string(v);

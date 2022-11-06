@@ -239,8 +239,16 @@ RC insert_record_from_file(
           value_init_integer(&record_values[i], int_value);
         }
       }
-
       break;
+      case SMALL_INTS: {
+        deserialize_stream.clear();  // 清理stream的状态，防止多次解析出现异常
+        deserialize_stream.str(file_value);
+        uint8_t small_int_value;
+        int int_value;
+        deserialize_stream >> int_value;
+        small_int_value = int_value;
+        value_init_small_integer(&record_values[i], small_int_value);
+      } break;
       case FLOATS: {
         deserialize_stream.clear();
         deserialize_stream.str(file_value);
