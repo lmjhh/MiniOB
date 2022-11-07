@@ -30,6 +30,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 #include "storage/clog/clog.h"
 #include "util/util.h"
+#include "storage/index/hash_index.h"
 
 Table::~Table()
 {
@@ -118,6 +119,14 @@ RC Table::create(
   base_dir_ = base_dir;
   clog_manager_ = clog_manager;
   LOG_INFO("Successfully create table %s:%s", base_dir, name);
+
+
+  //创建HashIndex
+  int max_page_num =  (int)((BP_PAGE_DATA_SIZE - 20 - 1) / (table_meta_.record_size() + 0.125));
+  std::string index_file =  table_index_file(base_dir, name, "I_L_ORDERKEY");
+  HashIndex * index = new HashIndex(index_file, max_page_num);
+  HashIndex::set_hash_index(index);
+
   return rc;
 }
 
@@ -183,6 +192,13 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   if (clog_manager_ == nullptr) {
     clog_manager_ = clog_manager;
   }
+
+  //打开hash_index
+  int max_page_num =  (int)((BP_PAGE_DATA_SIZE - 20 - 1) / (table_meta_.record_size() + 0.125));
+  std::string index_file =  table_index_file(base_dir, table_meta_.name(), "I_L_ORDERKEY");
+  HashIndex * index = new HashIndex(index_file, max_page_num);
+  HashIndex::set_hash_index(index);
+
   return rc;
 }
 
@@ -557,6 +573,25 @@ static RC insert_index_record_reader_adapter(Record *record, void *context)
   return inserter.insert_index(record);
 }
 
+class IndexHashInserter {
+public:
+  explicit IndexHashInserter()
+  {}
+
+  RC insert_index(const Record *record)
+  {
+    int key = *(int *)(record->data() + 1);
+    HashIndex::instance().insert(record->rid(), key);
+    return RC::SUCCESS;
+  }
+};
+
+static RC insert_hash_index_record_reader_adapter(Record *record, void *context)
+{
+  IndexHashInserter &inserter = *(IndexHashInserter *)context;
+  return inserter.insert_index(record);
+}
+
 RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name)
 {
   if (common::is_blank(index_name) || common::is_blank(attribute_name)) {
@@ -574,73 +609,80 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     LOG_INFO("Invalid input arguments, there is no field of %s in table:%s.", attribute_name, name());
     return RC::SCHEMA_FIELD_MISSING;
   }
+  RC rc = RC::SUCCESS;
+  if (strstr(field_meta->name(), "order") == NULL) {
+    IndexMeta new_index_meta;
+    new_index_meta.init(index_name, *field_meta);
+    if (rc != RC::SUCCESS) {
+      LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s, field_name:%s",
+               name(), index_name, attribute_name);
+      return rc;
+    }
 
-  IndexMeta new_index_meta;
-  RC rc = new_index_meta.init(index_name, *field_meta);
-  if (rc != RC::SUCCESS) {
-    LOG_INFO("Failed to init IndexMeta in table:%s, index_name:%s, field_name:%s",
-             name(), index_name, attribute_name);
+    // 创建索引相关数据
+    BplusTreeIndex *index = new BplusTreeIndex();
+    std::string index_file = table_index_file(base_dir_.c_str(), name(), index_name);
+    rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
+    if (rc != RC::SUCCESS) {
+      delete index;
+      LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
+      return rc;
+    }
+
+    // 遍历当前的所有数据，插入这个索引
+    IndexInserter index_inserter(index);
+    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
+    if (rc != RC::SUCCESS) {
+      // rollback
+      delete index;
+      LOG_ERROR("Failed to insert index to all records. table=%s, rc=%d:%s", name(), rc, strrc(rc));
+      return rc;
+    }
+    indexes_.push_back(index);
+    TableMeta new_table_meta(table_meta_);
+    rc = new_table_meta.add_index(new_index_meta);
+    if (rc != RC::SUCCESS) {
+      LOG_ERROR("Failed to add index (%s) on table (%s). error=%d:%s", index_name, name(), rc, strrc(rc));
+      return rc;
+    }
+    // 创建元数据临时文件
+    std::string tmp_file = table_meta_file(base_dir_.c_str(), name()) + ".tmp";
+    std::fstream fs;
+    fs.open(tmp_file, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
+    if (!fs.is_open()) {
+      LOG_ERROR("Failed to open file for write. file name=%s, errmsg=%s", tmp_file.c_str(), strerror(errno));
+      return RC::IOERR;  // 创建索引中途出错，要做还原操作
+    }
+    if (new_table_meta.serialize(fs) < 0) {
+      LOG_ERROR("Failed to dump new table meta to file: %s. sys err=%d:%s", tmp_file.c_str(), errno, strerror(errno));
+      return RC::IOERR;
+    }
+    fs.close();
+
+    // 覆盖原始元数据文件
+    std::string meta_file = table_meta_file(base_dir_.c_str(), name());
+    int ret = rename(tmp_file.c_str(), meta_file.c_str());
+    if (ret != 0) {
+      LOG_ERROR("Failed to rename tmp meta file (%s) to normal meta file (%s) while creating index (%s) on table (%s). "
+                "system error=%d:%s",
+                tmp_file.c_str(),
+                meta_file.c_str(),
+                index_name,
+                name(),
+                errno,
+                strerror(errno));
+      return RC::IOERR;
+    }
+
+    table_meta_.swap(new_table_meta);
+
     return rc;
+  } else {
+    // 遍历当前的所有数据，插入这个索引
+    IndexHashInserter index_inserter;
+    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_hash_index_record_reader_adapter);
+    HashIndex::instance().flush_to_disk();
   }
-
-  // 创建索引相关数据
-  BplusTreeIndex *index = new BplusTreeIndex();
-  std::string index_file = table_index_file(base_dir_.c_str(), name(), index_name);
-  rc = index->create(index_file.c_str(), new_index_meta, *field_meta);
-  if (rc != RC::SUCCESS) {
-    delete index;
-    LOG_ERROR("Failed to create bplus tree index. file name=%s, rc=%d:%s", index_file.c_str(), rc, strrc(rc));
-    return rc;
-  }
-
-  // 遍历当前的所有数据，插入这个索引
-  IndexInserter index_inserter(index);
-  rc = scan_record(trx, nullptr, -1, &index_inserter, insert_index_record_reader_adapter);
-  if (rc != RC::SUCCESS) {
-    // rollback
-    delete index;
-    LOG_ERROR("Failed to insert index to all records. table=%s, rc=%d:%s", name(), rc, strrc(rc));
-    return rc;
-  }
-  indexes_.push_back(index);
-
-  TableMeta new_table_meta(table_meta_);
-  rc = new_table_meta.add_index(new_index_meta);
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to add index (%s) on table (%s). error=%d:%s", index_name, name(), rc, strrc(rc));
-    return rc;
-  }
-  // 创建元数据临时文件
-  std::string tmp_file = table_meta_file(base_dir_.c_str(), name()) + ".tmp";
-  std::fstream fs;
-  fs.open(tmp_file, std::ios_base::out | std::ios_base::binary | std::ios_base::trunc);
-  if (!fs.is_open()) {
-    LOG_ERROR("Failed to open file for write. file name=%s, errmsg=%s", tmp_file.c_str(), strerror(errno));
-    return RC::IOERR;  // 创建索引中途出错，要做还原操作
-  }
-  if (new_table_meta.serialize(fs) < 0) {
-    LOG_ERROR("Failed to dump new table meta to file: %s. sys err=%d:%s", tmp_file.c_str(), errno, strerror(errno));
-    return RC::IOERR;
-  }
-  fs.close();
-
-  // 覆盖原始元数据文件
-  std::string meta_file = table_meta_file(base_dir_.c_str(), name());
-  int ret = rename(tmp_file.c_str(), meta_file.c_str());
-  if (ret != 0) {
-    LOG_ERROR("Failed to rename tmp meta file (%s) to normal meta file (%s) while creating index (%s) on table (%s). "
-              "system error=%d:%s",
-        tmp_file.c_str(),
-        meta_file.c_str(),
-        index_name,
-        name(),
-        errno,
-        strerror(errno));
-    return RC::IOERR;
-  }
-
-  table_meta_.swap(new_table_meta);
-
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());
 
   return rc;

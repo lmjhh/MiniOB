@@ -29,6 +29,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/expr/tuple.h"
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
+#include "sql/operator/hash_index_scan_operator.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
@@ -266,13 +267,13 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
   }
 }
 
-IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
+Operator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
 {
   const std::vector<FilterUnit *> &filter_units = filter_stmt->filter_units();
   if (filter_units.empty() ) {
     return nullptr;
   }
-
+  bool is_use_hash = false;
   // 在所有过滤条件中，找到字段与值做比较的条件，然后判断字段是否可以使用索引
   // 如果是多列索引，这里的处理需要更复杂。
   // 这里的查找规则是比较简单的，就是尽量找到使用相等比较的索引
@@ -291,6 +292,11 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     }
     FieldExpr &left_field_expr = *(FieldExpr *)left;
     const Field &field = left_field_expr.field();
+    if (strstr(field.field_name(), "order") != NULL) {
+      is_use_hash = true;
+      better_filter = filter_unit;
+      break;
+    }
     const Table *table = field.table();
     Index *index = table->find_index_by_field(field.field_name());
     if (index != nullptr) {
@@ -330,7 +336,7 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   const Field &field = left_field_expr.field();
   const Table *table = field.table();
   Index *index = table->find_index_by_field(field.field_name());
-  assert(index != nullptr);
+  assert(index != nullptr || is_use_hash);
 
   ValueExpr &right_value_expr = *(ValueExpr *)right;
   TupleCell value;
@@ -391,11 +397,17 @@ IndexScanOperator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   } break;
   }
 
+  if (is_use_hash) {
+    int key = *(int *)value.data();
+    HashIndexScanOperator *oper = new HashIndexScanOperator(table, key);
+    return oper;
+  }
+
   IndexScanOperator *oper = new IndexScanOperator(table, index,
        left_cell, left_inclusive, right_cell, right_inclusive);
 
   LOG_INFO("use index for scan: %s in table %s", index->index_meta().name(), table->name());
-  return oper;
+  return (Operator *)oper;
 }
 
 RC ExecuteStage::do_select(SQLStageEvent *sql_event)

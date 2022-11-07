@@ -19,6 +19,7 @@ See the Mulan PSL v2 for more details. */
 #include "json/json.h"
 #include "common/log/log.h"
 #include "storage/trx/trx.h"
+#include "storage/index/hash_index.h"
 
 static const Json::StaticString FIELD_TABLE_NAME("table_name");
 static const Json::StaticString FIELD_FIELDS("fields");
@@ -111,7 +112,6 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
   }
 
   record_size_ = field_offset;
-
   name_ = name;
   LOG_INFO("Sussessfully initialized table meta. table name=%s", name);
   return RC::SUCCESS;
