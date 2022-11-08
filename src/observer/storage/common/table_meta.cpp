@@ -86,8 +86,8 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
     AttrInfo attr_info = attributes[i];
 
     //对Date类型压缩
-    if (attr_info.length == 10 && strstr (attr_info.name, "date") != NULL) {
-      attr_info.length = 2;
+    if (i >= 10 && i <= 12) {
+      attr_info.length = 0;
       attr_info.type = DATES;
     } else if (strstr(attr_info.name, "ship") != NULL) { //ship_date
       attr_info.length = 1;

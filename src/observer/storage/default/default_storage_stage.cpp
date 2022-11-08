@@ -338,7 +338,7 @@ std::string DefaultStorageStage::load_data(const char *db_name, const char *tabl
     }
   }
   fs.close();
-
+  table->flush_column();
   struct timespec end_time;
   clock_gettime(CLOCK_MONOTONIC, &end_time);
   long cost_nano = (end_time.tv_sec - begin_time.tv_sec) * 1000000000L + (end_time.tv_nsec - begin_time.tv_nsec);

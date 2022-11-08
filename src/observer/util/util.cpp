@@ -37,13 +37,13 @@ std::string double2string(double v)
 DateNum to_date_data (char *str) {
   int y, m, d;
   sscanf(str, "%d-%d-%d", &y, &m, &d);
-  return d + m * 32 + (y - 1980) * 512;
+  return d + m * 32 + (y - 1992) * 512;
 }
 
 std::string to_date_str (DateNum data) {
   uint16_t d = (data << 11); d = d >> 11;
   uint16_t m = (data >> 5);  m = m << 12; m = m >> 12;
-  uint16_t y = (data >> 9);  y += 1980;
+  uint16_t y = (data >> 9);  y += 1992;
   char yearStr[5], monthStr[3], dayStr[3];
   sprintf(yearStr, "%d", y); //年。
   sprintf(monthStr, "%d", m); //月。

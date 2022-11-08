@@ -127,8 +127,12 @@ RC Table::create(
   HashIndex * index = new HashIndex(index_file, max_page_num);
   HashIndex::set_hash_index(index);
 
+  std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
+  date_column_.create_file(date_column_file);
+
   return rc;
 }
+
 
 RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_manager)
 {
@@ -198,8 +202,21 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   std::string index_file =  table_index_file(base_dir, table_meta_.name(), "I_L_ORDERKEY");
   HashIndex * index = new HashIndex(index_file, max_page_num);
   HashIndex::set_hash_index(index);
+  HashDateIndex::set_max_page_num(max_page_num);
 
+  std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
+  date_column_.open_file(date_column_file);
   return rc;
+}
+
+void Table::to_string_column(std::ostream &os, int column, int index, int line_num) {
+  if (column >= 10 && column <= 12) {
+    date_column_.to_string(os, index, line_num);
+  }
+}
+
+void Table::flush_column() {
+  date_column_.flush_to_disk();
 }
 
 RC Table::commit_insert(Trx *trx, const RID &rid)
@@ -396,6 +413,9 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     if (i == 0) { //order_key
       HashIndex::instance().insert(*(int *)value.data);
     }
+    if (i >= 10 && i <= 12) {
+      date_column_.insert(value.data, i - 10);
+    }
   }
 
   record_out = record;
@@ -578,24 +598,6 @@ static RC insert_index_record_reader_adapter(Record *record, void *context)
   return inserter.insert_index(record);
 }
 
-class IndexHashInserter {
-public:
-  explicit IndexHashInserter()
-  {}
-
-  RC insert_index(const Record *record)
-  {
-    int key = *(int *)(record->data() + 1);
-    HashIndex::instance().insert(key);
-    return RC::SUCCESS;
-  }
-};
-
-static RC insert_hash_index_record_reader_adapter(Record *record, void *context)
-{
-  IndexHashInserter &inserter = *(IndexHashInserter *)context;
-  return inserter.insert_index(record);
-}
 
 RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_name)
 {
@@ -616,6 +618,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
   }
   RC rc = RC::SUCCESS;
   if (strstr(field_meta->name(), "order") == NULL) {
+    return RC::SUCCESS;
     IndexMeta new_index_meta;
     new_index_meta.init(index_name, *field_meta);
     if (rc != RC::SUCCESS) {
@@ -683,9 +686,6 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
 
     return rc;
   } else {
-    // 遍历当前的所有数据，插入这个索引
-//    IndexHashInserter index_inserter;
-//    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_hash_index_record_reader_adapter);
     HashIndex::instance().flush_to_disk();
   }
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());

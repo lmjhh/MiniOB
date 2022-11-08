@@ -16,7 +16,7 @@ See the Mulan PSL v2 for more details. */
 #define __OBSERVER_STORAGE_COMMON_TABLE_H__
 
 #include "storage/common/table_meta.h"
-
+#include "storage/colum/date_column.h"
 struct RID;
 class Record;
 class DiskBufferPool;
@@ -29,6 +29,7 @@ class IndexScanner;
 class RecordDeleter;
 class Trx;
 class CLogManager;
+
 
 // TODO remove the routines with condition
 class Table {
@@ -82,6 +83,9 @@ public:
 
   RC sync();
 
+  void to_string_column(std::ostream &os, int column, int index, int line_num);
+  void flush_column();
+
 public:
   RC commit_insert(Trx *trx, const RID &rid);
   RC commit_delete(Trx *trx, const RID &rid);
@@ -122,6 +126,9 @@ private:
   DiskBufferPool *data_buffer_pool_ = nullptr;   /// 数据文件关联的buffer pool
   RecordFileHandler *record_handler_ = nullptr;  /// 记录操作
   std::vector<Index *> indexes_;
+
+
+  DateColumn date_column_;
 };
 
 #endif  // __OBSERVER_STORAGE_COMMON_TABLE_H__

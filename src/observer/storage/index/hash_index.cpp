@@ -7,10 +7,16 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <cstring>
+#include <vector>
+#include <unordered_map>
 
+#include "util/lzw_compress.h"
 static int ORDER_KEY_CACHE[6100000];
 
 HashIndex::HashIndex(std::string file_name, int page_max_num) : page_max_num_(page_max_num) {
+  file_name_ = file_name;
+//  std::string file_name_lzw = file_name + ".lzw";
+//  lzw(1, (char *)file_name_lzw.c_str()); //尝试解压
   file_desc_ = open(file_name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0000400 | 0000200);
   if (file_desc_ < 0) { //已经存在
     file_desc_ = open(file_name.c_str(), O_RDWR);
@@ -116,9 +122,6 @@ int HashIndex::find_small_page_num(int num) {
 }
 
 void HashIndex::flush_to_disk() {
-//  for (int i = 0; i <= current_small_page_num; i++) {
-//    printf("%d current begin %d begin index %d\n", i, data_[i].begin_num, data_[i].begin_index);
-//  }
 
   if (lseek(file_desc_, 0, SEEK_SET) < 0) {
     printf("seek failed\n");
@@ -129,6 +132,10 @@ void HashIndex::flush_to_disk() {
   if (close(file_desc_) < 0) {
     printf("close failed\n");
   }
+
+//  std::string lzw_file_name = file_name_;
+//  lzw(0, (char *)lzw_file_name.c_str());
+//  remove(file_name_.c_str());
 }
 
 static HashIndex *order_index = nullptr;
@@ -139,4 +146,19 @@ void HashIndex::set_hash_index(HashIndex *index)
 HashIndex &HashIndex::instance()
 {
   return *order_index;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+static std::unordered_map<uint16_t, std::vector<RID>> SHIP_DATE_CACHE;
+static int max_page_num;
+void HashDateIndex::set_max_page_num(int num) {
+  max_page_num = num;
+}
+
+void HashDateIndex::add_sort_map(uint16_t date, int num) {
+  SHIP_DATE_CACHE[date].push_back(RID(num / max_page_num + 1, num % max_page_num));
+}
+
+std::vector<RID> HashDateIndex::find(uint16_t date){
+  return SHIP_DATE_CACHE[date];
 }

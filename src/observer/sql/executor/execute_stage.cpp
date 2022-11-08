@@ -30,6 +30,7 @@ See the Mulan PSL v2 for more details. */
 #include "sql/operator/table_scan_operator.h"
 #include "sql/operator/index_scan_operator.h"
 #include "sql/operator/hash_index_scan_operator.h"
+#include "sql/operator/hash_date_index_scan_operator.h"
 #include "sql/operator/predicate_operator.h"
 #include "sql/operator/delete_operator.h"
 #include "sql/operator/project_operator.h"
@@ -230,8 +231,8 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right)
 
 void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
 {
-  const int cell_num = oper.tuple_cell_num();
-  const TupleCellSpec *cell_spec = nullptr;
+//  const int cell_num = oper.tuple_cell_num();
+//  const TupleCellSpec *cell_spec = nullptr;
 //  for (int i = 0; i < cell_num; i++) {
 //    oper.tuple_cell_spec_at(i, cell_spec);
 //    if (i != 0) {
@@ -249,7 +250,7 @@ void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
 //    os << '\n';
 //  }
 }
-void tuple_to_string(std::ostream &os, const Tuple &tuple, RID rid)
+void tuple_to_string(std::ostream &os, const Tuple &tuple, RID rid, Table *table)
 {
   TupleCell cell;
   RC rc = RC::SUCCESS;
@@ -267,8 +268,11 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple, RID rid)
       first_field = false;
     }
     if (i == 0) {
-      int value =  HashIndex::instance().find_key(rid);
+      int value = HashIndex::instance().find_key(rid);
       os << value;
+    } else if (i >= 10 && i <= 12) {
+      int max_page_num =  (int)((BP_PAGE_DATA_SIZE - 20 - 1) / (table->table_meta().record_size() + 0.125));
+      table->to_string_column(os, i, i - 10, (rid.page_num - 1) * max_page_num + rid.slot_num);
     } else {
       cell.to_string(os);
     }
@@ -282,6 +286,7 @@ Operator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     return nullptr;
   }
   bool is_use_hash = false;
+  bool is_use_date = false;
   // 在所有过滤条件中，找到字段与值做比较的条件，然后判断字段是否可以使用索引
   // 如果是多列索引，这里的处理需要更复杂。
   // 这里的查找规则是比较简单的，就是尽量找到使用相等比较的索引
@@ -302,6 +307,10 @@ Operator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     const Field &field = left_field_expr.field();
     if (strstr(field.field_name(), "order") != NULL) {
       is_use_hash = true;
+      better_filter = filter_unit;
+      break;
+    } else {
+      is_use_date = true;
       better_filter = filter_unit;
       break;
     }
@@ -344,7 +353,7 @@ Operator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
   const Field &field = left_field_expr.field();
   const Table *table = field.table();
   Index *index = table->find_index_by_field(field.field_name());
-  assert(index != nullptr || is_use_hash);
+  assert(index != nullptr || is_use_hash || is_use_date);
 
   ValueExpr &right_value_expr = *(ValueExpr *)right;
   TupleCell value;
@@ -409,6 +418,11 @@ Operator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     int key = *(int *)value.data();
     HashIndexScanOperator *oper = new HashIndexScanOperator(table, key);
     return oper;
+  } else {
+    uint16_t key = *(uint16_t *)value.data();
+    key = key << 4; key = key >> 4;
+    HashDateIndexScanOperator *oper = new HashDateIndexScanOperator(table, key);
+    return oper;
   }
 
   IndexScanOperator *oper = new IndexScanOperator(table, index,
@@ -460,7 +474,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       LOG_WARN("failed to get current record. rc=%s", strrc(rc));
       break;
     }
-    tuple_to_string(ss, *tuple, project_oper.current_rid());
+    tuple_to_string(ss, *tuple, project_oper.current_rid(), select_stmt->tables().front());
     ss << std::endl;
   }
 

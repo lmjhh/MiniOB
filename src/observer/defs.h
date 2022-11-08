@@ -16,3 +16,5 @@ See the Mulan PSL v2 for more details. */
 
 using PageNum = int16_t;
 using SlotNum = int16_t;
+
+const uint32_t MAX_LINE_NUM = 6010000;
