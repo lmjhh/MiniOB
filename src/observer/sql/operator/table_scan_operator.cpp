@@ -32,6 +32,7 @@ RC TableScanOperator::next()
   }
 
   RC rc = record_scanner_.next(current_record_);
+  rid_ = current_record_.rid();
   return rc;
 }
 
@@ -45,6 +46,12 @@ Tuple * TableScanOperator::current_tuple()
   tuple_.set_record(&current_record_);
   return &tuple_;
 }
+
+RID TableScanOperator::current_rid()
+{
+  return rid_;
+}
+
 // RC TableScanOperator::tuple_cell_spec_at(int index, TupleCellSpec &spec) const
 // {
 //   return tuple_.cell_spec_at(index, spec);

@@ -390,7 +390,12 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       ship_two_code = ship_two_code | ship_mode_code;
       memcpy(record + field->offset(), &ship_two_code, 1);
     }
-    memcpy(record + field->offset(), value.data, copy_len);
+    if (copy_len > 0) {
+      memcpy(record + field->offset(), value.data, copy_len);
+    }
+    if (i == 0) { //order_key
+      HashIndex::instance().insert(*(int *)value.data);
+    }
   }
 
   record_out = record;
@@ -581,7 +586,7 @@ public:
   RC insert_index(const Record *record)
   {
     int key = *(int *)(record->data() + 1);
-    HashIndex::instance().insert(record->rid(), key);
+    HashIndex::instance().insert(key);
     return RC::SUCCESS;
   }
 };
@@ -679,8 +684,8 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     return rc;
   } else {
     // 遍历当前的所有数据，插入这个索引
-    IndexHashInserter index_inserter;
-    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_hash_index_record_reader_adapter);
+//    IndexHashInserter index_inserter;
+//    rc = scan_record(trx, nullptr, -1, &index_inserter, insert_hash_index_record_reader_adapter);
     HashIndex::instance().flush_to_disk();
   }
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());

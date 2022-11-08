@@ -41,6 +41,8 @@ public:
     children_.push_back(oper);
   }
 
+  virtual RID current_rid() = 0;
+
 
 protected:
   std::vector<Operator *> children_;

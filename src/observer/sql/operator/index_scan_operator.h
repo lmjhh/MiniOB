@@ -31,6 +31,8 @@ public:
   RC close() override;
 
   Tuple * current_tuple() override;
+
+  RID current_rid() override;
 private:
   const Table *table_ = nullptr;
   Index *index_ = nullptr;
@@ -39,7 +41,7 @@ private:
 
   Record current_record_;
   RowTuple tuple_;
-
+  RID rid_;
   TupleCell left_cell_;
   TupleCell right_cell_;
   bool left_inclusive_;

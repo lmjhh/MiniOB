@@ -461,7 +461,6 @@ RC RecordFileHandler::get_record(const RID *rid, Record *rec)
     LOG_ERROR("Failed to init record page handler.page number=%d", rid->page_num);
     return ret;
   }
-
   return page_handler.get_record(rid, rec);
 }
 

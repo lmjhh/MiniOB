@@ -34,7 +34,7 @@ public:
   RC close() override;
 
   Tuple * current_tuple() override;
-
+  RID current_rid() override;
   // int tuple_cell_num() const override
   // {
   //   return tuple_.cell_num();
@@ -46,4 +46,5 @@ private:
   RecordFileScanner record_scanner_;
   Record current_record_;
   RowTuple tuple_;
+  RID rid_;
 };

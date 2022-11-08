@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <cstring>
 
+static int ORDER_KEY_CACHE[6100000];
+
 HashIndex::HashIndex(std::string file_name, int page_max_num) : page_max_num_(page_max_num) {
   file_desc_ = open(file_name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0000400 | 0000200);
   if (file_desc_ < 0) { //已经存在
@@ -27,6 +29,12 @@ HashIndex::HashIndex(std::string file_name, int page_max_num) : page_max_num_(pa
     for (; i < HASH_INDEX_MAX_COUNT; i++) {
       if (data_[i].begin_num == 0xFFFFFFFF) {
         break;
+      } else {
+        for (int iter = 0; iter < 256; iter++) {
+          for (int value_count = 0; value_count < data_[i].offset[iter]; value_count++) {
+            ORDER_KEY_CACHE[current_count_++] = data_[i].begin_num + iter;
+          }
+        }
       }
     }
     current_small_page_num = i - 1;
@@ -41,10 +49,8 @@ HashIndex::HashIndex(std::string file_name, int page_max_num) : page_max_num_(pa
   }
 }
 
-void HashIndex::insert(RID rid, int num) {
-    if((rid.page_num - 1) * page_max_num_ + rid.slot_num != current_count_) {
-      abort();
-    }
+void HashIndex::insert(int num) {
+    ORDER_KEY_CACHE[current_count_] = num;
     while (1) {
       if (data_[current_small_page_num].begin_num == 0xFFFFFFFF) {
         data_[current_small_page_num].begin_num = num;
@@ -84,6 +90,10 @@ std::vector<RID> HashIndex::find(int search_key) {
     small_page_num++;
   }
   return rids;
+}
+
+int HashIndex::find_key(RID rid) {
+  return ORDER_KEY_CACHE[(rid.page_num - 1) * page_max_num_ + rid.slot_num];
 }
 
 int HashIndex::find_small_page_num(int num) {

@@ -38,6 +38,7 @@ RC HashIndexScanOperator::next()
     return RC::RECORD_EOF;
   }
   RID rid = rids_[current_index_++];
+  rid_ = rid;
   return record_handler_->get_record(&rid, &current_record_);
 }
 
@@ -50,4 +51,9 @@ Tuple * HashIndexScanOperator::current_tuple()
 {
   tuple_.set_record(&current_record_);
   return &tuple_;
+}
+
+RID HashIndexScanOperator::current_rid()
+{
+  return rid_;
 }

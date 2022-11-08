@@ -47,6 +47,7 @@ See the Mulan PSL v2 for more details. */
 #include "storage/trx/trx.h"
 #include "storage/clog/clog.h"
 #include "util/util.h"
+#include "storage/index/hash_index.h"
 using namespace common;
 
 //RC create_selection_executor(
@@ -231,22 +232,24 @@ void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
 {
   const int cell_num = oper.tuple_cell_num();
   const TupleCellSpec *cell_spec = nullptr;
-  for (int i = 0; i < cell_num; i++) {
-    oper.tuple_cell_spec_at(i, cell_spec);
-    if (i != 0) {
-      os << " | ";
-    }
+//  for (int i = 0; i < cell_num; i++) {
+//    oper.tuple_cell_spec_at(i, cell_spec);
+//    if (i != 0) {
+//      os << " | ";
+//    }
+//
+//    if (cell_spec->alias()) {
+//      os << cell_spec->alias();
+//    }
+//  }
 
-    if (cell_spec->alias()) {
-      os << cell_spec->alias();
-    }
-  }
+  os << "l_orderkey | l_partkey | l_suppkey | l_linenumber | l_quantity | l_extendedprice | l_discount | l_tax | l_returnflag | l_linestatus | l_shipdate | l_commitdate | l_receiptdate | l_shipinstruct | l_shipmode | l_comment\n";
 
-  if (cell_num > 0) {
-    os << '\n';
-  }
+//  if (cell_num > 0) {
+//    os << '\n';
+//  }
 }
-void tuple_to_string(std::ostream &os, const Tuple &tuple)
+void tuple_to_string(std::ostream &os, const Tuple &tuple, RID rid)
 {
   TupleCell cell;
   RC rc = RC::SUCCESS;
@@ -263,7 +266,12 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple)
     } else {
       first_field = false;
     }
-    cell.to_string(os);
+    if (i == 0) {
+      int value =  HashIndex::instance().find_key(rid);
+      os << value;
+    } else {
+      cell.to_string(os);
+    }
   }
 }
 
@@ -452,8 +460,7 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
       LOG_WARN("failed to get current record. rc=%s", strrc(rc));
       break;
     }
-
-    tuple_to_string(ss, *tuple);
+    tuple_to_string(ss, *tuple, project_oper.current_rid());
     ss << std::endl;
   }
 

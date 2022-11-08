@@ -39,6 +39,7 @@ public:
   RC tuple_cell_spec_at(int index, const TupleCellSpec *&spec) const;
 
   Tuple * current_tuple() override;
+  RID current_rid() override;
 private:
   ProjectTuple tuple_;
 };

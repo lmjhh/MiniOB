@@ -62,7 +62,7 @@ RC IndexScanOperator::next()
   if (rc != RC::SUCCESS) {
     return rc;
   }
-
+  rid_ = rid;
   return record_handler_->get_record(&rid, &current_record_);
 }
 
@@ -77,4 +77,8 @@ Tuple * IndexScanOperator::current_tuple()
 {
   tuple_.set_record(&current_record_);
   return &tuple_;
+}
+
+RID IndexScanOperator::current_rid() {
+  return rid_;
 }

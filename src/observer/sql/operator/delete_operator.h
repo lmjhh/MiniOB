@@ -36,6 +36,10 @@ public:
   Tuple * current_tuple() override {
     return nullptr;
   }
+
+  RID current_rid() override {
+    return RID(0,0);
+  }
   //int tuple_cell_num() const override
   //RC tuple_cell_spec_at(int index, TupleCellSpec &spec) const override
 private:

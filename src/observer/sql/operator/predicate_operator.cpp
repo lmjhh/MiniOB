@@ -59,6 +59,10 @@ Tuple * PredicateOperator::current_tuple()
   return children_[0]->current_tuple();
 }
 
+RID PredicateOperator::current_rid() {
+  return children_[0]->current_rid();
+}
+
 bool PredicateOperator::do_predicate(RowTuple &tuple)
 {
   if (filter_stmt_ == nullptr || filter_stmt_->filter_units().empty()) {
@@ -73,6 +77,8 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
     TupleCell right_cell;
     left_expr->get_value(tuple, left_cell);
     right_expr->get_value(tuple, right_cell);
+
+    if (left_cell.length() == 0) return true;
 
     const int compare = left_cell.compare(right_cell);
     bool filter_result = false;
@@ -100,6 +106,7 @@ bool PredicateOperator::do_predicate(RowTuple &tuple)
     } break;
     }
     if (!filter_result) {
+
       return false;
     }
   }

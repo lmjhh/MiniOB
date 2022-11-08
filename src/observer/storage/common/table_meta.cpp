@@ -94,20 +94,24 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
       attr_info.type = SHIPS;
       if (strstr(attr_info.name, "mode") != NULL) {
         attr_info.length = 0;
-        field_offset -= 1;
       }
     }
     if (strstr (attr_info.name, "linenumber") != NULL || strstr (attr_info.name, "quantity") != NULL) {
       attr_info.length = 1;
       attr_info.type = SMALL_INTS;
     }
-
-    rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
+    if (i == 0) {
+      attr_info.length = 0;
+    }
+    if (attr_info.length == 0) {
+      rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type,fields_[i - 1 + sys_fields_.size()].offset(), attr_info.length, true);
+    } else {
+      rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
+    }
     if (rc != RC::SUCCESS) {
       LOG_ERROR("Failed to init field meta. table name=%s, field name: %s", name, attr_info.name);
       return rc;
     }
-    if (attr_info.length == 0) field_offset += 1;
     field_offset += attr_info.length;
   }
 
