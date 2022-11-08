@@ -420,7 +420,6 @@ Operator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
     return oper;
   } else {
     uint16_t key = *(uint16_t *)value.data();
-    key = key << 4; key = key >> 4;
     HashDateIndexScanOperator *oper = new HashDateIndexScanOperator(table, key);
     return oper;
   }
