@@ -7,10 +7,10 @@
 #include <sstream>
 #include "defs.h"
 #include "util//util.h"
-const int DiscountColumnSize = 32; //一列多少bit
+const int DiscountColumnSize = 4; //一列多少bit
 const int DiscountColumnCacheBytes = DiscountColumnSize * MAX_LINE_NUM / 8;
 
-float DiscountColumnCache[MAX_LINE_NUM];
+uint8_t DiscountColumnCache[MAX_LINE_NUM];
 
 void DiscountColumn::create_file(std::string file_name) {
   file_name_ = file_name;
@@ -24,11 +24,27 @@ void DiscountColumn::open_file(std::string file_name) {
 }
 
 void DiscountColumn::to_string(std::ostream &os, int index, int line_num) {
-  float v = DiscountColumnCache[line_num];
-  os << double2string(v);
+  uint8_t value = DiscountColumnCache[line_num/2];
+  if (line_num % 2 == 0) {
+    value = value >> 4;
+  } else {
+    value = value << 4;
+    value = value >> 4;
+  }
+  float f_v = value;
+  os << double2string(f_v/100.0);
 }
+
 void DiscountColumn::insert(void *data, int index) {
-  DiscountColumnCache[current_line_num_++] = *(float *)data;
+  float f_value = *(float *)data;
+  f_value *= 100;
+  uint8_t i_value = f_value;
+  if (current_line_num_ % 2 == 0) {
+    DiscountColumnCache[current_line_num_/2] |= i_value << 4;
+  } else {
+    DiscountColumnCache[current_line_num_/2] |= i_value;
+  }
+  current_line_num_++;
 }
 
 void DiscountColumn::flush_to_disk() {
