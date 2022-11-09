@@ -14,7 +14,8 @@ public:
   void insert(void *data, int index) override;
   void flush_to_disk() override;
 private:
-  uint32_t current_data_ = 0;
+  uint32_t current_offset_ = 0;
+  uint32_t total_data_ = 0;
 };
 
 #endif //MINIDB_COMMENT_COLUMN_H
