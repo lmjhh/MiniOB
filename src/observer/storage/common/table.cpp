@@ -150,9 +150,6 @@ RC Table::create(
   std::string return_flag_column_file = base_dir_ + "/" +  table_meta_.name() + "-returnflag.column";
   return_flag_column_.create_file(return_flag_column_file);
 
-  std::string line_status_column_file = base_dir_ + "/" +  table_meta_.name() + "-linestatus.column";
-  line_status_column_.create_file(line_status_column_file);
-
   std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
   date_column_.create_file(date_column_file);
 
@@ -233,7 +230,6 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   HashIndex * index = new HashIndex(index_file, 0);
   HashIndex::set_hash_index(index);
 
-
   std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
   part_column_.open_file(partkey_column_file);
 
@@ -257,9 +253,6 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
 
   std::string return_flag_column_file = base_dir_ + "/" +  table_meta_.name() + "-returnflag.column";
   return_flag_column_.open_file(return_flag_column_file);
-
-  std::string line_status_column_file = base_dir_ + "/" +  table_meta_.name() + "-linestatus.column";
-  line_status_column_.open_file(line_status_column_file);
 
   std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
   date_column_.open_file(date_column_file);
@@ -295,11 +288,8 @@ void Table::to_string_column(std::ostream &os, int column, int index, int line_n
   if (column == 7) {
     tax_column_.to_string(os, index, line_num);
   }
-  if (column == 8) {
+  if (column >= 8 && column <= 9) {
     return_flag_column_.to_string(os, index, line_num);
-  }
-  if (column == 9) {
-    line_status_column_.to_string(os, index, line_num);
   }
   if (column >= 10 && column <= 12) {
     date_column_.to_string(os, index, line_num);
@@ -320,7 +310,6 @@ void Table::flush_column() {
   extend_price_column_.flush_to_disk();
   discount_column_.flush_to_disk();
   tax_column_.flush_to_disk();
-  line_status_column_.flush_to_disk();
   date_column_.flush_to_disk();
   ship_column_.flush_to_disk();
   comment_column_.flush_to_disk();
@@ -537,11 +526,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     if (i == 7) {
       tax_column_.insert(value.data, 0);
     }
-    if (i == 8) {
-      return_flag_column_.insert(value.data, 0);
-    }
-    if (i == 9) {
-      line_status_column_.insert(value.data, 0);
+    if (i >= 8 && i <= 9) {
+      return_flag_column_.insert(value.data, i - 8);
     }
     if (i >= 10 && i <= 12) {
       date_column_.insert(value.data, i - 10);

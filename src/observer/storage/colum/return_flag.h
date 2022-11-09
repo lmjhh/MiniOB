@@ -6,7 +6,7 @@
 #define MINIDB_RETURN_FLAG_H
 
 #include "column.h"
-
+#include <unordered_set>
 class ReturnFlagColumn : public Column {
 public:
   ReturnFlagColumn() = default;
@@ -16,7 +16,9 @@ public:
   void insert(void *data, int index) override;
   void flush_to_disk() override;
 private:
-  uint32_t current_data_ = 0;
+  char last_char;
+  uint32_t N_F_size = 0;
+  std::unordered_set<uint32_t> N_F_lines;
 };
 
 #endif //MINIDB_RETURN_FLAG_H

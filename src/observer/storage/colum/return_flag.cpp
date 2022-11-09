@@ -6,38 +6,99 @@
 
 #include <fstream>
 #include <sstream>
+#include <bitset>
 #include "defs.h"
 #include "util//util.h"
-const int ReturnFlagColumnSize = 8; //一列多少bit
+const int ReturnFlagColumnSize = 1; //一列多少bit
 const int ReturnFlagColumnCacheBytes = ReturnFlagColumnSize * MAX_LINE_NUM / 8;
 
-uint8_t ReturnFlagColumnCache[MAX_LINE_NUM];
+char ReturnFlagColumnCache[MAX_LINE_NUM/8];
+char LineStatusColumnCache[MAX_LINE_NUM/8];
 
 void ReturnFlagColumn::create_file(std::string file_name) {
   file_name_ = file_name;
-  memset(ReturnFlagColumnCache, 0, sizeof(ReturnFlagColumnCache));
+  memset(ReturnFlagColumnCache, 0, ReturnFlagColumnCacheBytes);
+  memset(LineStatusColumnCache, 0, ReturnFlagColumnCacheBytes);
 }
 
 void ReturnFlagColumn::open_file(std::string file_name) {
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *)ReturnFlagColumnCache, ReturnFlagColumnCacheBytes);
+  in.read((char *)LineStatusColumnCache, ReturnFlagColumnCacheBytes);
+  in.read((char *)&N_F_size, 4);
+  for (int i = 0; i < N_F_size; i++) {
+    uint32_t tmp;
+    in.read((char *)&tmp, 4);
+    N_F_lines.insert(tmp);
+  }
   in.close();
 }
 
 void ReturnFlagColumn::to_string(std::ostream &os, int index, int line_num) {
-  char c = ReturnFlagColumnCache[line_num];
-  char str[2] = {c, '\0'};
-  os << str;
+  if (N_F_lines.find(line_num) != N_F_lines.end()) {
+    if (index == 0) {
+      char str[2] = {'N', '\0'};
+      os << str;
+    } else {
+      char str[2] = {'F', '\0'};
+      os << str;
+    }
+    return;
+  }
+  if (index == 0) {
+    std::bitset<8> bits(LineStatusColumnCache[line_num / 8]);
+    if (bits[line_num % 8] == 0) {
+      char str[2] = {'N', '\0'};
+      os << str;
+      return;
+    }
+    bits = ReturnFlagColumnCache[line_num / 8];
+    if (bits[line_num % 8] != 0) {
+      char str[2] = {'A', '\0'};
+      os << str;
+    } else {
+      char str[2] = {'R', '\0'};
+      os << str;
+    }
+  } else {
+    std::bitset<8> bits(LineStatusColumnCache[line_num / 8]);
+    if (bits[line_num % 8] == 0) {
+      char str[2] = {'O', '\0'};
+      os << str;
+    } else {
+      char str[2] = {'F', '\0'};
+      os << str;
+    }
+  }
 }
-
 
 void ReturnFlagColumn::insert(void *data, int index) {
   uint8_t code = *(uint8_t *)data;
-  ReturnFlagColumnCache[current_line_num_++] = code;
+  if (index == 0) {
+    if (code - 'A' == 0) {
+      ReturnFlagColumnCache[current_line_num_ / 8] |= (1 << (current_line_num_ % 8));
+    }
+    last_char = code;
+  } else if (index == 1) {
+    if (code - 'F' == 0) {
+      LineStatusColumnCache[current_line_num_ / 8] |= (1 << (current_line_num_ % 8));
+
+      if (last_char == 'N') {
+        N_F_size++;
+        N_F_lines.insert(current_line_num_);
+      }
+    }
+    current_line_num_++;
+  }
 }
 
 void ReturnFlagColumn::flush_to_disk() {
   std::ofstream out(file_name_.c_str(), std::ios::out);
   out.write((char *) ReturnFlagColumnCache, ReturnFlagColumnCacheBytes);
+  out.write((char *) LineStatusColumnCache, ReturnFlagColumnCacheBytes);
+  out.write((char *) &N_F_size, 4);
+  for (auto iter : N_F_lines) {
+    out.write((char *) &iter, 4);
+  }
   out.close();
 }

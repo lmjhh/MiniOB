@@ -21,7 +21,6 @@ See the Mulan PSL v2 for more details. */
 #include "storage/colum/discount_column.h"
 #include "storage/colum/comment_column.h"
 #include "storage/colum/line_number.h"
-#include "storage/colum/line_status.h"
 #include "storage/colum/part_column.h"
 #include "storage/colum/extend_price_column.h"
 #include "storage/colum/quantity_column.h"
@@ -147,7 +146,6 @@ private:
   DiscountColumn discount_column_;
   TaxColumn tax_column_;
   ReturnFlagColumn return_flag_column_;
-  LineStatusColumn line_status_column_;
   DateColumn date_column_;
   ShipColumn ship_column_;
   CommentColumn comment_column_;

@@ -27,7 +27,6 @@ void DiscountColumn::to_string(std::ostream &os, int index, int line_num) {
   float v = DiscountColumnCache[line_num];
   os << double2string(v);
 }
-
 void DiscountColumn::insert(void *data, int index) {
   DiscountColumnCache[current_line_num_++] = *(float *)data;
 }
