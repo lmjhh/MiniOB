@@ -25,12 +25,25 @@ void PartColumn::open_file(std::string file_name) {
 }
 
 void PartColumn::to_string(std::ostream &os, int index, int line_num) {
-  os << PartColumnCache[line_num];
+  uint32_t data = PartColumnCache[line_num];
+  if (index == 0) {
+    data >>= 14;
+  } else {
+    data <<= 18;
+    data >>= 18;
+  }
+  os << data;
 }
 
 void PartColumn::insert(void *data, int index) {
   uint32_t code = *(uint32_t *)data;
-  PartColumnCache[current_line_num_++] = code;
+  if (index == 0) {
+    PartColumnCache[current_line_num_] |= code;
+    PartColumnCache[current_line_num_] <<= 14;
+  } else {
+    PartColumnCache[current_line_num_] |= code;
+    current_line_num_++;
+  }
 }
 
 void PartColumn::flush_to_disk() {

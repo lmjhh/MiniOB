@@ -25,7 +25,6 @@ See the Mulan PSL v2 for more details. */
 #include "storage/colum/extend_price_column.h"
 #include "storage/colum/quantity_column.h"
 #include "storage/colum/return_flag.h"
-#include "storage/colum/supper_column.h"
 #include "storage/colum/tax_column.h"
 
 struct RID;
@@ -139,7 +138,6 @@ private:
   std::vector<Index *> indexes_;
 
   PartColumn part_column_;
-  SupperColumn supper_column_;
   LineNumColumn line_num_column_;
   QuantityColumn quan_tity_column_;
   ExtendPriceColumn extend_price_column_;

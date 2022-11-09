@@ -262,6 +262,8 @@ void tuple_to_string(std::ostream &os, RID rid, Table *table)
     if (i == 0) {
       int value = HashIndex::instance().find_key(rid);
       os << value;
+    } else if (i >= 1 && i <= 2) {
+      table->to_string_column(os, i, i - 1, rid.slot_num);
     } else if (i >= 8 && i <= 9) {
       table->to_string_column(os, i, i - 8, rid.slot_num);
     } else if (i >= 10 && i <= 12) {

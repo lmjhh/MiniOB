@@ -129,9 +129,6 @@ RC Table::create(
   std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
   part_column_.create_file(partkey_column_file);
 
-  std::string supperkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-supperkey.column";
-  supper_column_.create_file(supperkey_column_file);
-
   std::string linenumber_column_file = base_dir_ + "/" +  table_meta_.name() + "-linenumber.column";
   line_num_column_.create_file(linenumber_column_file);
 
@@ -233,9 +230,6 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
   part_column_.open_file(partkey_column_file);
 
-  std::string supperkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-supperkey.column";
-  supper_column_.open_file(supperkey_column_file);
-
   std::string linenumber_column_file = base_dir_ + "/" +  table_meta_.name() + "-linenumber.column";
   line_num_column_.open_file(linenumber_column_file);
 
@@ -267,11 +261,8 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
 }
 
 void Table::to_string_column(std::ostream &os, int column, int index, int line_num) {
-  if (column == 1) {
+  if (column == 1 || column == 2) {
     part_column_.to_string(os, index, line_num);
-  }
-  if (column == 2) {
-    supper_column_.to_string(os, index, line_num);
   }
   if (column == 3) {
     line_num_column_.to_string(os, index, line_num);
@@ -304,7 +295,6 @@ void Table::to_string_column(std::ostream &os, int column, int index, int line_n
 
 void Table::flush_column() {
   part_column_.flush_to_disk();
-  supper_column_.flush_to_disk();
   line_num_column_.flush_to_disk();
   quan_tity_column_.flush_to_disk();
   extend_price_column_.flush_to_disk();
@@ -505,11 +495,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
     if (i == 0) { //order_key
       HashIndex::instance().insert(*(int *)value.data);
     }
-    if (i == 1) {
-      part_column_.insert(value.data, 0);
-    }
-    if (i == 2) {
-      supper_column_.insert(value.data, 0);
+    if (i == 1 || i == 2) {
+      part_column_.insert(value.data, i - 1);
     }
     if (i == 3) {
       line_num_column_.insert(value.data, 0);
