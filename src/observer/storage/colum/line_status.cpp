@@ -7,10 +7,11 @@
 #include <sstream>
 #include "defs.h"
 #include "util//util.h"
-const int LineStatusColumnSize = 8; //一列多少bit
+const int LineStatusColumnSize = 1; //一列多少bit
 const int LineStatusColumnCacheBytes = LineStatusColumnSize * MAX_LINE_NUM / 8;
 
-char LineStatusColumnCache[MAX_LINE_NUM];
+//这一列只有F和O
+char LineStatusColumnCache[MAX_LINE_NUM/8];
 
 void LineStatusColumn::create_file(std::string file_name) {
   file_name_ = file_name;
@@ -24,13 +25,22 @@ void LineStatusColumn::open_file(std::string file_name) {
 }
 
 void LineStatusColumn::to_string(std::ostream &os, int index, int line_num) {
-  char str[2] = {LineStatusColumnCache[line_num], '\0'};
-  os << str;
+  char bits = LineStatusColumnCache[line_num / 8];
+  if ((bits & (1 << (line_num % 8))) != 0) {
+    char str[2] = {'F', '\0'};
+    os << str;
+  } else {
+    char str[2] = {'O', '\0'};
+    os << str;
+  }
 }
 
 void LineStatusColumn::insert(void *data, int index) {
   uint8_t code = *(uint8_t *)data;
-  LineStatusColumnCache[current_line_num_++] = code;
+  if (code - 'F' == 0) {
+    LineStatusColumnCache[current_line_num_ / 8] |= (1 << (current_line_num_ % 8));
+  }
+  current_line_num_++;
 }
 
 void LineStatusColumn::flush_to_disk() {

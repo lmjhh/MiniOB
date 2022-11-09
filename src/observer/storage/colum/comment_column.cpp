@@ -34,7 +34,7 @@ void CommentColumn::to_string(std::ostream &os, int index, int line_num) {
   char data[44];
   uint32_t offset = std::accumulate(CommentColumnLengthCache, CommentColumnLengthCache + line_num, 0);
   memcpy(data, CommentColumnValueCache + offset, CommentColumnLengthCache[line_num]);
-  data[43] = '\0';
+  data[CommentColumnLengthCache[line_num]] = '\0';
   os << data;
 }
 

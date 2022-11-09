@@ -30,6 +30,7 @@ void ReturnFlagColumn::to_string(std::ostream &os, int index, int line_num) {
   os << str;
 }
 
+
 void ReturnFlagColumn::insert(void *data, int index) {
   uint8_t code = *(uint8_t *)data;
   ReturnFlagColumnCache[current_line_num_++] = code;
