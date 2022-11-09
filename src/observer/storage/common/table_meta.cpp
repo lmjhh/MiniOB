@@ -66,13 +66,13 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
 
   RC rc = RC::SUCCESS;
   //不记录事务id
-  if (sys_fields_.empty()) {
-    rc = init_sys_fields();
-    if (rc != RC::SUCCESS) {
-      LOG_ERROR("Failed to init_sys_fields, name:%s ", name);
-      return rc;
-    }
-  }
+//  if (sys_fields_.empty()) {
+//    rc = init_sys_fields();
+//    if (rc != RC::SUCCESS) {
+//      LOG_ERROR("Failed to init_sys_fields, name:%s ", name);
+//      return rc;
+//    }
+//  }
 
   fields_.resize(field_num + sys_fields_.size());
   for (size_t i = 0; i < sys_fields_.size(); i++) {
@@ -80,31 +80,21 @@ RC TableMeta::init(const char *name, int field_num, const AttrInfo attributes[])
   }
 
   // 当前实现下，所有类型都是4字节对齐的，所以不再考虑字节对齐问题
-  int field_offset = sys_fields_.back().offset() + sys_fields_.back().len();
-
+//  int field_offset = sys_fields_.back().offset() + sys_fields_.back().len();
+  int field_offset = 0;
   for (int i = 0; i < field_num; i++) {
     AttrInfo attr_info = attributes[i];
-
-    //对Date类型压缩
-    if (i >= 10 && i <= 12) {
-      attr_info.length = 0;
-      attr_info.type = DATES;
-    } else if (strstr(attr_info.name, "ship") != NULL) { //ship_date
-      attr_info.length = 1;
-      attr_info.type = SHIPS;
-      if (strstr(attr_info.name, "mode") != NULL) {
-        attr_info.length = 0;
-      }
-    }
-    if (strstr (attr_info.name, "linenumber") != NULL || strstr (attr_info.name, "quantity") != NULL) {
-      attr_info.length = 1;
+    attr_info.length = 0;
+    if (i >= 3 && i <= 4) {
       attr_info.type = SMALL_INTS;
-    }
-    if (i == 0) {
-      attr_info.length = 0;
+    } else if (i >= 10 && i <= 12) {
+      attr_info.type = DATES;
+    } else if (i >= 13 && i <= 14) {
+      attr_info.type = SHIPS;
     }
     if (attr_info.length == 0) {
-      rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type,fields_[i - 1 + sys_fields_.size()].offset(), attr_info.length, true);
+      if (i == 0) rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, 0, attr_info.length, true);
+      else rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type,fields_[i - 1 + sys_fields_.size()].offset(), attr_info.length, true);
     } else {
       rc = fields_[i + sys_fields_.size()].init(attr_info.name, attr_info.type, field_offset, attr_info.length, true);
     }

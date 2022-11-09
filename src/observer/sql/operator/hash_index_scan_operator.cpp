@@ -25,10 +25,9 @@ RC HashIndexScanOperator::open()
     return RC::INTERNAL;
   }
 
-  record_handler_ = table_->record_handler();
-  tuple_.set_schema(table_, table_->table_meta().field_metas());
+//  record_handler_ = table_->record_handler();
+//  tuple_.set_schema(table_, table_->table_meta().field_metas());
   rids_ = HashIndex::instance().find(key_);
-
   return RC::SUCCESS;
 }
 
@@ -39,7 +38,7 @@ RC HashIndexScanOperator::next()
   }
   RID rid = rids_[current_index_++];
   rid_ = rid;
-  return record_handler_->get_record(&rid, &current_record_);
+  return RC::SUCCESS;
 }
 
 RC HashIndexScanOperator::close()

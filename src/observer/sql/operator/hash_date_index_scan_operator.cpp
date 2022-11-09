@@ -30,7 +30,7 @@ RC HashDateIndexScanOperator::next()
   }
   RID rid = rids_[current_index_++];
   rid_ = rid;
-  return record_handler_->get_record(&rid, &current_record_);
+  return RC::SUCCESS;
 }
 
 RC HashDateIndexScanOperator::close()

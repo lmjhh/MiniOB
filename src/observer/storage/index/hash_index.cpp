@@ -15,6 +15,7 @@ static int ORDER_KEY_CACHE[6100000];
 
 HashIndex::HashIndex(std::string file_name, int page_max_num) : page_max_num_(page_max_num) {
   file_name_ = file_name;
+  page_max_num = 60000000;
 //  std::string file_name_lzw = file_name + ".lzw";
 //  lzw(1, (char *)file_name_lzw.c_str()); //尝试解压
   file_desc_ = open(file_name.c_str(), O_RDWR | O_CREAT | O_EXCL, 0000400 | 0000200);
@@ -90,7 +91,7 @@ std::vector<RID> HashIndex::find(int search_key) {
       for (int i = 0; i < target; i++) value_offset += data_[small_page_num].offset[i];
       for (int i = 0; i < data_[small_page_num].offset[target]; i++) {
         int value = value_offset + i;
-        rids.push_back(RID(value / page_max_num_ + 1, value % page_max_num_));
+        rids.push_back(RID(0, value));
       }
     }
     small_page_num++;
@@ -99,7 +100,7 @@ std::vector<RID> HashIndex::find(int search_key) {
 }
 
 int HashIndex::find_key(RID rid) {
-  return ORDER_KEY_CACHE[(rid.page_num - 1) * page_max_num_ + rid.slot_num];
+  return ORDER_KEY_CACHE[rid.slot_num];
 }
 
 int HashIndex::find_small_page_num(int num) {
@@ -150,13 +151,10 @@ HashIndex &HashIndex::instance()
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static std::unordered_map<uint16_t, std::vector<RID>> SHIP_DATE_CACHE;
-static int max_page_num;
-void HashDateIndex::set_max_page_num(int num) {
-  max_page_num = num;
-}
+static int max_page_num = 60000000;
 
 void HashDateIndex::add_sort_map(uint16_t date, int num) {
-  SHIP_DATE_CACHE[date].push_back(RID(num / max_page_num + 1, num % max_page_num));
+  SHIP_DATE_CACHE[date].push_back(RID(0, num % max_page_num));
 }
 
 std::vector<RID> HashDateIndex::find(uint16_t date){

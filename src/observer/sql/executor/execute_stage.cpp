@@ -229,7 +229,7 @@ void end_trx_if_need(Session *session, Trx *trx, bool all_right)
   }
 }
 
-void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
+void print_tuple_header(std::ostream &os)
 {
 //  const int cell_num = oper.tuple_cell_num();
 //  const TupleCellSpec *cell_spec = nullptr;
@@ -250,18 +250,10 @@ void print_tuple_header(std::ostream &os, const ProjectOperator &oper)
 //    os << '\n';
 //  }
 }
-void tuple_to_string(std::ostream &os, const Tuple &tuple, RID rid, Table *table)
+void tuple_to_string(std::ostream &os, RID rid, Table *table)
 {
-  TupleCell cell;
-  RC rc = RC::SUCCESS;
   bool first_field = true;
-  for (int i = 0; i < tuple.cell_num(); i++) {
-    rc = tuple.cell_at(i, cell);
-    if (rc != RC::SUCCESS) {
-      LOG_WARN("failed to fetch field of cell. index=%d, rc=%s", i, strrc(rc));
-      break;
-    }
-
+  for (int i = 0 ; i < 16; i++) {
     if (!first_field) {
       os << " | ";
     } else {
@@ -271,12 +263,32 @@ void tuple_to_string(std::ostream &os, const Tuple &tuple, RID rid, Table *table
       int value = HashIndex::instance().find_key(rid);
       os << value;
     } else if (i >= 10 && i <= 12) {
-      int max_page_num =  (int)((BP_PAGE_DATA_SIZE - 20 - 1) / (table->table_meta().record_size() + 0.125));
-      table->to_string_column(os, i, i - 10, (rid.page_num - 1) * max_page_num + rid.slot_num);
+      table->to_string_column(os, i, i - 10, rid.slot_num);
+    } else if (i >= 13 && i <= 14) {
+      table->to_string_column(os, i, i - 13, rid.slot_num);
     } else {
-      cell.to_string(os);
+      table->to_string_column(os, i, 0, rid.slot_num);
     }
   }
+  return;
+
+//  TupleCell cell;
+//  RC rc = RC::SUCCESS;
+//  bool first_field = true;
+//  for (int i = 0; i < tuple.cell_num(); i++) {
+//    rc = tuple.cell_at(i, cell);
+//    if (rc != RC::SUCCESS) {
+//      LOG_WARN("failed to fetch field of cell. index=%d, rc=%s", i, strrc(rc));
+//      break;
+//    }
+//
+//    if (!first_field) {
+//      os << " | ";
+//    } else {
+//      first_field = false;
+//    }
+//    cell.to_string(os);
+//  }
 }
 
 Operator *try_to_create_index_scan_operator(FilterStmt *filter_stmt)
@@ -447,12 +459,13 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
     scan_oper = new TableScanOperator(select_stmt->tables()[0]);
   }
 
+
   DEFER([&] () {delete scan_oper;});
 
   PredicateOperator pred_oper(select_stmt->filter_stmt());
   pred_oper.add_child(scan_oper);
   ProjectOperator project_oper;
-  project_oper.add_child(&pred_oper);
+  project_oper.add_child(scan_oper);
   for (const Field &field : select_stmt->query_fields()) {
     project_oper.add_projection(field.table(), field.meta());
   }
@@ -463,17 +476,17 @@ RC ExecuteStage::do_select(SQLStageEvent *sql_event)
   }
 
   std::stringstream ss;
-  print_tuple_header(ss, project_oper);
+  print_tuple_header(ss);
   while ((rc = project_oper.next()) == RC::SUCCESS) {
     // get current record
     // write to response
-    Tuple * tuple = project_oper.current_tuple();
-    if (nullptr == tuple) {
-      rc = RC::INTERNAL;
-      LOG_WARN("failed to get current record. rc=%s", strrc(rc));
-      break;
-    }
-    tuple_to_string(ss, *tuple, project_oper.current_rid(), select_stmt->tables().front());
+//    Tuple * tuple = project_oper.current_tuple();
+//    if (nullptr == tuple) {
+//      rc = RC::INTERNAL;
+//      LOG_WARN("failed to get current record. rc=%s", strrc(rc));
+//      break;
+//    }
+    tuple_to_string(ss, project_oper.current_rid(), select_stmt->tables().front());
     ss << std::endl;
   }
 

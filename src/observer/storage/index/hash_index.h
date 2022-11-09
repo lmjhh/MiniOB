@@ -44,7 +44,6 @@ class HashDateIndex {
 public:
   HashDateIndex() = default;
 public:
-  static void set_max_page_num(int num);
   static void add_sort_map(uint16_t date, int num);
   static std::vector<RID> find(uint16_t date);
 };

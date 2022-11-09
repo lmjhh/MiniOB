@@ -101,20 +101,20 @@ RC Table::create(
   table_meta_.serialize(fs);
   fs.close();
 
-  std::string data_file = table_data_file(base_dir, name);
-  BufferPoolManager &bpm = BufferPoolManager::instance();
-  rc = bpm.create_file(data_file.c_str());
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to create disk buffer pool of data file. file name=%s", data_file.c_str());
-    return rc;
-  }
-
-  rc = init_record_handler(base_dir);
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to create table %s due to init record handler failed.", data_file.c_str());
-    // don't need to remove the data_file
-    return rc;
-  }
+//  std::string data_file = table_data_file(base_dir, name);
+//  BufferPoolManager &bpm = BufferPoolManager::instance();
+//  rc = bpm.create_file(data_file.c_str());
+//  if (rc != RC::SUCCESS) {
+//    LOG_ERROR("Failed to create disk buffer pool of data file. file name=%s", data_file.c_str());
+//    return rc;
+//  }
+//
+//  rc = init_record_handler(base_dir);
+//  if (rc != RC::SUCCESS) {
+//    LOG_ERROR("Failed to create table %s due to init record handler failed.", data_file.c_str());
+//    // don't need to remove the data_file
+//    return rc;
+//  }
 
   base_dir_ = base_dir;
   clog_manager_ = clog_manager;
@@ -122,14 +122,45 @@ RC Table::create(
 
 
   //创建HashIndex
-  int max_page_num =  (int)((BP_PAGE_DATA_SIZE - 20 - 1) / (table_meta_.record_size() + 0.125));
-  std::string index_file =  table_index_file(base_dir, name, "I_L_ORDERKEY");
-  HashIndex * index = new HashIndex(index_file, max_page_num);
+  std::string index_file = base_dir_ + "/" +  table_meta_.name() + "-orderkey.column";
+  HashIndex * index = new HashIndex(index_file, 0);
   HashIndex::set_hash_index(index);
+
+  std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
+  part_column_.create_file(partkey_column_file);
+
+  std::string supperkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-supperkey.column";
+  supper_column_.create_file(supperkey_column_file);
+
+  std::string linenumber_column_file = base_dir_ + "/" +  table_meta_.name() + "-linenumber.column";
+  line_num_column_.create_file(linenumber_column_file);
+
+  std::string quantity_column_file = base_dir_ + "/" +  table_meta_.name() + "-quantity.column";
+  quan_tity_column_.create_file(quantity_column_file);
+
+  std::string extend_price_column_file = base_dir_ + "/" +  table_meta_.name() + "-extendprice.column";
+  extend_price_column_.create_file(extend_price_column_file);
+
+  std::string discount_column_file = base_dir_ + "/" +  table_meta_.name() + "-discount.column";
+  discount_column_.create_file(discount_column_file);
+
+  std::string tax_column_file = base_dir_ + "/" +  table_meta_.name() + "-tax.column";
+  tax_column_.create_file(tax_column_file);
+
+  std::string return_flag_column_file = base_dir_ + "/" +  table_meta_.name() + "-returnflag.column";
+  return_flag_column_.create_file(return_flag_column_file);
+
+  std::string line_status_column_file = base_dir_ + "/" +  table_meta_.name() + "-linestatus.column";
+  line_status_column_.create_file(line_status_column_file);
 
   std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
   date_column_.create_file(date_column_file);
 
+  std::string ship_column_file = base_dir_ + "/" +  table_meta_.name() + "-ship.column";
+  ship_column_.create_file(ship_column_file);
+
+  std::string comment_column_file = base_dir_ + "/" +  table_meta_.name() + "-comment.column";
+  comment_column_.create_file(comment_column_file);
   return rc;
 }
 
@@ -152,13 +183,13 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   fs.close();
 
   // 加载数据文件
-  RC rc = init_record_handler(base_dir);
-  if (rc != RC::SUCCESS) {
-    LOG_ERROR("Failed to open table %s due to init record handler failed.", base_dir);
-    // don't need to remove the data_file
-    return rc;
-  }
-
+//  RC rc = init_record_handler(base_dir);
+//  if (rc != RC::SUCCESS) {
+//    LOG_ERROR("Failed to open table %s due to init record handler failed.", base_dir);
+//    // don't need to remove the data_file
+//    return rc;
+//  }
+  RC rc = RC::SUCCESS;
   base_dir_ = base_dir;
 
   const int index_num = table_meta_.index_num();
@@ -198,25 +229,102 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   }
 
   //打开hash_index
-  int max_page_num =  (int)((BP_PAGE_DATA_SIZE - 20 - 1) / (table_meta_.record_size() + 0.125));
-  std::string index_file =  table_index_file(base_dir, table_meta_.name(), "I_L_ORDERKEY");
-  HashIndex * index = new HashIndex(index_file, max_page_num);
+  std::string index_file = base_dir_ + "/" +  table_meta_.name() + "-orderkey.column";
+  HashIndex * index = new HashIndex(index_file, 0);
   HashIndex::set_hash_index(index);
-  HashDateIndex::set_max_page_num(max_page_num);
+
+
+  std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
+  part_column_.open_file(partkey_column_file);
+
+  std::string supperkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-supperkey.column";
+  supper_column_.open_file(supperkey_column_file);
+
+  std::string linenumber_column_file = base_dir_ + "/" +  table_meta_.name() + "-linenumber.column";
+  line_num_column_.open_file(linenumber_column_file);
+
+  std::string quantity_column_file = base_dir_ + "/" +  table_meta_.name() + "-quantity.column";
+  quan_tity_column_.open_file(quantity_column_file);
+
+  std::string extend_price_column_file = base_dir_ + "/" +  table_meta_.name() + "-extendprice.column";
+  extend_price_column_.open_file(extend_price_column_file);
+
+  std::string discount_column_file = base_dir_ + "/" +  table_meta_.name() + "-discount.column";
+  discount_column_.open_file(discount_column_file);
+
+  std::string tax_column_file = base_dir_ + "/" +  table_meta_.name() + "-tax.column";
+  tax_column_.open_file(tax_column_file);
+
+  std::string return_flag_column_file = base_dir_ + "/" +  table_meta_.name() + "-returnflag.column";
+  return_flag_column_.open_file(return_flag_column_file);
+
+  std::string line_status_column_file = base_dir_ + "/" +  table_meta_.name() + "-linestatus.column";
+  line_status_column_.open_file(line_status_column_file);
 
   std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
   date_column_.open_file(date_column_file);
+
+  std::string ship_column_file = base_dir_ + "/" +  table_meta_.name() + "-ship.column";
+  ship_column_.open_file(ship_column_file);
+
+  std::string comment_column_file = base_dir_ + "/" +  table_meta_.name() + "-comment.column";
+  comment_column_.open_file(comment_column_file);
+
   return rc;
 }
 
 void Table::to_string_column(std::ostream &os, int column, int index, int line_num) {
+  if (column == 1) {
+    part_column_.to_string(os, index, line_num);
+  }
+  if (column == 2) {
+    supper_column_.to_string(os, index, line_num);
+  }
+  if (column == 3) {
+    line_num_column_.to_string(os, index, line_num);
+  }
+  if (column == 4) {
+    quan_tity_column_.to_string(os, index, line_num);
+  }
+  if (column == 5) {
+    extend_price_column_.to_string(os, index, line_num);
+  }
+  if (column == 6) {
+    discount_column_.to_string(os, index, line_num);
+  }
+  if (column == 7) {
+    tax_column_.to_string(os, index, line_num);
+  }
+  if (column == 8) {
+    return_flag_column_.to_string(os, index, line_num);
+  }
+  if (column == 9) {
+    line_status_column_.to_string(os, index, line_num);
+  }
   if (column >= 10 && column <= 12) {
     date_column_.to_string(os, index, line_num);
+  }
+  if (column >= 13 && column <= 14) {
+    ship_column_.to_string(os, index, line_num);
+  }
+  if (column == 15) {
+    comment_column_.to_string(os, index, line_num);
   }
 }
 
 void Table::flush_column() {
+  part_column_.flush_to_disk();
+  supper_column_.flush_to_disk();
+  line_num_column_.flush_to_disk();
+  quan_tity_column_.flush_to_disk();
+  extend_price_column_.flush_to_disk();
+  discount_column_.flush_to_disk();
+  tax_column_.flush_to_disk();
+  line_status_column_.flush_to_disk();
   date_column_.flush_to_disk();
+  ship_column_.flush_to_disk();
+  comment_column_.flush_to_disk();
+  return_flag_column_.flush_to_disk();
 }
 
 RC Table::commit_insert(Trx *trx, const RID &rid)
@@ -342,6 +450,8 @@ RC Table::insert_record(Trx *trx, int value_num, const Value *values)
 
   char *record_data;
   RC rc = make_record(value_num, values, record_data);
+  return RC::SUCCESS;
+
   if (rc != RC::SUCCESS) {
     LOG_ERROR("Failed to create a record. rc=%d:%s", rc, strrc(rc));
     return rc;
@@ -400,21 +510,47 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
         copy_len = data_len + 1;
       }
     }
-    if (field->type() == SHIPS && copy_len == 0) {
-      uint8_t ship_mode_code = *(uint8_t *)value.data;
-      uint8_t ship_two_code = *(uint8_t *)(record + field->offset());
-      ship_two_code = ship_two_code << 4;
-      ship_two_code = ship_two_code | ship_mode_code;
-      memcpy(record + field->offset(), &ship_two_code, 1);
-    }
     if (copy_len > 0) {
       memcpy(record + field->offset(), value.data, copy_len);
     }
     if (i == 0) { //order_key
       HashIndex::instance().insert(*(int *)value.data);
     }
+    if (i == 1) {
+      part_column_.insert(value.data, 0);
+    }
+    if (i == 2) {
+      supper_column_.insert(value.data, 0);
+    }
+    if (i == 3) {
+      line_num_column_.insert(value.data, 0);
+    }
+    if (i == 4) {
+      quan_tity_column_.insert(value.data, 0);
+    }
+    if (i == 5) {
+      extend_price_column_.insert(value.data, 0);
+    }
+    if (i == 6) {
+      discount_column_.insert(value.data, 0);
+    }
+    if (i == 7) {
+      tax_column_.insert(value.data, 0);
+    }
+    if (i == 8) {
+      return_flag_column_.insert(value.data, 0);
+    }
+    if (i == 9) {
+      line_status_column_.insert(value.data, 0);
+    }
     if (i >= 10 && i <= 12) {
       date_column_.insert(value.data, i - 10);
+    }
+    if (i >= 13 && i <= 14) {
+      ship_column_.insert(value.data, i - 13);
+    }
+    if (i == 15) {
+      comment_column_.insert(value.data, 0);
     }
   }
 

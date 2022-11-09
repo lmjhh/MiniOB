@@ -17,6 +17,18 @@ See the Mulan PSL v2 for more details. */
 
 #include "storage/common/table_meta.h"
 #include "storage/colum/date_column.h"
+#include "storage/colum/ship_column.h"
+#include "storage/colum/discount_column.h"
+#include "storage/colum/comment_column.h"
+#include "storage/colum/line_number.h"
+#include "storage/colum/line_status.h"
+#include "storage/colum/part_column.h"
+#include "storage/colum/extend_price_column.h"
+#include "storage/colum/quantity_column.h"
+#include "storage/colum/return_flag.h"
+#include "storage/colum/supper_column.h"
+#include "storage/colum/tax_column.h"
+
 struct RID;
 class Record;
 class DiskBufferPool;
@@ -127,8 +139,18 @@ private:
   RecordFileHandler *record_handler_ = nullptr;  /// 记录操作
   std::vector<Index *> indexes_;
 
-
+  PartColumn part_column_;
+  SupperColumn supper_column_;
+  LineNumColumn line_num_column_;
+  QuantityColumn quan_tity_column_;
+  ExtendPriceColumn extend_price_column_;
+  DiscountColumn discount_column_;
+  TaxColumn tax_column_;
+  ReturnFlagColumn return_flag_column_;
+  LineStatusColumn line_status_column_;
   DateColumn date_column_;
+  ShipColumn ship_column_;
+  CommentColumn comment_column_;
 };
 
 #endif  // __OBSERVER_STORAGE_COMMON_TABLE_H__
