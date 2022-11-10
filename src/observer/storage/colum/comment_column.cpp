@@ -22,6 +22,9 @@ void CommentColumn::create_file(std::string file_name) {
 }
 
 void CommentColumn::open_file(std::string file_name) {
+  std::string humff_file = file_name + ".huffman";
+  hufmman_uncompapress_file(humff_file.c_str());
+  remove(humff_file.c_str());
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *) (&total_data_), 4);
   in.read((char *) (&current_offset_), 4);
@@ -53,4 +56,6 @@ void CommentColumn::flush_to_disk() {
   out.write((const char *) CommentColumnLengthCache, total_data_);
   out.write((const char *) CommentColumnValueCache, current_offset_);
   out.close();
+  hufmman_compapress_file(file_name_.c_str());
+  remove(file_name_.c_str());
 }

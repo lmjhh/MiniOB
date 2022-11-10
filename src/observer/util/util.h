@@ -23,3 +23,6 @@ std::string to_date_str (DateNum data);
 
 uint8_t str_to_ship_code(char *str);
 std::string ship_code_to_str(uint8_t code);
+
+void hufmman_compapress_file(const char *file_name);
+void hufmman_uncompapress_file(const char *file_name);

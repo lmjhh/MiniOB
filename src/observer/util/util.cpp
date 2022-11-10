@@ -16,6 +16,7 @@ See the Mulan PSL v2 for more details. */
 #include <unordered_map>
 #include <vector>
 #include "util/util.h"
+#include "FileCompress.h"
 
 std::string double2string(double v)
 {
@@ -84,4 +85,14 @@ uint8_t str_to_ship_code(char *str) {
 
 std::string ship_code_to_str(uint8_t code) {
   return SHIP_ARRAY[code];
+}
+
+
+void hufmman_compapress_file(const char *file_name) {
+  FileCompressAndUnCompress fc;
+  fc.Compress(file_name); // 压缩文件
+}
+void hufmman_uncompapress_file(const char *file_name) {
+  FileCompressAndUnCompress fc;
+  fc.Uncompress(file_name); // 解压缩文件
 }
