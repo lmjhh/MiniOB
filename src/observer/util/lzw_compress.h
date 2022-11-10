@@ -5,6 +5,7 @@
 #ifndef MINIDB_LZW_COMPRESS_H
 #define MINIDB_LZW_COMPRESS_H
 
-int lzw(int type, char *file_name);
+int lzw_compress (void (*dst)(int,void*), void *dstctx, int (*src)(void*), void *srcctx, int maxbits);
+int lzw_decompress (void (*dst)(int,void*), void *dstctx, int (*src)(void*), void *srcctx);
 
 #endif //MINIDB_LZW_COMPRESS_H

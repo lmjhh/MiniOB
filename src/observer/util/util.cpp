@@ -12,11 +12,14 @@ See the Mulan PSL v2 for more details. */
 // Created by wangyunlai on 2022/9/28
 //
 
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <unordered_map>
 #include <vector>
 #include "util/util.h"
 #include "FileCompress.h"
+#include "lzw_compress.h"
 
 std::string double2string(double v)
 {
@@ -87,12 +90,109 @@ std::string ship_code_to_str(uint8_t code) {
   return SHIP_ARRAY[code];
 }
 
-
-void hufmman_compapress_file(const char *file_name) {
+void huffman_compress_file(const char *file_name) {
   FileCompressAndUnCompress fc;
   fc.Compress(file_name); // 压缩文件
 }
-void hufmman_uncompapress_file(const char *file_name) {
+void huffman_uncompress_file(const char *file_name) {
   FileCompressAndUnCompress fc;
   fc.Uncompress(file_name); // 解压缩文件
+}
+
+
+typedef struct {
+  unsigned char buffer [65536];
+  int checksum, head, tail;
+  size_t byte_count;
+} streamer;
+
+FILE *in, *out;
+
+static int read_buff (void *ctx)
+{
+  streamer *stream = (streamer *)ctx;
+  int value;
+
+  if (stream->head == stream->tail)
+    stream->tail = (stream->head = 0) + fread (stream->buffer, 1, sizeof (stream->buffer), in);
+
+  if (stream->head < stream->tail) {
+    value = stream->buffer [stream->head++];
+    stream->checksum = stream->checksum * 3 + (unsigned char) value;
+    stream->byte_count++;
+  }
+  else
+    value = EOF;
+
+  return value;
+}
+
+static void write_buff (int value, void *ctx)
+{
+  streamer *stream = (streamer *)ctx;
+
+  if (value == EOF) {
+    fwrite (stream->buffer, 1, stream->head, out);
+    return;
+  }
+
+  stream->buffer [stream->head++] = value;
+
+  if (stream->head == sizeof (stream->buffer)) {
+    fwrite (stream->buffer, 1, stream->head, out);
+    stream->head = 0;
+  }
+
+  stream->checksum = stream->checksum * 3 + (unsigned char) value;
+  stream->byte_count++;
+}
+
+void lzw_compress_file(std::string file_name) {
+  int maxbits = 16, error = 0;
+  streamer reader, writer;
+  std::string out_file_name = file_name + ".lzw";
+  in = fopen( file_name.c_str() , "r" );
+  out = fopen( out_file_name.c_str() , "w" );
+
+  memset(&reader, 0, sizeof(reader));
+  memset(&writer, 0, sizeof(writer));
+  reader.checksum = writer.checksum = -1;
+
+  if (lzw_compress(write_buff, &writer, read_buff, &reader, maxbits)) {
+    fprintf(stderr, "lzw_compress() returned non-zero!\n");
+  }
+
+  write_buff(EOF, &writer);
+
+  if (reader.byte_count) {
+    fprintf(stderr, "source checksum = %x, ratio = %.2f%%\n", reader.checksum,
+            writer.byte_count * 100.0 / reader.byte_count);
+  }
+  fclose(in);
+  fclose(out);
+}
+void lzw_uncompress_file(std::string file_name) {
+  int verbose = 0, error = 0;
+  streamer reader, writer;
+
+  std::string in_file_name = file_name + ".lzw";
+  in = fopen( in_file_name.c_str() , "r" );
+  out = fopen( file_name.c_str() , "w" );
+
+  memset(&reader, 0, sizeof(reader));
+  memset(&writer, 0, sizeof(writer));
+  reader.checksum = writer.checksum = -1;
+
+  if (lzw_decompress(write_buff, &writer, read_buff, &reader)) {
+    fprintf(stderr, "lzw_decompress() returned non-zero!\n");
+  }
+
+  write_buff(EOF, &writer);
+
+  if (verbose && writer.byte_count) {
+    fprintf(stderr, "output checksum = %x, ratio = %.2f%%\n", writer.checksum,
+            reader.byte_count * 100.0 / writer.byte_count);
+  }
+  fclose(in);
+  fclose(out);
 }
