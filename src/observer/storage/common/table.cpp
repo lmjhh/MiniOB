@@ -123,8 +123,9 @@ RC Table::create(
 
   //创建HashIndex
   std::string index_file = base_dir_ + "/" +  table_meta_.name() + "-orderkey.column";
-  HashIndex * index = new HashIndex(index_file, 0);
+  HashIndex * index = new HashIndex();
   HashIndex::set_hash_index(index);
+  HashIndex::instance().create_file(index_file);
 
   std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
   part_column_.create_file(partkey_column_file);
@@ -224,8 +225,9 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
 
   //打开hash_index
   std::string index_file = base_dir_ + "/" +  table_meta_.name() + "-orderkey.column";
-  HashIndex * index = new HashIndex(index_file, 0);
+  HashIndex * index = new HashIndex();
   HashIndex::set_hash_index(index);
+  HashIndex::instance().open_file(index_file);
 
   std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
   part_column_.open_file(partkey_column_file);

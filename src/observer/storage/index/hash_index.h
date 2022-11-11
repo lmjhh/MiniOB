@@ -20,7 +20,9 @@ struct SmallHeader {
 
 class HashIndex {
 public:
-  HashIndex(std::string file_name, int page_max_num);
+  HashIndex() = default;
+  void create_file(std::string file_name);
+  void open_file(std::string file_name);
   void insert(int num);
   std::vector<RID> find(int search_key);
   int find_key(RID rid);
