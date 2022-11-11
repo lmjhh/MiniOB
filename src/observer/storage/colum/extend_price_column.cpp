@@ -23,6 +23,10 @@ void ExtendPriceColumn::create_file(std::string file_name) {
 }
 
 void ExtendPriceColumn::open_file(std::string file_name) {
+//  bzip3_uncompress_file(file_name.c_str());
+//  std::string remove_file = file_name + ".bzp";
+//  remove(remove_file.c_str());
+
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *)ExtendPriceColumnINTCache, ExtendPriceColumnCacheINTBytes);
   in.read((char *)ExtendPriceColumnFLOCache, ExtendPriceColumnCacheFLOBytes);
@@ -62,4 +66,6 @@ void ExtendPriceColumn::flush_to_disk() {
   out.write((const char *) ExtendPriceColumnINTCache, ExtendPriceColumnCacheINTBytes);
   out.write((const char *) ExtendPriceColumnFLOCache, ExtendPriceColumnCacheFLOBytes);
   out.close();
+//  bzip3_compress_file(file_name_);
+//  remove(file_name_.c_str());
 }

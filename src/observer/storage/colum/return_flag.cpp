@@ -22,6 +22,10 @@ void ReturnFlagColumn::create_file(std::string file_name) {
 }
 
 void ReturnFlagColumn::open_file(std::string file_name) {
+//  bzip3_uncompress_file(file_name.c_str());
+//  std::string remove_file = file_name + ".bzp";
+//  remove(remove_file.c_str());
+
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *)ReturnFlagColumnCache, ReturnFlagColumnCacheBytes);
   in.read((char *)LineStatusColumnCache, ReturnFlagColumnCacheBytes);
@@ -101,4 +105,6 @@ void ReturnFlagColumn::flush_to_disk() {
     out.write((char *) &iter, 4);
   }
   out.close();
+//  bzip3_compress_file(file_name_);
+//  remove(file_name_.c_str());
 }

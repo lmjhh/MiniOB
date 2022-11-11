@@ -19,6 +19,10 @@ void LineNumColumn::create_file(std::string file_name) {
 }
 
 void LineNumColumn::open_file(std::string file_name) {
+//  bzip3_uncompress_file(file_name.c_str());
+//  std::string remove_file = file_name + ".bzp";
+//  remove(remove_file.c_str());
+
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *)LineNumColumnCache, LineNumColumnCacheBytes);
   in.close();
@@ -39,4 +43,6 @@ void LineNumColumn::flush_to_disk() {
   std::ofstream out(file_name_.c_str(), std::ios::out);
   out.write((const char *) LineNumColumnCache, LineNumColumnCacheBytes);
   out.close();
+//  bzip3_compress_file(file_name_);
+//  remove(file_name_.c_str());
 }

@@ -19,6 +19,11 @@ void PartColumn::create_file(std::string file_name) {
 }
 
 void PartColumn::open_file(std::string file_name) {
+
+//  bzip3_uncompress_file(file_name.c_str());
+//  std::string remove_file = file_name + ".bzp";
+//  remove(remove_file.c_str());
+
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *)PartColumnCache, PartColumnCacheBytes);
   in.close();
@@ -50,4 +55,6 @@ void PartColumn::flush_to_disk() {
   std::ofstream out(file_name_.c_str(), std::ios::out);
   out.write((const char *)PartColumnCache, PartColumnCacheBytes);
   out.close();
+//  bzip3_compress_file(file_name_);
+//  remove(file_name_.c_str());
 }

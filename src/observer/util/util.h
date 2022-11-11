@@ -29,3 +29,6 @@ void huffman_uncompress_file(const char *file_name);
 
 void lzw_compress_file(std::string file_name);
 void lzw_uncompress_file(std::string file_name);
+
+void bzip3_compress_file(std::string file_name, void* buf, size_t buf_size);
+void bzip3_uncompress_file(std::string file_name);

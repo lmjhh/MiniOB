@@ -20,6 +20,7 @@ See the Mulan PSL v2 for more details. */
 #include "util/util.h"
 #include "FileCompress.h"
 #include "lzw_compress.h"
+#include "util/bzip3/libbz3.c"
 
 std::string double2string(double v)
 {
@@ -171,6 +172,7 @@ void lzw_compress_file(std::string file_name) {
   fclose(in);
   fclose(out);
 }
+
 void lzw_uncompress_file(std::string file_name) {
   int verbose = 0, error = 0;
   streamer reader, writer;
@@ -195,4 +197,44 @@ void lzw_uncompress_file(std::string file_name) {
   }
   fclose(in);
   fclose(out);
+}
+
+
+void bzip3_compress_file(std::string file_name, void *buf, size_t buf_size) {
+  // Compress the file:
+  size_t out_size = bz3_bound(buf_size);
+  uint8_t * outbuf = (uint8_t *)malloc(out_size);
+  int bzerr = bz3_compress(buf_size + 16, (const uint8_t *)buf, outbuf, buf_size, &out_size);
+  if (bzerr != BZ3_OK) {
+    printf("bz3_compress() failed with error code %d", bzerr);
+  }
+  std::string out_name = file_name + ".bzp";
+  FILE *bzp_out = fopen(out_name.c_str() , "wb" );
+  /* XXX: Doesn't preserve endianess. We should write the `size_t` value manually with known endianess. */
+  fwrite(&buf_size, 1, sizeof(size_t), bzp_out);
+  fwrite(outbuf, 1, out_size, bzp_out);
+
+  fclose(bzp_out);
+}
+void bzip3_uncompress_file(std::string file_name) {
+  std::string in_name = file_name + ".bzp";
+  FILE *bzp_in = fopen(in_name.c_str() , "rb" );
+  fseek(bzp_in, 0, SEEK_END);
+  size_t size = ftell(bzp_in);
+  fseek(bzp_in, 0, SEEK_SET);
+  uint8_t *buffer = (uint8_t *)malloc(size);
+  fread(buffer, 1, size, bzp_in);
+  fclose(bzp_in);
+
+  // Decompress the file:
+  size_t orig_size = *(size_t *)buffer;
+  uint8_t * outbuf = (uint8_t *)malloc(orig_size);
+  int bzerr = bz3_decompress(buffer + sizeof(size_t), outbuf, size - sizeof(size_t), &orig_size);
+  if (bzerr != BZ3_OK) {
+    printf("bz3_decompress() failed with error code %d", bzerr);
+  }
+
+  FILE *bzp_out = fopen(file_name.c_str(), "wb");
+  fwrite(outbuf, 1, orig_size, bzp_out);
+  fclose(bzp_out);
 }

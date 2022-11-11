@@ -8,7 +8,7 @@
 #include <sstream>
 #include "defs.h"
 #include "storage/index/hash_index.h"
-#include "util//util.h"
+#include "util/util.h"
 const int DateColumnCacheBytes = 32 * MAX_LINE_NUM / 8;
 const int DateColumnCacheOverBytes = 4 * MAX_LINE_NUM / 8;
 uint32_t DateColumnCache[MAX_LINE_NUM];
