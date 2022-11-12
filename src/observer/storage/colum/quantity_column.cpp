@@ -18,13 +18,11 @@ void QuantityColumn::create_file(std::string file_name) {
 }
 
 void QuantityColumn::open_file(std::string file_name) {
-//  bzip3_uncompress_file(file_name.c_str());
-//  std::string remove_file = file_name + ".bzp";
-//  remove(remove_file.c_str());
+  bzip3_uncompress_file(file_name.c_str(), QuantityColumnCache);
 
-  std::ifstream in(file_name.c_str(), std::ios::in);
-  in.read((char *)QuantityColumnCache, QuantityColumnCacheBytes);
-  in.close();
+//  std::ifstream in(file_name.c_str(), std::ios::in);
+//  in.read((char *)QuantityColumnCache, QuantityColumnCacheBytes);
+//  in.close();
 }
 
 void QuantityColumn::to_string(std::ostream &os, int index, int line_num) {
@@ -39,9 +37,8 @@ void QuantityColumn::insert(void *data, int index) {
 }
 
 void QuantityColumn::flush_to_disk() {
-  std::ofstream out(file_name_.c_str(), std::ios::out);
-  out.write((const char *) QuantityColumnCache, QuantityColumnCacheBytes);
-  out.close();
-//  bzip3_compress_file(file_name_);
-//  remove(file_name_.c_str());
+//  std::ofstream out(file_name_.c_str(), std::ios::out);
+//  out.write((const char *) QuantityColumnCache, QuantityColumnCacheBytes);
+//  out.close();
+  bzip3_compress_file(file_name_, QuantityColumnCache, QuantityColumnCacheBytes);
 }

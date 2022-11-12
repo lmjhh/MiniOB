@@ -216,7 +216,7 @@ void bzip3_compress_file(std::string file_name, void *buf, size_t buf_size) {
 
   fclose(bzp_out);
 }
-void bzip3_uncompress_file(std::string file_name) {
+void bzip3_uncompress_file(std::string file_name, void *out_buf) {
   std::string in_name = file_name + ".bzp";
   FILE *bzp_in = fopen(in_name.c_str() , "rb" );
   fseek(bzp_in, 0, SEEK_END);
@@ -228,13 +228,13 @@ void bzip3_uncompress_file(std::string file_name) {
 
   // Decompress the file:
   size_t orig_size = *(size_t *)buffer;
-  uint8_t * outbuf = (uint8_t *)malloc(orig_size);
-  int bzerr = bz3_decompress(buffer + sizeof(size_t), outbuf, size - sizeof(size_t), &orig_size);
+//  uint8_t * outbuf = (uint8_t *)malloc(orig_size);
+  int bzerr = bz3_decompress(buffer + sizeof(size_t), (uint8_t *)out_buf, size - sizeof(size_t), &orig_size);
   if (bzerr != BZ3_OK) {
     printf("bz3_decompress() failed with error code %d", bzerr);
   }
 
-  FILE *bzp_out = fopen(file_name.c_str(), "wb");
-  fwrite(outbuf, 1, orig_size, bzp_out);
-  fclose(bzp_out);
+//  FILE *bzp_out = fopen(file_name.c_str(), "wb");
+//  fwrite(outbuf, 1, orig_size, bzp_out);
+//  fclose(bzp_out);
 }

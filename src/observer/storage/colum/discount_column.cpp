@@ -18,13 +18,13 @@ void DiscountColumn::create_file(std::string file_name) {
 }
 
 void DiscountColumn::open_file(std::string file_name) {
-//  bzip3_uncompress_file(file_name.c_str());
+  bzip3_uncompress_file(file_name.c_str(), DiscountColumnCache);
 //  std::string remove_file = file_name + ".bzp";
 //  remove(remove_file.c_str());
 
-  std::ifstream in(file_name.c_str(), std::ios::in);
-  in.read((char *)DiscountColumnCache, DiscountColumnCacheBytes);
-  in.close();
+//  std::ifstream in(file_name.c_str(), std::ios::in);
+//  in.read((char *)DiscountColumnCache, DiscountColumnCacheBytes);
+//  in.close();
 }
 
 void DiscountColumn::to_string(std::ostream &os, int index, int line_num) {
@@ -52,9 +52,8 @@ void DiscountColumn::insert(void *data, int index) {
 }
 
 void DiscountColumn::flush_to_disk() {
-  std::ofstream out(file_name_.c_str(), std::ios::out);
-  out.write((const char *) DiscountColumnCache, DiscountColumnCacheBytes);
-  out.close();
-//  bzip3_compress_file(file_name_);
-//  remove(file_name_.c_str());
+//  std::ofstream out(file_name_.c_str(), std::ios::out);
+//  out.write((const char *) DiscountColumnCache, DiscountColumnCacheBytes);
+//  out.close();
+  bzip3_compress_file(file_name_, DiscountColumnCache, DiscountColumnCacheBytes);
 }

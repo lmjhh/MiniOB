@@ -21,13 +21,13 @@ void HashIndex::create_file(std::string file_name) {
 }
 
 void HashIndex::open_file(std::string file_name) {
-  bzip3_uncompress_file(file_name.c_str());
-  std::string remove_file = file_name + ".bzp";
-  remove(remove_file.c_str());
-
-  std::ifstream in(file_name.c_str(), std::ios::in);
-  in.read((char *)data_, sizeof(data_));
-  in.close();
+  bzip3_uncompress_file(file_name.c_str(), data_);
+//  std::string remove_file = file_name + ".bzp";
+//  remove(remove_file.c_str());
+//
+//  std::ifstream in(file_name.c_str(), std::ios::in);
+//  in.read((char *)data_, sizeof(data_));
+//  in.close();
   int i = 0;
   for (; i < HASH_INDEX_MAX_COUNT; i++) {
     if (data_[i].begin_num == 0xFFFFFFFF) {

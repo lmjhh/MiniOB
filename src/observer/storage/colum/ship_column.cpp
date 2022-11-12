@@ -19,13 +19,13 @@ void ShipColumn::create_file(std::string file_name) {
 }
 
 void ShipColumn::open_file(std::string file_name) {
-//  bzip3_uncompress_file(file_name.c_str());
+  bzip3_uncompress_file(file_name.c_str(), ShipColumnCache);
 //  std::string remove_file = file_name + ".bzp";
 //  remove(remove_file.c_str());
-
-  std::ifstream in(file_name.c_str(), std::ios::in);
-  in.read((char *)ShipColumnCache, ShipColumnCacheBytes);
-  in.close();
+//
+//  std::ifstream in(file_name.c_str(), std::ios::in);
+//  in.read((char *)ShipColumnCache, ShipColumnCacheBytes);
+//  in.close();
 }
 
 void ShipColumn::to_string(std::ostream &os, int index, int line_num) {
@@ -50,9 +50,8 @@ void ShipColumn::insert(void *data, int index) {
 }
 
 void ShipColumn::flush_to_disk() {
-  std::ofstream out(file_name_.c_str(), std::ios::out);
-  out.write((const char *)ShipColumnCache, ShipColumnCacheBytes);
-  out.close();
-//  bzip3_compress_file(file_name_);
-//  remove(file_name_.c_str());
+//  std::ofstream out(file_name_.c_str(), std::ios::out);
+//  out.write((const char *)ShipColumnCache, ShipColumnCacheBytes);
+//  out.close();
+  bzip3_compress_file(file_name_, ShipColumnCache, ShipColumnCacheBytes);
 }

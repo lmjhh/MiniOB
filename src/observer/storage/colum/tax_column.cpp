@@ -18,13 +18,13 @@ void TaxColumn::create_file(std::string file_name) {
 }
 
 void TaxColumn::open_file(std::string file_name) {
-//  bzip3_uncompress_file(file_name.c_str());
+  bzip3_uncompress_file(file_name.c_str(), TaxColumnCache);
 //  std::string remove_file = file_name + ".bzp";
 //  remove(remove_file.c_str());
-
-  std::ifstream in(file_name.c_str(), std::ios::in);
-  in.read((char *)TaxColumnCache, TaxColumnCacheBytes);
-  in.close();
+//
+//  std::ifstream in(file_name.c_str(), std::ios::in);
+//  in.read((char *)TaxColumnCache, TaxColumnCacheBytes);
+//  in.close();
 }
 
 void TaxColumn::to_string(std::ostream &os, int index, int line_num) {
@@ -52,9 +52,8 @@ void TaxColumn::insert(void *data, int index) {
 }
 
 void TaxColumn::flush_to_disk() {
-  std::ofstream out(file_name_.c_str(), std::ios::out);
-  out.write((const char *) TaxColumnCache, TaxColumnCacheBytes);
-  out.close();
-//  bzip3_compress_file(file_name_);
-//  remove(file_name_.c_str());
+//  std::ofstream out(file_name_.c_str(), std::ios::out);
+//  out.write((const char *) TaxColumnCache, TaxColumnCacheBytes);
+//  out.close();
+  bzip3_compress_file(file_name_, TaxColumnCache, TaxColumnCacheBytes);
 }
