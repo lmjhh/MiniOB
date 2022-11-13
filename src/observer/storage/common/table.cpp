@@ -305,7 +305,6 @@ void Table::flush_column() {
   tax_column_.flush_to_disk();
   ship_column_.flush_to_disk();
   comment_column_.flush_to_disk();
-  return_flag_column_.flush_to_disk();
 }
 
 RC Table::commit_insert(Trx *trx, const RID &rid)
@@ -800,6 +799,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     HashIndex::instance().flush_to_disk();
     //date延迟到创建索引时
     date_column_.flush_to_disk();
+    return_flag_column_.flush_to_disk();
   }
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());
 

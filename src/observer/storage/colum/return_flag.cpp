@@ -8,7 +8,8 @@
 #include <sstream>
 #include <bitset>
 #include "defs.h"
-#include "util//util.h"
+#include "util/util.h"
+#include "util/zpaq_compress.h"
 const int ReturnFlagColumnSize = 1; //一列多少bit
 const int ReturnFlagColumnCacheBytes = ReturnFlagColumnSize * MAX_LINE_NUM / 8;
 
@@ -22,11 +23,15 @@ void ReturnFlagColumn::create_file(std::string file_name) {
 }
 
 void ReturnFlagColumn::open_file(std::string file_name) {
-//  bzip3_uncompress_file(file_name.c_str());
-//  std::string remove_file = file_name + ".bzp";
-//  remove(remove_file.c_str());
+  file_name_ = file_name;
+}
 
-  std::ifstream in(file_name.c_str(), std::ios::in);
+void ReturnFlagColumn::delay_open_file() {
+  zpaq_uncompress(file_name_);
+  std::string copress_name = file_name_ +".zpaq";
+  remove(copress_name.c_str());
+
+  std::ifstream in(file_name_.c_str(), std::ios::in);
   in.read((char *)ReturnFlagColumnCache, ReturnFlagColumnCacheBytes);
   in.read((char *)LineStatusColumnCache, ReturnFlagColumnCacheBytes);
   in.read((char *)&N_F_size, 4);
@@ -39,6 +44,9 @@ void ReturnFlagColumn::open_file(std::string file_name) {
 }
 
 void ReturnFlagColumn::to_string(std::ostream &os, int index, int line_num) {
+  if (N_F_size == 0) {
+    delay_open_file();
+  }
   if (N_F_lines.find(line_num) != N_F_lines.end()) {
     if (index == 0) {
       char str[2] = {'N', '\0'};
@@ -105,6 +113,6 @@ void ReturnFlagColumn::flush_to_disk() {
     out.write((char *) &iter, 4);
   }
   out.close();
-//  bzip3_compress_file(file_name_);
-//  remove(file_name_.c_str());
+  zpaq_compress(file_name_);
+  remove(file_name_.c_str());
 }

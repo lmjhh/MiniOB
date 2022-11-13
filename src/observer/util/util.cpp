@@ -221,6 +221,32 @@ void bzip3_compress_file(std::string file_name, void *buf, size_t buf_size) {
 
   fclose(bzp_out);
 }
+
+void bzip3_compress_file(std::string file_name) {
+  in = fopen(file_name.c_str() , "rb" );
+  fseek(in, 0, SEEK_END);
+  size_t size = ftell(in);
+  fseek(in, 0, SEEK_SET);
+  uint8_t *buffer = (uint8_t *)malloc(size);
+  fread(buffer, 1, size, in);
+  fclose(in);
+
+  // Compress the file:
+  size_t out_size = bz3_bound(size);
+  uint8_t * outbuf = (uint8_t *)malloc(out_size);
+  int bzerr = bz3_compress(256 * 1024 * 1024, buffer, outbuf, size, &out_size);
+  if (bzerr != BZ3_OK) {
+    printf("bz3_compress() failed with error code %d", bzerr);
+  }
+  std::string out_name = file_name + ".bzp";
+  out = fopen(out_name.c_str() , "wb" );
+  /* XXX: Doesn't preserve endianess. We should write the `size_t` value manually with known endianess. */
+  fwrite(&size, 1, sizeof(size_t), out);
+  fwrite(outbuf, 1, out_size, out);
+  fclose(out);
+}
+
+
 void bzip3_uncompress_file(std::string file_name, void *out_buf) {
   std::string in_name = file_name + ".bzp";
   FILE *bzp_in = fopen(in_name.c_str() , "rb" );
@@ -242,4 +268,27 @@ void bzip3_uncompress_file(std::string file_name, void *out_buf) {
 //  FILE *bzp_out = fopen(file_name.c_str(), "wb");
 //  fwrite(outbuf, 1, orig_size, bzp_out);
 //  fclose(bzp_out);
+}
+
+void bzip3_uncompress_file(std::string file_name) {
+  std::string in_name = file_name + ".bzp";
+  FILE *bzp_in = fopen(in_name.c_str() , "rb" );
+  fseek(bzp_in, 0, SEEK_END);
+  size_t size = ftell(bzp_in);
+  fseek(bzp_in, 0, SEEK_SET);
+  uint8_t *buffer = (uint8_t *)malloc(size);
+  fread(buffer, 1, size, bzp_in);
+  fclose(bzp_in);
+
+  // Decompress the file:
+  size_t orig_size = *(size_t *)buffer;
+  uint8_t * outbuf = (uint8_t *)malloc(orig_size);
+  int bzerr = bz3_decompress(buffer + sizeof(size_t), (uint8_t *)outbuf, size - sizeof(size_t), &orig_size);
+  if (bzerr != BZ3_OK) {
+    printf("bz3_decompress() failed with error code %d", bzerr);
+  }
+
+  FILE *bzp_out = fopen(file_name.c_str(), "wb");
+  fwrite(outbuf, 1, orig_size, bzp_out);
+  fclose(bzp_out);
 }
