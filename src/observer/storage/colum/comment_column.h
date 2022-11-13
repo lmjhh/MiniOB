@@ -13,6 +13,8 @@ public:
   void to_string(std::ostream &os, int index, int line_num) override;
   void insert(void *data, int index) override;
   void flush_to_disk() override;
+
+  void delay_open_file();
 private:
   uint32_t current_offset_ = 4;
   uint32_t total_data_ = 0;
