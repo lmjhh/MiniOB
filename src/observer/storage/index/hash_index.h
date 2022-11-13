@@ -46,8 +46,10 @@ class HashDateIndex {
 public:
   HashDateIndex() = default;
 public:
+  static void open_file(std::string file_name);
   static void add_sort_map(uint16_t date, int num);
   static std::vector<RID> find(uint16_t date);
+  static int index_size();
 };
 
 #endif //MINIDB_HASH_INDEX_H

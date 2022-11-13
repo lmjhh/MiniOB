@@ -10,6 +10,7 @@
 #include <vector>
 #include <unordered_map>
 #include "util/util.h"
+#include "storage/colum/date_column.h"
 static int ORDER_KEY_CACHE[6100000];
 
 void HashIndex::create_file(std::string file_name) {
@@ -126,11 +127,22 @@ HashIndex &HashIndex::instance()
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static std::unordered_map<uint16_t, std::vector<RID>> SHIP_DATE_CACHE;
 static int max_page_num = 60000000;
+static std::string date_file_name;
+void HashDateIndex::open_file(std::string file_name) {
+  date_file_name = file_name;
+}
+
+int HashDateIndex::index_size() {
+  return SHIP_DATE_CACHE.size();
+}
 
 void HashDateIndex::add_sort_map(uint16_t date, int num) {
   SHIP_DATE_CACHE[date].push_back(RID(0, num % max_page_num));
 }
 
 std::vector<RID> HashDateIndex::find(uint16_t date){
+  if (SHIP_DATE_CACHE.size() == 0) {
+    DateColumn::delay_open_file(date_file_name);
+  }
   return SHIP_DATE_CACHE[date];
 }

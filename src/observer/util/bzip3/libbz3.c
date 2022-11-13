@@ -110,7 +110,7 @@ static u32 crc32sum(u32 crc, u8 * RESTRICT buf, size_t size) {
 #define LZP_DICTIONARY 18
 #define LZP_MIN_MATCH 40
 
-#define MATCH 0xf2
+#define BZ3_MATCH 0xf2
 
 static s32 lzp_encode_block(const u8 * RESTRICT in, const u8 * in_end, u8 * RESTRICT out, u8 * out_end,
                             s32 * RESTRICT lut) {
@@ -152,7 +152,7 @@ static s32 lzp_encode_block(const u8 * RESTRICT in, const u8 * in_end, u8 * REST
                 in += len;
                 ctx = ((u32)in[-1]) | (((u32)in[-2]) << 8) | (((u32)in[-3]) << 16) | (((u32)in[-4]) << 24);
 
-                *out++ = MATCH;
+                *out++ = BZ3_MATCH;
 
                 len -= LZP_MIN_MATCH;
                 while (len >= 254) {
@@ -166,7 +166,7 @@ static s32 lzp_encode_block(const u8 * RESTRICT in, const u8 * in_end, u8 * REST
             not_found:;
                 u8 next = *out++ = *in++;
                 ctx = ctx << 8 | next;
-                if (next == MATCH) *out++ = 255;
+                if (next == BZ3_MATCH) *out++ = 255;
             }
         } else {
             ctx = (ctx << 8) | (*out++ = *in++);
@@ -182,7 +182,7 @@ static s32 lzp_encode_block(const u8 * RESTRICT in, const u8 * in_end, u8 * REST
 
         u8 next = *out++ = *in++;
         ctx = ctx << 8 | next;
-        if (next == MATCH && val > 0) *out++ = 255;
+        if (next == BZ3_MATCH && val > 0) *out++ = 255;
     }
 
     return out >= out_eob ? -1 : (s32)(out - outs);
@@ -200,7 +200,7 @@ static s32 lzp_decode_block(const u8 * RESTRICT in, const u8 * in_end, s32 * RES
         u32 idx = (ctx >> 15 ^ ctx ^ ctx >> 3) & ((s32)(1 << LZP_DICTIONARY) - 1);
         s32 val = lut[idx];
         lut[idx] = (s32)(out - outs);
-        if (*in == MATCH && val > 0) {
+        if (*in == BZ3_MATCH && val > 0) {
             in++;
             if (*in != 255) {
                 s32 len = LZP_MIN_MATCH;
@@ -219,7 +219,7 @@ static s32 lzp_decode_block(const u8 * RESTRICT in, const u8 * in_end, s32 * RES
                 ctx = ((u32)out[-1]) | (((u32)out[-2]) << 8) | (((u32)out[-3]) << 16) | (((u32)out[-4]) << 24);
             } else {
                 in++;
-                ctx = (ctx << 8) | (*out++ = MATCH);
+                ctx = (ctx << 8) | (*out++ = BZ3_MATCH);
             }
         } else {
             ctx = (ctx << 8) | (*out++ = *in++);

@@ -229,6 +229,10 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
   HashIndex::set_hash_index(index);
   HashIndex::instance().open_file(index_file);
 
+  std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
+  HashDateIndex::open_file(date_column_file);
+  date_column_.open_file(date_column_file);
+
   std::string partkey_column_file = base_dir_ + "/" +  table_meta_.name() + "-parkey.column";
   part_column_.open_file(partkey_column_file);
 
@@ -249,9 +253,6 @@ RC Table::open(const char *meta_file, const char *base_dir, CLogManager *clog_ma
 
   std::string return_flag_column_file = base_dir_ + "/" +  table_meta_.name() + "-returnflag.column";
   return_flag_column_.open_file(return_flag_column_file);
-
-  std::string date_column_file = base_dir_ + "/" +  table_meta_.name() + "-date.column";
-  date_column_.open_file(date_column_file);
 
   std::string ship_column_file = base_dir_ + "/" +  table_meta_.name() + "-ship.column";
   ship_column_.open_file(ship_column_file);
@@ -302,7 +303,6 @@ void Table::flush_column() {
   extend_price_column_.flush_to_disk();
   discount_column_.flush_to_disk();
   tax_column_.flush_to_disk();
-  date_column_.flush_to_disk();
   ship_column_.flush_to_disk();
   comment_column_.flush_to_disk();
   return_flag_column_.flush_to_disk();
@@ -798,6 +798,8 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     return rc;
   } else {
     HashIndex::instance().flush_to_disk();
+    //date延迟到创建索引时
+    date_column_.flush_to_disk();
   }
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());
 

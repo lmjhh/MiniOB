@@ -15,6 +15,8 @@ public:
   void to_string(std::ostream &os, int index, int line_num) override;
   void insert(void *data, int index) override;
   void flush_to_disk() override;
+
+  static void delay_open_file(std::string file_name);
 private:
   uint32_t current_data_ = 0;
 };

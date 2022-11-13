@@ -77,9 +77,8 @@ void CommentColumn::create_file(std::string file_name) {
 }
 
 void CommentColumn::open_file(std::string file_name) {
-//  bzip3_uncompress_file(file_name.c_str());
-//  std::string remove_file = file_name + ".bzp";
-//  remove(remove_file.c_str());
+
+//  bzip3_uncompress_file(file_name.c_str(), CommentColumnValueCache);
 
   for(int i = 35; i < u8_to_str.size(); i++) {
     if (words_map[u8_to_str[i]] != i) {
@@ -93,9 +92,12 @@ void CommentColumn::open_file(std::string file_name) {
 
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *) (&current_offset_), 4);
-  in.read((char *) CommentColumnValueCache, current_offset_);
+  in.read((char *) CommentColumnValueCache + 4 , current_offset_);
   in.close();
-  for (int i = 0; i < current_offset_; i++) {
+
+//  current_offset_ = *(uint32_t *)CommentColumnValueCache;
+
+  for (int i = 4; i < current_offset_ + 4; i++) {
     if (CommentColumnValueCache[i] >= 128) {
       CommentColumnValueCache[i] -= 128; //还原字符
       CommentColumnValueOffset[total_data_++] = i + 1;
@@ -105,7 +107,7 @@ void CommentColumn::open_file(std::string file_name) {
 
 void CommentColumn::to_string(std::ostream &os, int index, int line_num) {
   std::string result;
-  int begin_index = 0;
+  int begin_index = 4;
   if (line_num > 0) begin_index = CommentColumnValueOffset[line_num - 1];
   for (int i = begin_index; i < CommentColumnValueOffset[line_num]; i++) {
     result += u8_to_str[CommentColumnValueCache[i]];
@@ -136,14 +138,11 @@ void CommentColumn::insert(void *data, int index) {
 }
 
 void CommentColumn::flush_to_disk() {
+  memcpy(CommentColumnValueCache, &current_offset_, 4);
 
-//  uint8_t *buf = new uint8_t [current_offset_ + 4];
-//  memcpy(buf, &current_offset_, 4);
-//  memcpy(buf + 4, CommentColumnValueCache, current_offset_);
-//  bzip3_compress_file(file_name_, buf, current_offset_ + 4);
+//  bzip3_compress_file(file_name_, CommentColumnValueCache, current_offset_);
 
   std::ofstream out(file_name_.c_str(), std::ios::out);
-  out.write((const char *) &current_offset_, 4);
   out.write((const char *) CommentColumnValueCache, current_offset_);
   out.close();
 

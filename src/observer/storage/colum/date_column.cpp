@@ -8,77 +8,59 @@
 #include <sstream>
 #include "defs.h"
 #include "storage/index/hash_index.h"
+#include "util/zpaq_compress.h"
 #include "util/util.h"
-const int DateColumnCacheBytes = 32 * MAX_LINE_NUM / 8;
-const int DateColumnCacheOverBytes = 4 * MAX_LINE_NUM / 8;
-uint32_t DateColumnCache[MAX_LINE_NUM];
-uint8_t DateColumnCacheOver[MAX_LINE_NUM];
+const int DateColumnSize = 48; //一列36bit
+const int DateColumnCacheBytes = DateColumnSize * MAX_LINE_NUM / 8;
+
+#pragma pack (6)
+struct DateCacheNode
+{
+  uint16_t data[3];
+};
+#pragma pack () /*取消指定对齐，恢复缺省对齐*/
+
+DateCacheNode DateColumnCache[MAX_LINE_NUM];
 
 void DateColumn::create_file(std::string file_name) {
   file_name_ = file_name;
   memset(DateColumnCache, 0, sizeof(DateColumnCache));
-  memset(DateColumnCacheOver, 0, sizeof(DateColumnCacheOver));
 }
 
 void DateColumn::open_file(std::string file_name) {
+  file_name_ = file_name;
+}
+
+void DateColumn::delay_open_file(std::string file_name) {
+  zpaq_uncompress(file_name);
+  std::string copress_name = file_name +".zpaq";
+  remove(copress_name.c_str());
+
   std::ifstream in(file_name.c_str(), std::ios::in);
   in.read((char *)DateColumnCache, DateColumnCacheBytes);
-  in.read((char *)DateColumnCacheOver, DateColumnCacheOverBytes);
   for (int i = 0; i < MAX_LINE_NUM; i++){
-    uint32_t t = DateColumnCache[i];
-    uint16_t v = t >> 20;
-    HashDateIndex::add_sort_map(v, i);
+    HashDateIndex::add_sort_map(DateColumnCache[i].data[0], i);
   }
   in.close();
 }
 
 void DateColumn::to_string(std::ostream &os, int index, int line_num) {
-  uint16_t t = 0;
-  if (index == 0) {
-    t = DateColumnCache[line_num] >> 20;
-  } else if (index == 1) {
-    uint32_t o = DateColumnCache[line_num] << 12;
-    t = o >> 20;
-  } else if (index == 2) {
-    uint32_t o = DateColumnCache[line_num] << 24;
-    t = o >> 20;
-    if (line_num % 2 == 0) {
-      t |= DateColumnCacheOver[line_num/2] >> 4;
-    } else {
-      uint8_t f = DateColumnCacheOver[line_num/2] << 4;
-      f = f >> 4;
-      t |= f;
-    }
+  if (HashDateIndex::index_size() == 0) {
+    DateColumn::delay_open_file(file_name_);
   }
-  os << to_date_str(t);
+  os << to_date_str(DateColumnCache[line_num].data[index]);
 }
 
 void DateColumn::insert(void *data, int index) {
   uint16_t date = *(uint16_t *)data;
-  date = date << 4;
-  date = date >> 4;
-  if (index == 0) {
-    DateColumnCache[current_line_num_] |= date;
-    DateColumnCache[current_line_num_] <<= 12;
-  } else if (index == 1) {
-    DateColumnCache[current_line_num_] |= date;
-    DateColumnCache[current_line_num_] <<= 8;
-  } else {
-    DateColumnCache[current_line_num_] |= date >> 4;
-    uint8_t t = date;
-    t <<= 4;
-    t >>= 4;
-    DateColumnCacheOver[current_line_num_ / 2] |= t;
-    if (current_line_num_ % 2 == 0) {
-      DateColumnCacheOver[current_line_num_ / 2] <<= 4;
-    }
-    current_line_num_++;
-  }
+  DateColumnCache[current_line_num_].data[index] = date;
+  if (index == 2) current_line_num_++;
 }
 
 void DateColumn::flush_to_disk() {
   std::ofstream out(file_name_.c_str(), std::ios::out);
   out.write((const char *)DateColumnCache, DateColumnCacheBytes);
-  out.write((const char *)DateColumnCacheOver, DateColumnCacheOverBytes);
   out.close();
+  zpaq_compress(file_name_);
+  remove(file_name_.c_str());
 }
