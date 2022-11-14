@@ -16,7 +16,7 @@ const int DateColumnCacheBytes = DateColumnSize * MAX_LINE_NUM / 8;
 #pragma pack (6)
 struct DateCacheNode
 {
-  uint16_t data[3];
+  int16_t data[3];
 };
 #pragma pack () /*取消指定对齐，恢复缺省对齐*/
 
@@ -48,12 +48,21 @@ void DateColumn::to_string(std::ostream &os, int index, int line_num) {
   if (HashDateIndex::index_size() == 0) {
     DateColumn::delay_open_file(file_name_);
   }
-  os << to_date_str(DateColumnCache[line_num].data[index]);
+  if (index != 0) {
+    uint16_t cur_date = DateColumnCache[line_num].data[index] + DateColumnCache[line_num].data[0];
+    os << to_date_str(cur_date);
+  } else {
+    os << to_date_str(DateColumnCache[line_num].data[index]);
+  }
 }
 
 void DateColumn::insert(void *data, int index) {
   uint16_t date = *(uint16_t *)data;
-  DateColumnCache[current_line_num_].data[index] = date;
+  if(index != 0) {
+    DateColumnCache[current_line_num_].data[index] = date - DateColumnCache[current_line_num_].data[0];
+  } else {
+    DateColumnCache[current_line_num_].data[index] = date;
+  }
   if (index == 2) current_line_num_++;
 }
 

@@ -21,7 +21,7 @@ See the Mulan PSL v2 for more details. */
 #include "FileCompress.h"
 #include "lzw_compress.h"
 #include "util/bzip3/libbz3.c"
-
+#include "date.h"
 
 std::string double2string(double v)
 {
@@ -43,17 +43,21 @@ std::string double2string(double v)
 DateNum to_date_data (char *str) {
   int y, m, d;
   sscanf(str, "%d-%d-%d", &y, &m, &d);
-//  return (y-1992) * 10000 + m * 100 + d;
-  return d + m * 32 + (y - 1992) * 512;
+  Date date_now(y,m,d);
+  Date date_begin(1992, 1, 1);
+  return date_now - date_begin;
+//  return d + m * 32 + (y - 1992) * 512;
 }
 
 std::string to_date_str (DateNum data) {
-  uint16_t d = (data << 11); d = d >> 11;
-  uint16_t m = (data >> 5);  m = m << 12; m = m >> 12;
-  uint16_t y = (data >> 9);  y += 1992;
-//  uint16_t d = data % 100; data/= 100;
-//  uint16_t m = data % 100; data/= 100;
-//  uint16_t y = (data % 10);  y += 1992;
+  Date date_begin(1992, 1, 1);
+  Date now = date_begin + data;
+  uint16_t d = now.day;
+  uint16_t m = now.month;
+  uint16_t y = now.year;
+//  uint16_t d = (data << 11); d = d >> 11;
+//  uint16_t m = (data >> 5);  m = m << 12; m = m >> 12;
+//  uint16_t y = (data >> 9);  y += 1992;
   char yearStr[5], monthStr[3], dayStr[3];
   sprintf(yearStr, "%d", y); //年。
   sprintf(monthStr, "%d", m); //月。

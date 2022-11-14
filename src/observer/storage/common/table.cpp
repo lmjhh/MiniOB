@@ -297,7 +297,6 @@ void Table::to_string_column(std::ostream &os, int column, int index, int line_n
 }
 
 void Table::flush_column() {
-  part_column_.flush_to_disk();
   line_num_column_.flush_to_disk();
   quan_tity_column_.flush_to_disk();
   extend_price_column_.flush_to_disk();
@@ -800,6 +799,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     //date延迟到创建索引时
     date_column_.flush_to_disk();
     return_flag_column_.flush_to_disk();
+    part_column_.flush_to_disk();
   }
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());
 
