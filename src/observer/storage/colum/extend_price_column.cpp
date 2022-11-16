@@ -9,12 +9,13 @@
 #include "util//util.h"
 #include <iomanip>
 #include <algorithm>
-const int ExtendPriceColumnSize = 24; //一列多少bit
-const int ExtendPriceColumnCacheINTBytes = 16 * MAX_LINE_NUM / 8;
-const int ExtendPriceColumnCacheFLOBytes = 8 * MAX_LINE_NUM / 8;
+#include "util/zpaq_compress.h"
+const int PartKeyMaxNum = 200000;
+const int ExtendPriceColumnCacheINTBytes = 16 * PartKeyMaxNum / 8;
+const int ExtendPriceColumnCacheFLOBytes = 8 * PartKeyMaxNum / 8;
 
-uint16_t ExtendPriceColumnINTCache[MAX_LINE_NUM];
-uint8_t ExtendPriceColumnFLOCache[MAX_LINE_NUM];
+uint16_t ExtendPriceColumnINTCache[PartKeyMaxNum];
+uint8_t ExtendPriceColumnFLOCache[PartKeyMaxNum];
 
 void ExtendPriceColumn::create_file(std::string file_name) {
   file_name_ = file_name;
@@ -23,24 +24,33 @@ void ExtendPriceColumn::create_file(std::string file_name) {
 }
 
 void ExtendPriceColumn::open_file(std::string file_name) {
-//  bzip3_uncompress_file(file_name.c_str());
-//  std::string remove_file = file_name + ".bzp";
-//  remove(remove_file.c_str());
+  file_name_ = file_name;
+}
 
-  std::ifstream in(file_name.c_str(), std::ios::in);
+void ExtendPriceColumn::delay_open_file() {
+  zpaq_uncompress(file_name_.c_str());
+  std::string remove_file = file_name_ + ".zpaq";
+  remove(remove_file.c_str());
+
+  std::ifstream in(file_name_.c_str(), std::ios::in);
   in.read((char *)ExtendPriceColumnINTCache, ExtendPriceColumnCacheINTBytes);
   in.read((char *)ExtendPriceColumnFLOCache, ExtendPriceColumnCacheFLOBytes);
   in.close();
+  current_line_num_ = 1;
 }
 
 void ExtendPriceColumn::to_string(std::ostream &os, int index, int line_num) {
-  uint8_t flo_v = ExtendPriceColumnFLOCache[line_num];
+  if (current_line_num_ == 0) {
+    delay_open_file();
+  }
+  uint8_t flo_v = ExtendPriceColumnFLOCache[line_num - 1];
   int flag = 0;
   if (flo_v >= 128) flag = 1;
   flo_v <<= 1;
   flo_v >>= 1;
-  uint32_t int_v = ExtendPriceColumnINTCache[line_num];
+  uint32_t int_v = ExtendPriceColumnINTCache[line_num - 1];
   float v = (int_v * 2 + flag) * 100 + flo_v;
+  v = v * index;
   os << double2string(v/100);
 }
 
@@ -52,13 +62,12 @@ void ExtendPriceColumn::insert(void *data, int index) {
   uint32_t int_v = atoi(str.c_str());
   uint8_t flo_v = int_v % 100;
   int_v /= 100;
-  ExtendPriceColumnFLOCache[current_line_num_] |= flo_v;
+  ExtendPriceColumnFLOCache[index - 1] |= flo_v;
   if (int_v % 2 == 1) {
-    ExtendPriceColumnFLOCache[current_line_num_] |= (1 << 7);
+    ExtendPriceColumnFLOCache[index - 1] |= (1 << 7);
   }
   int_v >>= 1;
-  ExtendPriceColumnINTCache[current_line_num_] |= int_v;
-  current_line_num_++;
+  ExtendPriceColumnINTCache[index - 1] |= int_v;
 }
 
 void ExtendPriceColumn::flush_to_disk() {
@@ -66,6 +75,6 @@ void ExtendPriceColumn::flush_to_disk() {
   out.write((const char *) ExtendPriceColumnINTCache, ExtendPriceColumnCacheINTBytes);
   out.write((const char *) ExtendPriceColumnFLOCache, ExtendPriceColumnCacheFLOBytes);
   out.close();
-//  bzip3_compress_file(file_name_);
-//  remove(file_name_.c_str());
+  zpaq_compress(file_name_);
+  remove(file_name_.c_str());
 }

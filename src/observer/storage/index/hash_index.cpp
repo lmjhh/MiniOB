@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include "util/util.h"
 #include "storage/colum/date_column.h"
+#include "storage/colum/line_number.h"
 static int ORDER_KEY_CACHE[6100000];
 
 void HashIndex::create_file(std::string file_name) {
@@ -37,6 +38,8 @@ void HashIndex::open_file(std::string file_name) {
       for (int iter = 0; iter < 256; iter++) {
         for (int value_count = 0; value_count < data_[i].offset[iter]; value_count++) {
           ORDER_KEY_CACHE[current_count_++] = data_[i].begin_num + iter;
+          uint8_t line = value_count + 1;
+          LineNumColumn::insert_from_order(&line, 0);
         }
       }
     }

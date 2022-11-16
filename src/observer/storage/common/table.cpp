@@ -274,7 +274,8 @@ void Table::to_string_column(std::ostream &os, int column, int index, int line_n
     quan_tity_column_.to_string(os, index, line_num);
   }
   if (column == 5) {
-    extend_price_column_.to_string(os, index, line_num);
+    //index = quantity line_num = parkey
+    extend_price_column_.to_string(os, quan_tity_column_.get_quantity(line_num), part_column_.get_partkey(line_num));
   }
   if (column == 6) {
     discount_column_.to_string(os, index, line_num);
@@ -299,7 +300,6 @@ void Table::to_string_column(std::ostream &os, int column, int index, int line_n
 void Table::flush_column() {
   line_num_column_.flush_to_disk();
   quan_tity_column_.flush_to_disk();
-  extend_price_column_.flush_to_disk();
   discount_column_.flush_to_disk();
   tax_column_.flush_to_disk();
   ship_column_.flush_to_disk();
@@ -505,7 +505,8 @@ RC Table::make_record(int value_num, const Value *values, char *&record_out)
       quan_tity_column_.insert(value.data, 0);
     }
     if (i == 5) {
-      extend_price_column_.insert(value.data, 0);
+      float signal_price = *(float *)value.data / quan_tity_column_.get_quantity(-1);
+      extend_price_column_.insert(&signal_price, part_column_.get_partkey(-1));
     }
     if (i == 6) {
       discount_column_.insert(value.data, 0);
@@ -800,6 +801,7 @@ RC Table::create_index(Trx *trx, const char *index_name, const char *attribute_n
     date_column_.flush_to_disk();
     return_flag_column_.flush_to_disk();
     part_column_.flush_to_disk();
+    extend_price_column_.flush_to_disk();
   }
   LOG_INFO("Successfully added a new index (%s) on the table (%s)", index_name, name());
 

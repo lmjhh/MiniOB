@@ -15,6 +15,7 @@ public:
   void insert(void *data, int index) override;
   void flush_to_disk() override;
   void delay_open_file();
+  uint32_t get_partkey(int line_num);
 private:
   uint32_t current_data_ = 0;
 };

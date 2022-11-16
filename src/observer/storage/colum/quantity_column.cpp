@@ -31,6 +31,11 @@ void QuantityColumn::to_string(std::ostream &os, int index, int line_num) {
   os << data;
 }
 
+uint32_t QuantityColumn::get_quantity(int line_num) {
+  if (line_num == -1) return QuantityColumnCache[current_line_num_ - 1];
+  return QuantityColumnCache[line_num];
+}
+
 void QuantityColumn::insert(void *data, int index) {
   uint8_t code = *(uint8_t *)data;
   QuantityColumnCache[current_line_num_++] = code;
